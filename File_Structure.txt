@@ -1,0 +1,23 @@
+/taskflow/
+│
+├── index.php               // لوحة التحكم الرئيسية
+├── *login.php               // صفحة تسجيل الدخول
+├── *logout.php               //   صفحة تسجيل الخروج
+├── *register.php            // صفحة التسجيل
+├── *dashboard.php           // الصفحة بعد تسجيل الدخول
+├── projects/
+│   ├── *add-project.php
+│   ├── *edit-project.php
+│   └── *delete-project.php
+├── tasks/
+│   ├── *view-tasks.php
+│   ├── *update-status.php
+├── includes/
+│   └── *db.php             // الاتصال بالقاعدة
+├── css/
+│   └── *styles.css         // تنسيق الويب
+├── js/
+│   └── *main.js             // جافاسكربت للتفاعل
+├── db/
+│   └──*taskflow_db.sql 
+└── README.md              // شرح المشروع

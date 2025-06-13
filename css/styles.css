@@ -1,0 +1,310 @@
+* {
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #f5f7fa;
+    color: #333;
+}
+
+header {
+    background-color: #2c3e50;
+    color: white;
+    padding: 20px;
+    text-align: center;
+    position: relative;
+}
+
+header .btn {
+    position: absolute;
+    top: 20px;
+    right: 20px; /* Changed from left: 20px for RTL */
+    background-color: #1abc9c;
+    color: white;
+    padding: 10px 15px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+header .logout-btn {
+    position: absolute;
+    top: 20px;
+    left: 20px; /* Place logout button on the left for RTL */
+    background-color: #e74c3c;
+    color: white;
+    padding: 10px 15px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+main {
+    padding: 20px;
+}
+
+.projects ul {
+    list-style: none;
+    padding: 0;
+}
+
+.projects li {
+    background-color: white;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.05);
+    transition: transform 0.2s ease-in-out;
+}
+
+.projects li:hover {
+    transform: scale(1.02);
+}
+
+.form-container {
+    max-width: 600px;
+    margin: 40px auto;
+    padding: 20px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+input, textarea, select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.error {
+    color: red;
+    background-color: #ffe6e6;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.success {
+    color: green;
+    background-color: #e6ffe6;
+    padding: 10px;
+    border-radius: 5px;
+}
+/* Responsive Table */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: #fff;
+    box-shadow: 0 0 5px rgba(0,0,0,0.05);
+    animation: fadeIn 0.4s ease-in-out;
+}
+
+th, td {
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+}
+
+th {
+    background-color: #ecf0f1;
+}
+
+.btn-delete {
+    background-color: #e74c3c;
+    color: white;
+    padding: 6px 10px;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.priority {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: white;
+}
+
+.priority.low { background-color: #2ecc71; }
+.priority.medium { background-color: #f1c40f; }
+.priority.high { background-color: #e74c3c; }
+
+/* Kanban Board Styles */
+.tasks-kanban {
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 0 32px 0;
+}
+.kanban-board {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+    flex-wrap: wrap;
+}
+.kanban-column {
+    background: #f7fafd;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(52,152,219,0.07);
+    padding: 18px 12px 32px 12px;
+    min-width: 340px;
+    max-width: 370px;
+    flex: 1 1 340px;
+    min-height: 520px;
+    position: relative;
+    transition: box-shadow 0.2s;
+}
+.kanban-column.todo { border-top: 6px solid #dbeafe; }
+.kanban-column.inprogress { border-top: 6px solid #b6e0fe; background: #eaf6ff; }
+.kanban-column.done { border-top: 6px solid #b9fbc0; background: #eaffea; }
+.kanban-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 1.18rem;
+    font-weight: bold;
+    margin-bottom: 12px;
+    color: #3b3b3b;
+}
+.kanban-header span.kanban-count {
+    background: #e3e8ee;
+    color: #1abc9c;
+    border-radius: 50%;
+    padding: 2px 10px;
+    font-size: 1rem;
+    font-weight: bold;
+    margin-right: 6px;
+}
+.kanban-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(52,152,219,0.07);
+    margin-bottom: 18px;
+    padding: 18px 16px 12px 16px;
+    transition: box-shadow 0.2s, transform 0.2s;
+    border-left: 4px solid #dbeafe;
+    position: relative;
+    animation: fadeInUp 0.7s cubic-bezier(.39,.575,.565,1.000);
+}
+.kanban-column.inprogress .kanban-card { border-left: 4px solid #b6e0fe; }
+.kanban-column.done .kanban-card { border-left: 4px solid #b9fbc0; }
+.kanban-card-title {
+    font-size: 1.13rem;
+    font-weight: bold;
+    margin-bottom: 2px;
+    color: #232526;
+}
+.kanban-card-assignee {
+    font-size: 0.98rem;
+    color: #3b3b3b;
+    margin-bottom: 6px;
+    opacity: 0.85;
+}
+.kanban-card-desc {
+    font-size: 0.97rem;
+    color: #444;
+    margin-bottom: 10px;
+    opacity: 0.93;
+}
+.kanban-card-status {
+    margin-bottom: 10px;
+}
+.kanban-card-status select {
+    width: 100%;
+    padding: 7px 10px;
+    border-radius: 7px;
+    border: 1px solid #e3e8ee;
+    background: #f7fafd;
+    color: #232526;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: border 0.2s;
+}
+.kanban-card-status select:focus {
+    border: 1.5px solid #1abc9c;
+    outline: none;
+}
+.kanban-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.93rem;
+    color: #888;
+    margin-top: 8px;
+}
+.kanban-card-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.kanban-card-actions a, .kanban-card-actions button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    transition: transform 0.15s;
+}
+.kanban-card-actions a:hover, .kanban-card-actions button:hover {
+    transform: scale(1.13);
+}
+.kanban-delete {
+    background: none;
+    border: none;
+    color: #e74c3c;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0;
+}
+@media (max-width: 768px) {
+    table, thead, tbody, th, td, tr {
+        display: block;
+    }
+
+    tr {
+        margin-bottom: 20px;
+    }
+
+    td {
+        position: relative;
+        padding-left: 120px;
+    }
+
+    td::before {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        font-weight: bold;
+        white-space: nowrap;
+        content: attr(data-label);
+    }
+}
+@media (max-width: 1100px) {
+    .kanban-board {
+        flex-direction: column;
+        gap: 18px;
+        align-items: stretch;
+    }
+    .kanban-column {
+        min-width: 0;
+        max-width: 100%;
+        width: 100%;
+    }
+}
