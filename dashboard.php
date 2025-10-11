@@ -21,6 +21,7 @@ $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <title>لوحة التحكم - TaskFlow</title>
@@ -289,12 +290,13 @@ $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </style>
 </head>
 <body>
+    <?php include 'includes/nav.php'; render_nav(''); ?>
+
     <div class="pro-dashboard-container">
         <div class="pro-dashboard-header">
             <h1>مرحبًا، <?= htmlspecialchars($user['name']) ?> 👋</h1>
             <div>
                 <a href="projects/add-project.php" class="btn">+ مشروع جديد</a>
-                <a href="logout.php" class="logout-btn btn">تسجيل الخروج</a>
             </div>
         </div>
         <main>
@@ -313,12 +315,14 @@ $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <span>عرض المهام</span>
                                     </a>
                                     <span style="flex:1"></span>
-                                    <a href="projects/edit-project.php?id=<?= $project['id'] ?>" title="تعديل المشروع" class="icon-btn left-icon">
-                                        <svg width="22" height="22"><use href="#icon-edit-stylish"/></svg>
-                                    </a>
-                                    <a href="projects/delete-project.php?id=<?= $project['id'] ?>" title="حذف المشروع" class="icon-btn left-icon" onclick="return confirm('هل أنت متأكد من الحذف؟')">
-                                        <svg width="22" height="22"><use href="#icon-trash-alt"/></svg>
-                                    </a>
+                                    <?php if ($project['user_id'] == $user_id): ?>
+                                        <a href="projects/edit-project.php?id=<?= $project['id'] ?>" title="تعديل المشروع" class="icon-btn left-icon">
+                                            <svg width="22" height="22"><use href="#icon-edit-stylish"/></svg>
+                                        </a>
+                                        <a href="projects/delete-project.php?id=<?= $project['id'] ?>" title="حذف المشروع" class="icon-btn left-icon" onclick="return confirm('هل أنت متأكد من الحذف؟')">
+                                            <svg width="22" height="22"><use href="#icon-trash-alt"/></svg>
+                                        </a>
+                                    <?php endif; ?>
                                 </div>
                             </li>
                         <?php endforeach    ; ?>
@@ -337,6 +341,6 @@ $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </symbol>
         <symbol id="icon-trash-alt" viewBox="0 0 24 24"><rect x="5" y="7" width="14" height="12" rx="2" stroke="#e74c3c" stroke-width="2" fill="none"/><path d="M3 7h18M10 11v4M14 11v4" stroke="#e74c3c" stroke-width="2" fill="none"/><rect x="9" y="3" width="6" height="4" rx="1" stroke="#e74c3c" stroke-width="2" fill="none"/></symbol>
     </svg>
-    <script src="../js/main.js"></script>
+
 </body>
 </html>

@@ -32,6 +32,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt = $pdo->prepare("UPDATE projects SET title = ?, description = ? WHERE id = ?");
         $stmt->execute([$title, $description, $project_id]);
         $success = "تم تحديث المشروع بنجاح.";
+        // Notify owner
+        $owner_id = $project['user_id'];
+        $msg = "تم تعديل مشروع '{$title}'";
+        $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$owner_id, $msg]);
     } catch (PDOException $e) {
         $error = "فشل في تحديث المشروع.";
     }
@@ -154,6 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </style>
 </head>
 <body>
+    <?php include '../includes/nav.php'; render_nav('../'); ?>
 
 <div class="pro-form-container">
     <a href="../dashboard.php" class="back-btn">&larr; العودة إلى لوحة التحكم</a>

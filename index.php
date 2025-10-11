@@ -96,6 +96,7 @@ session_start();
     </script>
 </head>
 <body>
+    <?php include 'includes/nav.php'; render_nav(''); ?>
     <div class="pro-container">
         <div class="loader"></div>
         <div class="pro-logo">TaskFlow</div>

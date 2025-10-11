@@ -1,0 +1,2 @@
+- [x] Update get-tasks.php to add 'can_edit' and 'can_delete' to each task based on user permissions
+- [x] Update view-tasks.php: add error handling to pollTasks, update kanban-count in renderKanban, reduce polling interval to 5 seconds

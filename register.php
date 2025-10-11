@@ -153,6 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </script>
 </head>
 <body>
+    <!-- Navigation Bar Removed -->
     <div class="pro-auth-container">
         <div class="pro-logo">TaskFlow</div>
         <div id="pro-loader" class="loader" style="display:none;"></div>

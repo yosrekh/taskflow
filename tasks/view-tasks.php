@@ -24,6 +24,22 @@ if (isset($_POST['add_task'])) {
         $stmt = $pdo->prepare("INSERT INTO tasks (project_id, title, description, priority, due_date, assigned_to, status) VALUES (?, ?, ?, ?, ?, ?, 'Pending')");
         $stmt->execute([$project_id, $title, $description, $priority, $due_date, $assigned_to]);
         $success = "تم إضافة المهمة بنجاح.";
+        // Notify owner and assignee
+        $owner_stmt = $pdo->prepare("SELECT user_id FROM projects WHERE id = ?");
+        $owner_stmt->execute([$project_id]);
+        $owner_id = $owner_stmt->fetchColumn();
+        $actor_id = $_SESSION['user_id'];
+        $actor_stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
+        $actor_stmt->execute([$actor_id]);
+        $actor_name = $actor_stmt->fetchColumn();
+        $project_title = $project['title'];
+        $action_time = date('Y-m-d H:i');
+        $msg = "[${action_time}] ${actor_name} أضاف مهمة جديدة '{$title}' في مشروع '{$project_title}'";
+        foreach ([$owner_id, $assigned_to] as $uid) {
+            if ($uid && $uid != $actor_id) {
+                $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$uid, $msg]);
+            }
+        }
     } catch (PDOException $e) {
         $error = "فشل في إضافة المهمة.";
     }
@@ -31,30 +47,76 @@ if (isset($_POST['add_task'])) {
 
 // Handle Edit Task
 if (isset($_POST['edit_task'])) {
-    $task_id = $_POST['task_id'];
-    $title = $_POST['title'];
-    $description = $_POST['description'];
-    $priority = $_POST['priority'];
-    $due_date = $_POST['due_date'];
-    $assigned_to = $_POST['assigned_to'];
-    try {
-        $stmt = $pdo->prepare("UPDATE tasks SET title=?, description=?, priority=?, due_date=?, assigned_to=? WHERE id=?");
-        $stmt->execute([$title, $description, $priority, $due_date, $assigned_to, $task_id]);
-        $success = "تم تحديث المهمة بنجاح.";
-    } catch (PDOException $e) {
-        $error = "فشل في تحديث المهمة.";
+    // Only project owner can edit any task
+    if ($user_id == $project_owner_id) {
+        $task_id = $_POST['task_id'];
+        $title = $_POST['title'];
+        $description = $_POST['description'];
+        $priority = $_POST['priority'];
+        $due_date = $_POST['due_date'];
+        $assigned_to = $_POST['assigned_to'];
+        try {
+            $stmt = $pdo->prepare("UPDATE tasks SET title=?, description=?, priority=?, due_date=?, assigned_to=? WHERE id=?");
+            $stmt->execute([$title, $description, $priority, $due_date, $assigned_to, $task_id]);
+            $success = "تم تحديث المهمة بنجاح.";
+            // Notify owner and assignee
+            $owner_stmt = $pdo->prepare("SELECT user_id FROM projects WHERE id = ?");
+            $owner_stmt->execute([$project_id]);
+            $owner_id = $owner_stmt->fetchColumn();
+            $actor_id = $_SESSION['user_id'];
+            $actor_stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
+            $actor_stmt->execute([$actor_id]);
+            $actor_name = $actor_stmt->fetchColumn();
+            $project_title = $project['title'];
+            $action_time = date('Y-m-d H:i');
+            $msg = "[${action_time}] ${actor_name} عدّل مهمة '{$title}' في مشروع '{$project_title}'";
+            foreach ([$owner_id, $assigned_to] as $uid) {
+                if ($uid && $uid != $actor_id) {
+                    $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$uid, $msg]);
+                }
+            }
+        } catch (PDOException $e) {
+            $error = "فشل في تحديث المهمة.";
+        }
+    } else {
+        $error = "غير مصرح لك بتعديل هذه المهمة.";
     }
 }
 
 // Handle Delete Task
 if (isset($_POST['delete_task'])) {
-    $task_id = $_POST['task_id'];
-    try {
-        $stmt = $pdo->prepare("DELETE FROM tasks WHERE id = ?");
-        $stmt->execute([$task_id]);
-        $success = "تم حذف المهمة بنجاح.";
-    } catch (PDOException $e) {
-        $error = "فشل في حذف المهمة.";
+    // Only project owner can delete any task
+    if ($user_id == $project_owner_id) {
+        $task_id = $_POST['task_id'];
+        try {
+            // Get task info for notification
+            $task_stmt = $pdo->prepare("SELECT * FROM tasks WHERE id = ?");
+            $task_stmt->execute([$task_id]);
+            $task = $task_stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt = $pdo->prepare("DELETE FROM tasks WHERE id = ?");
+            $stmt->execute([$task_id]);
+            $success = "تم حذف المهمة بنجاح.";
+            // Notify owner and assignee
+            $owner_stmt = $pdo->prepare("SELECT user_id FROM projects WHERE id = ?");
+            $owner_stmt->execute([$project_id]);
+            $owner_id = $owner_stmt->fetchColumn();
+            $actor_id = $_SESSION['user_id'];
+            $actor_stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
+            $actor_stmt->execute([$actor_id]);
+            $actor_name = $actor_stmt->fetchColumn();
+            $project_title = $project['title'];
+            $action_time = date('Y-m-d H:i');
+            $msg = "[${action_time}] ${actor_name} حذف المهمة '{$task['title']}' في مشروع '{$project_title}'";
+            foreach ([$owner_id, $task['assigned_to']] as $uid) {
+                if ($uid && $uid != $actor_id) {
+                    $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$uid, $msg]);
+                }
+            }
+        } catch (PDOException $e) {
+            $error = "فشل في حذف المهمة.";
+        }
+    } else {
+        $error = "غير مصرح لك بحذف هذه المهمة.";
     }
 }
 
@@ -64,14 +126,33 @@ $stmt->execute([$project_id]);
 $project = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Get all tasks in this project
-$stmt = $pdo->prepare("
-    SELECT t.*, u.name AS assignee_name 
-    FROM tasks t
-    LEFT JOIN users u ON t.assigned_to = u.id
-    WHERE t.project_id = ?
-");
-$stmt->execute([$project_id]);
-$tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$user_id = $_SESSION['user_id'];
+$project_owner_stmt = $pdo->prepare("SELECT user_id FROM projects WHERE id = ?");
+$project_owner_stmt->execute([$project_id]);
+$project_owner_id = $project_owner_stmt->fetchColumn();
+
+if ($user_id == $project_owner_id) {
+    // Owner sees all tasks in the project
+    $stmt = $pdo->prepare("
+        SELECT t.*, u.name AS assignee_name 
+        FROM tasks t
+        LEFT JOIN users u ON t.assigned_to = u.id
+        WHERE t.project_id = ?
+    ");
+    $stmt->execute([$project_id]);
+    $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} else {
+    // Other users see only their assigned tasks
+    $stmt = $pdo->prepare("
+        SELECT t.*, u.name AS assignee_name 
+        FROM tasks t
+        LEFT JOIN users u ON t.assigned_to = u.id
+        WHERE t.project_id = ? AND t.assigned_to = ?
+    ");
+    $stmt->execute([$project_id, $user_id]);
+    $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 
 // Get all users for assignment
 $users_stmt = $pdo->query("SELECT id, name FROM users");
@@ -348,6 +429,149 @@ if (isset($_GET['edit_task_id'])) {
     </style>
 </head>
 <body>
+    <script>
+    let lastTasksJson = '';
+    function renderKanban(tasks) {
+        const statuses = {
+            'Pending': document.querySelector('.kanban-column.todo'),
+            'In Progress': document.querySelector('.kanban-column.inprogress'),
+            'Completed': document.querySelector('.kanban-column.done')
+        };
+        Object.keys(statuses).forEach(status => {
+            const col = statuses[status];
+            if (!col) return;
+                const cards = tasks.filter(t => t.status === status).map(task => `
+                    <div class=\"kanban-card\">
+                        <div class=\"kanban-card-title\"><strong>${task.title}</strong></div>
+                        <div class=\"kanban-card-assignee\">Assignee: ${task.assignee_name || 'No one'}</div>
+                        <div class=\"kanban-card-desc\">${task.description}</div>
+                        <div class=\"kanban-card-status\">
+                            <select class=\"task-status\" data-task-id=\"${task.id}\">
+                                <option value=\"Pending\" ${task.status === 'Pending' ? 'selected' : ''}>To Do</option>
+                                <option value=\"In Progress\" ${task.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                                <option value=\"Completed\" ${task.status === 'Completed' ? 'selected' : ''}>Done</option>
+                            </select>
+                        </div>
+                        <div class=\"kanban-card-footer\">
+                            <span>Created: ${task.created_at ? new Date(task.created_at).toLocaleDateString() : (task.due_date ? new Date(task.due_date).toLocaleDateString() : '')}</span>
+                            <div class=\"kanban-card-actions\">
+                                ${task.can_edit ? `<a href=\"view-tasks.php?project_id=${task.project_id}&edit_task_id=${task.id}\" title=\"Edit\"><svg width=\"18\" height=\"18\" fill=\"#888\"><use href=\"#icon-edit\"/></svg></a>` : ''}
+                                ${task.can_delete ? `<form method=\"POST\" style=\"display:inline;\"><input type=\"hidden\" name=\"task_id\" value=\"${task.id}\"><button type=\"submit\" name=\"delete_task\" class=\"kanban-delete\" title=\"Delete\" onclick=\"return confirm('Delete this task?')\"><svg width=\"18\" height=\"18\" fill=\"#e74c3c\"><use href=\"#icon-trash\"/></svg></button></form>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            col.querySelectorAll('.kanban-card').forEach(e => e.remove());
+            col.insertAdjacentHTML('beforeend', cards);
+                // Re-attach status change event listeners
+                col.querySelectorAll('.task-status').forEach(function(select) {
+                    select.addEventListener('change', function() {
+                        const taskId = this.dataset.taskId;
+                        const newStatus = this.value;
+                        const formData = new FormData();
+                        formData.append('task_id', taskId);
+                        formData.append('status', newStatus);
+                        fetch('../tasks/update-status.php', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(res => res.json())
+                            .then(data => {
+                                if (data.success) {
+                                    const notif = document.createElement('div');
+                                    notif.textContent = 'تم تحديث حالة المهمة!';
+                                    notif.style.position = 'fixed';
+                                    notif.style.top = '32px';
+                                    notif.style.left = '50%';
+                                    notif.style.transform = 'translateX(-50%)';
+                                    notif.style.background = '#1abc9c';
+                                    notif.style.color = '#fff';
+                                    notif.style.padding = '12px 32px';
+                                    notif.style.borderRadius = '8px';
+                                    notif.style.fontSize = '1.1rem';
+                                    notif.style.boxShadow = '0 2px 12px rgba(26,188,156,0.13)';
+                                    notif.style.zIndex = 9999;
+                                    document.body.appendChild(notif);
+                                    setTimeout(() => notif.remove(), 1500);
+                                    // Update notifications immediately (full refresh if dropdown open)
+                                    fetchNotifications(notifOpen);
+                                    // Move card to new column instantly
+                                    const card = this.closest('.kanban-card');
+                                    const board = card.closest('.kanban-board');
+                                    let newColClass = '';
+                                    if (newStatus === 'Pending') newColClass = 'todo';
+                                    else if (newStatus === 'In Progress') newColClass = 'inprogress';
+                                    else if (newStatus === 'Completed') newColClass = 'done';
+                                    const newCol = board.querySelector('.kanban-column.' + newColClass);
+                                    if (newCol && !newCol.contains(card)) newCol.appendChild(card);
+                                } else {
+                                    alert('فشل في تحديث الحالة!');
+                                }
+                            })
+                        .catch(() => alert('فشل في الاتصال بالخادم!'));
+                    });
+                });
+        });
+        // Update counts
+        statuses['Pending'].querySelector('.kanban-count').textContent = tasks.filter(t => t.status === 'Pending').length;
+        statuses['In Progress'].querySelector('.kanban-count').textContent = tasks.filter(t => t.status === 'In Progress').length;
+        statuses['Completed'].querySelector('.kanban-count').textContent = tasks.filter(t => t.status === 'Completed').length;
+        lastTasksJson = JSON.stringify(tasks);
+    }
+    function pollTasks() {
+        const projectId = new URLSearchParams(window.location.search).get('project_id');
+        fetch(`../get-tasks.php?project_id=${projectId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const newTasksJson = JSON.stringify(data.tasks);
+                    if (newTasksJson !== lastTasksJson) {
+                        renderKanban(data.tasks);
+                    }
+                } else {
+                    console.error('Failed to fetch tasks:', data.message);
+                    // Show user notification for error
+                    const notif = document.createElement('div');
+                    notif.textContent = 'فشل في تحديث المهام، تحقق من الاتصال.';
+                    notif.style.position = 'fixed';
+                    notif.style.top = '32px';
+                    notif.style.left = '50%';
+                    notif.style.transform = 'translateX(-50%)';
+                    notif.style.background = '#e74c3c';
+                    notif.style.color = '#fff';
+                    notif.style.padding = '12px 32px';
+                    notif.style.borderRadius = '8px';
+                    notif.style.fontSize = '1.1rem';
+                    notif.style.boxShadow = '0 2px 12px rgba(231,76,60,0.13)';
+                    notif.style.zIndex = 9999;
+                    document.body.appendChild(notif);
+                    setTimeout(() => notif.remove(), 3000);
+                }
+            })
+            .catch(error => {
+                console.error('Error polling tasks:', error);
+                // Show user notification for network error
+                const notif = document.createElement('div');
+                notif.textContent = 'خطأ في الاتصال، فشل في تحديث المهام.';
+                notif.style.position = 'fixed';
+                notif.style.top = '32px';
+                notif.style.left = '50%';
+                notif.style.transform = 'translateX(-50%)';
+                notif.style.background = '#e74c3c';
+                notif.style.color = '#fff';
+                notif.style.padding = '12px 32px';
+                notif.style.borderRadius = '8px';
+                notif.style.fontSize = '1.1rem';
+                notif.style.boxShadow = '0 2px 12px rgba(231,76,60,0.13)';
+                notif.style.zIndex = 9999;
+                document.body.appendChild(notif);
+                setTimeout(() => notif.remove(), 3000);
+            });
+    }
+    setInterval(pollTasks, 5000); // Poll every 5 seconds
+    pollTasks(); // Initial fetch
+    </script>
+    <?php include '../includes/nav.php'; render_nav('../'); ?>
 
 <svg style="display:none">
     <symbol id="icon-edit" viewBox="0 0 24 24">
@@ -488,6 +712,8 @@ if (isset($_GET['edit_task_id'])) {
                                 <option value="Completed" <?= $task['status'] == 'Completed' ? 'selected' : '' ?>>Done</option>
                             </select>
                         </div>
+                            <?php if ($user_id == $project_owner_id): ?>
+                        <?php if ($user_id == $project_owner_id): ?>
                         <div class="kanban-card-footer">
                             <span>Created: <?= date('n/j/Y', strtotime($task['created_at'] ?? $task['due_date'])) ?></span>
                             <div class="kanban-card-actions">
@@ -498,6 +724,8 @@ if (isset($_GET['edit_task_id'])) {
                                 </form>
                             </div>
                         </div>
+                        <?php endif; ?>
+                            <?php endif; ?>
                     </div>
                     <?php endforeach; ?>
                 </div>
@@ -529,6 +757,7 @@ if (isset($_GET['edit_task_id'])) {
                                 <option value="Completed" <?= $task['status'] == 'Completed' ? 'selected' : '' ?>>Done</option>
                             </select>
                         </div>
+                        <?php if ($user_id == $project_owner_id): ?>
                         <div class="kanban-card-footer">
                             <span>Created: <?= date('n/j/Y', strtotime($task['created_at'] ?? $task['due_date'])) ?></span>
                             <div class="kanban-card-actions">
@@ -539,6 +768,7 @@ if (isset($_GET['edit_task_id'])) {
                                 </form>
                             </div>
                         </div>
+                        <?php endif; ?>
                     </div>
                     <?php endforeach; ?>
                 </div>
@@ -604,33 +834,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: formData
             })
             .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    // Show notification
-                    const notif = document.createElement('div');
-                    notif.textContent = 'تم تحديث حالة المهمة!';
-                    notif.style.position = 'fixed';
-                    notif.style.top = '32px';
-                    notif.style.left = '50%';
-                    notif.style.transform = 'translateX(-50%)';
-                    notif.style.background = '#1abc9c';
-                    notif.style.color = '#fff';
-                    notif.style.padding = '12px 32px';
-                    notif.style.borderRadius = '8px';
-                    notif.style.fontSize = '1.1rem';
-                    notif.style.boxShadow = '0 2px 12px rgba(26,188,156,0.13)';
-                    notif.style.zIndex = 9999;
-                    document.body.appendChild(notif);
-                    setTimeout(() => notif.remove(), 1500);
-                    // Move task card to new column
-                    const card = this.closest('.kanban-card');
-                    const board = card.closest('.kanban-board');
-                    const newCol = board.querySelector('.kanban-column.' + (newStatus === 'Pending' ? 'todo' : newStatus === 'In Progress' ? 'inprogress' : 'done'));
-                    if (newCol) newCol.appendChild(card);
-                } else {
-                    alert('فشل في تحديث الحالة!');
-                }
-            })
+                            .then(data => {
+                                if (data.success) {
+                                    // Show notification
+                                    const notif = document.createElement('div');
+                                    notif.textContent = 'تم تحديث حالة المهمة!';
+                                    notif.style.position = 'fixed';
+                                    notif.style.top = '32px';
+                                    notif.style.left = '50%';
+                                    notif.style.transform = 'translateX(-50%)';
+                                    notif.style.background = '#1abc9c';
+                                    notif.style.color = '#fff';
+                                    notif.style.padding = '12px 32px';
+                                    notif.style.borderRadius = '8px';
+                                    notif.style.fontSize = '1.1rem';
+                                    notif.style.boxShadow = '0 2px 12px rgba(26,188,156,0.13)';
+                                    notif.style.zIndex = 9999;
+                                    document.body.appendChild(notif);
+                                    setTimeout(() => notif.remove(), 1500);
+                                    // Update notifications immediately (full refresh if dropdown open)
+                                    fetchNotifications(notifOpen);
+                                    // Move task card to new column
+                                    const card = this.closest('.kanban-card');
+                                    const board = card.closest('.kanban-board');
+                                    const newCol = board.querySelector('.kanban-column.' + (newStatus === 'Pending' ? 'todo' : newStatus === 'In Progress' ? 'inprogress' : 'done'));
+                                    if (newCol) newCol.appendChild(card);
+                                    // Update counts
+                                    const todoCount = document.querySelector('.kanban-column.todo .kanban-count');
+                                    const inprogressCount = document.querySelector('.kanban-column.inprogress .kanban-count');
+                                    const doneCount = document.querySelector('.kanban-column.done .kanban-count');
+                                    todoCount.textContent = document.querySelectorAll('.kanban-column.todo .kanban-card').length;
+                                    inprogressCount.textContent = document.querySelectorAll('.kanban-column.inprogress .kanban-card').length;
+                                    doneCount.textContent = document.querySelectorAll('.kanban-column.done .kanban-card').length;
+                                } else {
+                                    alert('فشل في تحديث الحالة!');
+                                }
+                            })
             .catch(() => alert('فشل في الاتصال بالخادم!'));
         });
     });

@@ -147,6 +147,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </script>
 </head>
 <body>
+
+    <div style="position:fixed;top:18px;left:18px;z-index:999;">
+        <?php if (isset($_SESSION['user_id'])): ?>
+        <a href="logout.php" class="btn logout-btn" style="background:linear-gradient(90deg,#e74c3c 0%,#c0392b 100%);color:#fff;padding:8px 18px;border-radius:8px;font-weight:bold;text-decoration:none;">تسجيل الخروج</a>
+        <?php endif; ?>
+    </div>
     <div class="pro-auth-container">
         <div class="pro-logo">TaskFlow</div>
         <div id="pro-loader" class="loader" style="display:none;"></div>

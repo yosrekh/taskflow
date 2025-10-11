@@ -18,6 +18,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt = $pdo->prepare("INSERT INTO projects (user_id, title, description) VALUES (?, ?, ?)");
         $stmt->execute([$user_id, $title, $description]);
         $success = "تم إنشاء المشروع بنجاح.";
+        // Notify owner
+        $msg = "تم إنشاء مشروع جديد '{$title}'";
+        $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$user_id, $msg]);
     } catch (PDOException $e) {
         $error = "فشل في إنشاء المشروع.";
     }
@@ -144,6 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </style>
 </head>
 <body>
+    <?php include '../includes/nav.php'; render_nav('../'); ?>
 <div class="pro-form-container">
 <a href="../dashboard.php" class="btn"> الرجوع إلى قائمة المشاريع </a>
 
