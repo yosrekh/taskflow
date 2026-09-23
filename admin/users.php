@@ -71,34 +71,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif ($action === 'reset_password') {
         $target_id = (int)($_POST['user_id'] ?? 0);
-        try {
-            $stmt = $pdo->prepare("SELECT id, name, email FROM users WHERE id = ?");
-            $stmt->execute([$target_id]);
-            $target = $stmt->fetch();
+        if ($target_id === $admin_id) {
+            $_SESSION['admin_flash_error'] = "استخدم صفحة تغيير كلمة المرور لتغيير باسوردك.";
+        } else {
+            try {
+                $stmt = $pdo->prepare("SELECT id, name, email FROM users WHERE id = ?");
+                $stmt->execute([$target_id]);
+                $target = $stmt->fetch();
 
-            if (!$target) {
-                $_SESSION['admin_flash_error'] = "المستخدم غير موجود.";
-            } else {
-                $temp_pwd = generate_temp_password(14);
-                $hashed = password_hash($temp_pwd, PASSWORD_DEFAULT);
+                if (!$target) {
+                    $_SESSION['admin_flash_error'] = "المستخدم غير موجود.";
+                } else {
+                    $temp_pwd = generate_temp_password(14);
+                    $hashed = password_hash($temp_pwd, PASSWORD_DEFAULT);
 
-                $updateStmt = $pdo->prepare("
-                    UPDATE users 
-                    SET password = ?, must_change_password = 1, password_changed_at = NOW() 
-                    WHERE id = ?
-                ");
-                $updateStmt->execute([$hashed, $target_id]);
+                    $updateStmt = $pdo->prepare("
+                        UPDATE users 
+                        SET password = ?, must_change_password = 1, password_changed_at = NOW() 
+                        WHERE id = ?
+                    ");
+                    $updateStmt->execute([$hashed, $target_id]);
 
-                $_SESSION['one_time_pwd_flash'] = [
-                    'password' => $temp_pwd,
-                    'email' => $target['email'],
-                    'action' => 'reset',
-                    'success' => "تمت إعادة تعيين كلمة المرور بنجاح للمستخدم '{$target['name']}'."
-                ];
+                    $_SESSION['one_time_pwd_flash'] = [
+                        'password' => $temp_pwd,
+                        'email' => $target['email'],
+                        'action' => 'reset',
+                        'success' => "تمت إعادة تعيين كلمة المرور بنجاح للمستخدم '{$target['name']}'."
+                    ];
+                }
+            } catch (PDOException $e) {
+                error_log("Admin reset password error: " . $e->getMessage());
+                $_SESSION['admin_flash_error'] = "حدث خطأ أثناء إعادة تعيين كلمة المرور.";
             }
-        } catch (PDOException $e) {
-            error_log("Admin reset password error: " . $e->getMessage());
-            $_SESSION['admin_flash_error'] = "حدث خطأ أثناء إعادة تعيين كلمة المرور.";
         }
     } elseif ($action === 'toggle_active') {
         $target_id = (int)($_POST['user_id'] ?? 0);
@@ -538,16 +542,18 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <td><?= date('Y-m-d H:i', strtotime($u['created_at'])) ?></td>
                             <td>
                                 <div class="action-btns">
+                                    <?php $isSelf = ((int)$u['id'] === $admin_id); ?>
                                     <!-- Reset Password -->
+                                    <?php if (!$isSelf): ?>
                                     <form method="POST" onsubmit="return confirm('هل أنت متأكد من إعادة تعيين كلمة المرور لهذا المستخدم؟ سيتم إنهاء جلساته النشطة فوراً.');">
                                         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                                         <input type="hidden" name="action" value="reset_password">
                                         <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
                                         <button type="submit" class="btn-sm btn-reset">إعادة تعيين الباسورد</button>
                                     </form>
+                                    <?php endif; ?>
 
                                     <!-- Deactivate / Activate -->
-                                    <?php $isSelf = ((int)$u['id'] === $admin_id); ?>
                                     <form method="POST">
                                         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                                         <input type="hidden" name="action" value="toggle_active">
