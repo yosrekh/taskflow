@@ -502,12 +502,12 @@ if (isset($_GET['edit_task_id'])) {
         fetch(`../get-tasks.php?project_id=${projectId}`)
             .then(res => {
                 if (res.status === 401) {
-                    if (pollTimer) clearInterval(pollTimer);
+                    stopTaskPolling();
                     window.location.href = '../login.php';
                     return null;
                 }
                 if (res.status === 404) {
-                    if (pollTimer) clearInterval(pollTimer);
+                    stopTaskPolling();
                     window.location.href = '../dashboard.php';
                     return null;
                 }
@@ -530,7 +530,29 @@ if (isset($_GET['edit_task_id'])) {
                 console.error('Error polling tasks:', error);
             });
     }
-    pollTimer = setInterval(pollTasks, 5000); // Poll every 5 seconds
+
+    function startTaskPolling() {
+        if (!pollTimer) {
+            pollTimer = setInterval(pollTasks, 10000); // Poll every 10 seconds
+        }
+    }
+    function stopTaskPolling() {
+        if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
+    }
+
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            stopTaskPolling();
+        } else {
+            pollTasks();
+            startTaskPolling();
+        }
+    });
+
+    startTaskPolling();
     pollTasks(); // Initial fetch
     </script>
     <?php include '../includes/nav.php'; render_nav($base); ?>
