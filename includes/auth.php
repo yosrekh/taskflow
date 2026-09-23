@@ -60,7 +60,7 @@ function check_current_user(): ?string {
 
     global $pdo;
     $stmt = $pdo->prepare("
-        SELECT id, role, is_active, must_change_password, password_changed_at, 
+        SELECT id, name, role, is_active, must_change_password, password_changed_at, 
                UNIX_TIMESTAMP(password_changed_at) AS password_changed_at_ts 
         FROM users 
         WHERE id = ?
@@ -80,6 +80,7 @@ function check_current_user(): ?string {
         }
     }
 
+    $_SESSION['user_name'] = $user['name'] ?? '';
     $_SESSION['role'] = $user['role'];
     $_SESSION['is_active'] = (int)$user['is_active'];
     $_SESSION['must_change_password'] = (int)$user['must_change_password'];
@@ -211,4 +212,14 @@ function can_update_task_status($pdo, $userId, $taskId) {
     return ((int)$row['owner_id'] === (int)$userId) ||
            ($row['assigned_to'] !== null && (int)$row['assigned_to'] === (int)$userId);
 }
+
+function get_user_initials(?string $name): string {
+    if (empty($name)) return 'TF';
+    $parts = preg_split('/\s+/u', trim($name));
+    if (count($parts) >= 2) {
+        return mb_substr($parts[0], 0, 1) . mb_substr($parts[1], 0, 1);
+    }
+    return mb_substr($parts[0], 0, 2);
+}
+
 

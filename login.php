@@ -49,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     } else {
                         session_regenerate_id(true);
                         $_SESSION['user_id'] = $user['id'];
+                        $_SESSION['user_name'] = $user['name'] ?? '';
                         $_SESSION['role'] = $user['role'];
                         $_SESSION['is_active'] = 1;
                         $_SESSION['must_change_password'] = (int)$user['must_change_password'];
