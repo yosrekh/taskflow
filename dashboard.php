@@ -1,11 +1,9 @@
 <?php
-session_start();
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit;
-}
-include 'includes/db.php';
+require_once __DIR__ . '/includes/auth.php';
+require_login();
+require_once __DIR__ . '/includes/db.php';
 
+$base = '';
 $user_id = $_SESSION['user_id'];
 
 // Get user info
@@ -25,7 +23,7 @@ $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <head>
     <meta charset="UTF-8">
     <title>لوحة التحكم - TaskFlow</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="<?= $base ?>css/styles.css">
     <style>
         body {
             background: linear-gradient(135deg, #44434b  0%, #414345 100%);
@@ -290,11 +288,11 @@ $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </style>
 </head>
 <body>
-    <?php include 'includes/nav.php'; render_nav(''); ?>
+    <?php include 'includes/nav.php'; render_nav($base); ?>
 
     <div class="pro-dashboard-container">
         <div class="pro-dashboard-header">
-            <h1>مرحبًا، <?= htmlspecialchars($user['name']) ?> 👋</h1>
+            <h1>مرحبًا، <?= e($user['name']) ?> 👋</h1>
             <div>
                 <a href="projects/add-project.php" class="btn">+ مشروع جديد</a>
             </div>
@@ -306,11 +304,11 @@ $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <ul>
                         <?php foreach ($projects as $project): ?>
                             <li>
-                                <strong><?= htmlspecialchars($project['title']) ?></strong><br>
-                                <small><?= htmlspecialchars($project['description']) ?></small><br>
-                                <span style="color:#b2dfdb;font-size:0.95em;">مالك المشروع: <?= htmlspecialchars($project['owner_name']) ?></span>
+                                <strong><?= e($project['title']) ?></strong><br>
+                                <small><?= e($project['description']) ?></small><br>
+                                <span style="color:#b2dfdb;font-size:0.95em;">مالك المشروع: <?= e($project['owner_name']) ?></span>
                                 <div class="project-actions">
-                                    <a href="tasks/view-tasks.php?project_id=<?= $project['id'] ?>" title="عرض المهام" class="list-btn">
+                                    <a href="tasks/view-tasks.php?project_id=<?= (int)$project['id'] ?>" title="عرض المهام" class="list-btn">
                                         <svg width="20" height="20" style="vertical-align:middle; margin-left:4px;"><use href="#icon-tasks-alt"/></svg>
                                         <span>عرض المهام</span>
                                     </a>
@@ -319,9 +317,13 @@ $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <a href="projects/edit-project.php?id=<?= $project['id'] ?>" title="تعديل المشروع" class="icon-btn left-icon">
                                             <svg width="22" height="22"><use href="#icon-edit-stylish"/></svg>
                                         </a>
-                                        <a href="projects/delete-project.php?id=<?= $project['id'] ?>" title="حذف المشروع" class="icon-btn left-icon" onclick="return confirm('هل أنت متأكد من الحذف؟')">
-                                            <svg width="22" height="22"><use href="#icon-trash-alt"/></svg>
-                                        </a>
+                                        <form method="POST" action="projects/delete-project.php" style="display:inline;margin:0;" onsubmit="return confirm('هل أنت متأكد من الحذف؟');">
+                                            <input type="hidden" name="id" value="<?= $project['id'] ?>">
+                                            <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                                            <button type="submit" title="حذف المشروع" class="icon-btn left-icon" style="background:none;border:none;cursor:pointer;padding:0;">
+                                                <svg width="22" height="22"><use href="#icon-trash-alt"/></svg>
+                                            </button>
+                                        </form>
                                     <?php endif; ?>
                                 </div>
                             </li>
@@ -341,6 +343,6 @@ $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </symbol>
         <symbol id="icon-trash-alt" viewBox="0 0 24 24"><rect x="5" y="7" width="14" height="12" rx="2" stroke="#e74c3c" stroke-width="2" fill="none"/><path d="M3 7h18M10 11v4M14 11v4" stroke="#e74c3c" stroke-width="2" fill="none"/><rect x="9" y="3" width="6" height="4" rx="1" stroke="#e74c3c" stroke-width="2" fill="none"/></symbol>
     </svg>
-
+    <script src="<?= $base ?>js/main.js"></script>
 </body>
 </html>

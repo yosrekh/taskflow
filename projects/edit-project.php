@@ -1,11 +1,9 @@
 <?php
-session_start();
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../login.php");
-    exit;
-}
-include '../includes/db.php';
+require_once __DIR__ . '/../includes/auth.php';
+require_login('../');
+require_once __DIR__ . '/../includes/db.php';
 
+$base = '../';
 $project_id = $_GET['id'] ?? null;
 
 if (!$project_id) {
@@ -15,29 +13,43 @@ if (!$project_id) {
 // Fetch project data
 $stmt = $pdo->prepare("SELECT * FROM projects WHERE id = ?");
 $stmt->execute([$project_id]);
-$project = $stmt->fetch(PDO::FETCH_ASSOC);
+$project = $stmt->fetch();
 
 if (!$project) {
+    http_response_code(404);
     die("المشروع غير موجود.");
+}
+
+$user_id = $_SESSION['user_id'];
+if (!can_manage_project($pdo, $user_id, $project_id)) {
+    http_response_code(403);
+    die("غير مصرح لك بتعديل هذا المشروع.");
 }
 
 $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $title = $_POST['title'];
-    $description = $_POST['description'];
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $error = "رمز التحقق غير صالح. يرجى إعادة المحاولة.";
+    } else {
+        $title = trim($_POST['title'] ?? '');
+        $description = trim($_POST['description'] ?? '');
 
-    try {
-        $stmt = $pdo->prepare("UPDATE projects SET title = ?, description = ? WHERE id = ?");
-        $stmt->execute([$title, $description, $project_id]);
-        $success = "تم تحديث المشروع بنجاح.";
-        // Notify owner
-        $owner_id = $project['user_id'];
-        $msg = "تم تعديل مشروع '{$title}'";
-        $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$owner_id, $msg]);
-    } catch (PDOException $e) {
-        $error = "فشل في تحديث المشروع.";
+        try {
+            $stmt = $pdo->prepare("UPDATE projects SET title = ?, description = ? WHERE id = ?");
+            $stmt->execute([$title, $description, $project_id]);
+            $project['title'] = $title;
+            $project['description'] = $description;
+            $success = "تم تحديث المشروع بنجاح.";
+            // Notify owner
+            $owner_id = $project['user_id'];
+            $msg = "تم تعديل مشروع '{$title}'";
+            $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$owner_id, $msg]);
+        } catch (PDOException $e) {
+            error_log("Edit project error: " . $e->getMessage());
+            $error = "فشل في تحديث المشروع.";
+        }
     }
 }
 ?>
@@ -46,8 +58,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>تعديل المشروع - <?= htmlspecialchars($project['title']) ?></title>
-    <link rel="stylesheet" href="../../css/styles.css">
+    <title>تعديل المشروع - <?= e($project['title']) ?></title>
+    <link rel="stylesheet" href="<?= $base ?>css/styles.css">
     <style>
         body {
             background: linear-gradient(135deg, #232526 0%, #414345 100%);
@@ -158,28 +170,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </style>
 </head>
 <body>
-    <?php include '../includes/nav.php'; render_nav('../'); ?>
+    <?php include '../includes/nav.php'; render_nav($base); ?>
 
 <div class="pro-form-container">
     <a href="../dashboard.php" class="back-btn">&larr; العودة إلى لوحة التحكم</a>
     <h2>تعديل المشروع</h2>
     <?php if ($error): ?>
-        <p class="error"><?= $error ?></p>
+        <p class="error"><?= e($error) ?></p>
     <?php elseif ($success): ?>
-        <p class="success"><?= $success ?></p>
+        <p class="success"><?= e($success) ?></p>
     <?php endif; ?>
 
     <form method="POST">
+        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
         <label>عنوان المشروع:</label>
-        <input type="text" name="title" value="<?= htmlspecialchars($project['title']) ?>" required>
+        <input type="text" name="title" value="<?= e($project['title']) ?>" required>
 
         <label>وصف المشروع:</label>
-        <textarea name="description" rows="5"><?= htmlspecialchars($project['description']) ?></textarea>
+        <textarea name="description" rows="5"><?= e($project['description']) ?></textarea>
 
         <button type="submit">تحديث المشروع</button>
     </form>
 </div>
 
-<script src="../../js/main.js"></script>
+<script src="<?= $base ?>js/main.js"></script>
 </body>
 </html>

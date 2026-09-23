@@ -1,138 +1,137 @@
 <?php
-session_start();
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../login.php");
-    exit;
-}
-include '../includes/db.php';
+require_once __DIR__ . '/../includes/auth.php';
+require_login('../');
+require_once __DIR__ . '/../includes/db.php';
 
+$base = '../';
 $project_id = $_GET['project_id'] ?? null;
 if (!$project_id) {
+    http_response_code(400);
     die("رقم المشروع غير موجود.");
 }
 
-// Handle Add Task
+$user_id = $_SESSION['user_id'];
+
+// Load project data at the TOP
+$stmt = $pdo->prepare("SELECT * FROM projects WHERE id = ?");
+$stmt->execute([$project_id]);
+$project = $stmt->fetch();
+
+if (!$project) {
+    http_response_code(404);
+    die("المشروع غير موجود.");
+}
+
+$project_owner_id = (int)$project['user_id'];
+$is_project_owner = can_manage_project($pdo, $user_id, $project_id);
+
+// Handle Task Actions (POST)
 $error = '';
 $success = '';
-if (isset($_POST['add_task'])) {
-    $title = $_POST['title'];
-    $description = $_POST['description'];
-    $priority = $_POST['priority'];
-    $due_date = $_POST['due_date'];
-    $assigned_to = $_POST['assigned_to'];
-    try {
-        $stmt = $pdo->prepare("INSERT INTO tasks (project_id, title, description, priority, due_date, assigned_to, status) VALUES (?, ?, ?, ?, ?, ?, 'Pending')");
-        $stmt->execute([$project_id, $title, $description, $priority, $due_date, $assigned_to]);
-        $success = "تم إضافة المهمة بنجاح.";
-        // Notify owner and assignee
-        $owner_stmt = $pdo->prepare("SELECT user_id FROM projects WHERE id = ?");
-        $owner_stmt->execute([$project_id]);
-        $owner_id = $owner_stmt->fetchColumn();
-        $actor_id = $_SESSION['user_id'];
-        $actor_stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
-        $actor_stmt->execute([$actor_id]);
-        $actor_name = $actor_stmt->fetchColumn();
-        $project_title = $project['title'];
-        $action_time = date('Y-m-d H:i');
-        $msg = "[${action_time}] ${actor_name} أضاف مهمة جديدة '{$title}' في مشروع '{$project_title}'";
-        foreach ([$owner_id, $assigned_to] as $uid) {
-            if ($uid && $uid != $actor_id) {
-                $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$uid, $msg]);
-            }
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $error = "رمز التحقق غير صالح. يرجى إعادة المحاولة.";
+    } elseif (isset($_POST['add_task'])) {
+        if (!$is_project_owner) {
+            http_response_code(403);
+            die("غير مصرح لك بإضافة مهام في هذا المشروع.");
         }
-    } catch (PDOException $e) {
-        $error = "فشل في إضافة المهمة.";
-    }
-}
-
-// Handle Edit Task
-if (isset($_POST['edit_task'])) {
-    // Only project owner can edit any task
-    if ($user_id == $project_owner_id) {
-        $task_id = $_POST['task_id'];
-        $title = $_POST['title'];
-        $description = $_POST['description'];
-        $priority = $_POST['priority'];
-        $due_date = $_POST['due_date'];
-        $assigned_to = $_POST['assigned_to'];
+        $title = trim($_POST['title'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $priority = $_POST['priority'] ?? 'Medium';
+        $due_date = $_POST['due_date'] ?? null;
+        $assigned_to = !empty($_POST['assigned_to']) ? (int)$_POST['assigned_to'] : null;
         try {
-            $stmt = $pdo->prepare("UPDATE tasks SET title=?, description=?, priority=?, due_date=?, assigned_to=? WHERE id=?");
-            $stmt->execute([$title, $description, $priority, $due_date, $assigned_to, $task_id]);
+            $stmt = $pdo->prepare("INSERT INTO tasks (project_id, title, description, priority, due_date, assigned_to, status) VALUES (?, ?, ?, ?, ?, ?, 'Pending')");
+            $stmt->execute([$project_id, $title, $description, $priority, $due_date, $assigned_to]);
+            $success = "تم إضافة المهمة بنجاح.";
+            // Notify owner and assignee
+            $actor_id = $user_id;
+            $actor_stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
+            $actor_stmt->execute([$actor_id]);
+            $actor_name = $actor_stmt->fetchColumn();
+            $project_title = $project['title'];
+            $action_time = date('Y-m-d H:i');
+            $msg = "[{$action_time}] {$actor_name} أضاف مهمة جديدة '{$title}' في مشروع '{$project_title}'";
+            foreach (array_unique(array_filter([$project_owner_id, $assigned_to])) as $uid) {
+                if ($uid != $actor_id) {
+                    $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$uid, $msg]);
+                }
+            }
+        } catch (PDOException $e) {
+            error_log("Add task error: " . $e->getMessage());
+            $error = "فشل في إضافة المهمة.";
+        }
+    } elseif (isset($_POST['edit_task'])) {
+        if (!$is_project_owner) {
+            http_response_code(403);
+            die("غير مصرح لك بتعديل هذه المهمة.");
+        }
+        $task_id = $_POST['task_id'] ?? null;
+        $title = trim($_POST['title'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $priority = $_POST['priority'] ?? 'Medium';
+        $due_date = $_POST['due_date'] ?? null;
+        $assigned_to = !empty($_POST['assigned_to']) ? (int)$_POST['assigned_to'] : null;
+        try {
+            $stmt = $pdo->prepare("UPDATE tasks SET title=?, description=?, priority=?, due_date=?, assigned_to=? WHERE id=? AND project_id=?");
+            $stmt->execute([$title, $description, $priority, $due_date, $assigned_to, $task_id, $project_id]);
             $success = "تم تحديث المهمة بنجاح.";
             // Notify owner and assignee
-            $owner_stmt = $pdo->prepare("SELECT user_id FROM projects WHERE id = ?");
-            $owner_stmt->execute([$project_id]);
-            $owner_id = $owner_stmt->fetchColumn();
-            $actor_id = $_SESSION['user_id'];
+            $actor_id = $user_id;
             $actor_stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
             $actor_stmt->execute([$actor_id]);
             $actor_name = $actor_stmt->fetchColumn();
             $project_title = $project['title'];
             $action_time = date('Y-m-d H:i');
-            $msg = "[${action_time}] ${actor_name} عدّل مهمة '{$title}' في مشروع '{$project_title}'";
-            foreach ([$owner_id, $assigned_to] as $uid) {
-                if ($uid && $uid != $actor_id) {
+            $msg = "[{$action_time}] {$actor_name} عدّل مهمة '{$title}' في مشروع '{$project_title}'";
+            foreach (array_unique(array_filter([$project_owner_id, $assigned_to])) as $uid) {
+                if ($uid != $actor_id) {
                     $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$uid, $msg]);
                 }
             }
         } catch (PDOException $e) {
+            error_log("Edit task error: " . $e->getMessage());
             $error = "فشل في تحديث المهمة.";
         }
-    } else {
-        $error = "غير مصرح لك بتعديل هذه المهمة.";
-    }
-}
-
-// Handle Delete Task
-if (isset($_POST['delete_task'])) {
-    // Only project owner can delete any task
-    if ($user_id == $project_owner_id) {
-        $task_id = $_POST['task_id'];
+    } elseif (isset($_POST['delete_task'])) {
+        if (!$is_project_owner) {
+            http_response_code(403);
+            die("غير مصرح لك بحذف هذه المهمة.");
+        }
+        $task_id = $_POST['task_id'] ?? null;
         try {
             // Get task info for notification
-            $task_stmt = $pdo->prepare("SELECT * FROM tasks WHERE id = ?");
-            $task_stmt->execute([$task_id]);
-            $task = $task_stmt->fetch(PDO::FETCH_ASSOC);
-            $stmt = $pdo->prepare("DELETE FROM tasks WHERE id = ?");
-            $stmt->execute([$task_id]);
-            $success = "تم حذف المهمة بنجاح.";
-            // Notify owner and assignee
-            $owner_stmt = $pdo->prepare("SELECT user_id FROM projects WHERE id = ?");
-            $owner_stmt->execute([$project_id]);
-            $owner_id = $owner_stmt->fetchColumn();
-            $actor_id = $_SESSION['user_id'];
-            $actor_stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
-            $actor_stmt->execute([$actor_id]);
-            $actor_name = $actor_stmt->fetchColumn();
-            $project_title = $project['title'];
-            $action_time = date('Y-m-d H:i');
-            $msg = "[${action_time}] ${actor_name} حذف المهمة '{$task['title']}' في مشروع '{$project_title}'";
-            foreach ([$owner_id, $task['assigned_to']] as $uid) {
-                if ($uid && $uid != $actor_id) {
-                    $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$uid, $msg]);
+            $task_stmt = $pdo->prepare("SELECT * FROM tasks WHERE id = ? AND project_id = ?");
+            $task_stmt->execute([$task_id, $project_id]);
+            $task = $task_stmt->fetch();
+            if ($task) {
+                $stmt = $pdo->prepare("DELETE FROM tasks WHERE id = ? AND project_id = ?");
+                $stmt->execute([$task_id, $project_id]);
+                $success = "تم حذف المهمة بنجاح.";
+                // Notify owner and assignee
+                $actor_id = $user_id;
+                $actor_stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
+                $actor_stmt->execute([$actor_id]);
+                $actor_name = $actor_stmt->fetchColumn();
+                $project_title = $project['title'];
+                $action_time = date('Y-m-d H:i');
+                $msg = "[{$action_time}] {$actor_name} حذف المهمة '{$task['title']}' في مشروع '{$project_title}'";
+                foreach (array_unique(array_filter([$project_owner_id, $task['assigned_to']])) as $uid) {
+                    if ($uid != $actor_id) {
+                        $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$uid, $msg]);
+                    }
                 }
             }
         } catch (PDOException $e) {
+            error_log("Delete task error: " . $e->getMessage());
             $error = "فشل في حذف المهمة.";
         }
-    } else {
-        $error = "غير مصرح لك بحذف هذه المهمة.";
     }
 }
 
-// Get project title
-$stmt = $pdo->prepare("SELECT title FROM projects WHERE id = ?");
-$stmt->execute([$project_id]);
-$project = $stmt->fetch(PDO::FETCH_ASSOC);
-
 // Get all tasks in this project
-
-$user_id = $_SESSION['user_id'];
-$project_owner_stmt = $pdo->prepare("SELECT user_id FROM projects WHERE id = ?");
-$project_owner_stmt->execute([$project_id]);
-$project_owner_id = $project_owner_stmt->fetchColumn();
-
-if ($user_id == $project_owner_id) {
+if ($is_project_owner) {
     // Owner sees all tasks in the project
     $stmt = $pdo->prepare("
         SELECT t.*, u.name AS assignee_name 
@@ -141,7 +140,7 @@ if ($user_id == $project_owner_id) {
         WHERE t.project_id = ?
     ");
     $stmt->execute([$project_id]);
-    $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $tasks = $stmt->fetchAll();
 } else {
     // Other users see only their assigned tasks
     $stmt = $pdo->prepare("
@@ -151,20 +150,24 @@ if ($user_id == $project_owner_id) {
         WHERE t.project_id = ? AND t.assigned_to = ?
     ");
     $stmt->execute([$project_id, $user_id]);
-    $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $tasks = $stmt->fetchAll();
 }
 
 // Get all users for assignment
 $users_stmt = $pdo->query("SELECT id, name FROM users");
-$users = $users_stmt->fetchAll(PDO::FETCH_ASSOC);
+$users = $users_stmt->fetchAll();
 
 // For edit form
 $edit_task = null;
 if (isset($_GET['edit_task_id'])) {
+    if (!$is_project_owner) {
+        http_response_code(403);
+        die("غير مصرح لك بتعديل هذه المهمة.");
+    }
     $edit_id = $_GET['edit_task_id'];
-    $stmt = $pdo->prepare("SELECT * FROM tasks WHERE id = ?");
-    $stmt->execute([$edit_id]);
-    $edit_task = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt = $pdo->prepare("SELECT * FROM tasks WHERE id = ? AND project_id = ?");
+    $stmt->execute([$edit_id, $project_id]);
+    $edit_task = $stmt->fetch();
 }
 ?>
 
@@ -172,8 +175,8 @@ if (isset($_GET['edit_task_id'])) {
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>مهام المشروع - <?= htmlspecialchars($project['title']) ?></title>
-    <link rel="stylesheet" href="../css/styles.css">
+    <title>مهام المشروع - <?= e($project['title']) ?></title>
+    <link rel="stylesheet" href="<?= $base ?>css/styles.css">
     <style>
         .pro-form-container {
             background: rgba(255,255,255,0.07);
@@ -430,7 +433,17 @@ if (isset($_GET['edit_task_id'])) {
 </head>
 <body>
     <script>
+    const csrfToken = '<?= csrf_token() ?>';
     let lastTasksJson = '';
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
     function renderKanban(tasks) {
         const statuses = {
             'Pending': document.querySelector('.kanban-column.todo'),
@@ -442,11 +455,11 @@ if (isset($_GET['edit_task_id'])) {
             if (!col) return;
                 const cards = tasks.filter(t => t.status === status).map(task => `
                     <div class=\"kanban-card\">
-                        <div class=\"kanban-card-title\"><strong>${task.title}</strong></div>
-                        <div class=\"kanban-card-assignee\">Assignee: ${task.assignee_name || 'No one'}</div>
-                        <div class=\"kanban-card-desc\">${task.description}</div>
+                        <div class=\"kanban-card-title\"><strong>${escapeHtml(task.title)}</strong></div>
+                        <div class=\"kanban-card-assignee\">Assignee: ${escapeHtml(task.assignee_name || 'No one')}</div>
+                        <div class=\"kanban-card-desc\">${escapeHtml(task.description)}</div>
                         <div class=\"kanban-card-status\">
-                            <select class=\"task-status\" data-task-id=\"${task.id}\">
+                            <select class=\"task-status\" data-task-id=\"${escapeHtml(task.id)}\">
                                 <option value=\"Pending\" ${task.status === 'Pending' ? 'selected' : ''}>To Do</option>
                                 <option value=\"In Progress\" ${task.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
                                 <option value=\"Completed\" ${task.status === 'Completed' ? 'selected' : ''}>Done</option>
@@ -455,62 +468,14 @@ if (isset($_GET['edit_task_id'])) {
                         <div class=\"kanban-card-footer\">
                             <span>Created: ${task.created_at ? new Date(task.created_at).toLocaleDateString() : (task.due_date ? new Date(task.due_date).toLocaleDateString() : '')}</span>
                             <div class=\"kanban-card-actions\">
-                                ${task.can_edit ? `<a href=\"view-tasks.php?project_id=${task.project_id}&edit_task_id=${task.id}\" title=\"Edit\"><svg width=\"18\" height=\"18\" fill=\"#888\"><use href=\"#icon-edit\"/></svg></a>` : ''}
-                                ${task.can_delete ? `<form method=\"POST\" style=\"display:inline;\"><input type=\"hidden\" name=\"task_id\" value=\"${task.id}\"><button type=\"submit\" name=\"delete_task\" class=\"kanban-delete\" title=\"Delete\" onclick=\"return confirm('Delete this task?')\"><svg width=\"18\" height=\"18\" fill=\"#e74c3c\"><use href=\"#icon-trash\"/></svg></button></form>` : ''}
+                                ${task.can_edit ? `<a href=\"view-tasks.php?project_id=${encodeURIComponent(task.project_id)}&edit_task_id=${encodeURIComponent(task.id)}\" title=\"Edit\"><svg width=\"18\" height=\"18\" fill=\"#888\"><use href=\"#icon-edit\"/></svg></a>` : ''}
+                                ${task.can_delete ? `<form method=\"POST\" style=\"display:inline;\"><input type=\"hidden\" name=\"csrf_token\" value=\"${escapeHtml(csrfToken)}\"><input type=\"hidden\" name=\"task_id\" value=\"${escapeHtml(task.id)}\"><button type=\"submit\" name=\"delete_task\" class=\"kanban-delete\" title=\"Delete\" onclick=\"return confirm('Delete this task?')\"><svg width=\"18\" height=\"18\" fill=\"#e74c3c\"><use href=\"#icon-trash\"/></svg></button></form>` : ''}
                             </div>
                         </div>
                     </div>
                 `).join('');
             col.querySelectorAll('.kanban-card').forEach(e => e.remove());
             col.insertAdjacentHTML('beforeend', cards);
-                // Re-attach status change event listeners
-                col.querySelectorAll('.task-status').forEach(function(select) {
-                    select.addEventListener('change', function() {
-                        const taskId = this.dataset.taskId;
-                        const newStatus = this.value;
-                        const formData = new FormData();
-                        formData.append('task_id', taskId);
-                        formData.append('status', newStatus);
-                        fetch('../tasks/update-status.php', {
-                            method: 'POST',
-                            body: formData
-                        })
-                        .then(res => res.json())
-                            .then(data => {
-                                if (data.success) {
-                                    const notif = document.createElement('div');
-                                    notif.textContent = 'تم تحديث حالة المهمة!';
-                                    notif.style.position = 'fixed';
-                                    notif.style.top = '32px';
-                                    notif.style.left = '50%';
-                                    notif.style.transform = 'translateX(-50%)';
-                                    notif.style.background = '#1abc9c';
-                                    notif.style.color = '#fff';
-                                    notif.style.padding = '12px 32px';
-                                    notif.style.borderRadius = '8px';
-                                    notif.style.fontSize = '1.1rem';
-                                    notif.style.boxShadow = '0 2px 12px rgba(26,188,156,0.13)';
-                                    notif.style.zIndex = 9999;
-                                    document.body.appendChild(notif);
-                                    setTimeout(() => notif.remove(), 1500);
-                                    // Update notifications immediately (full refresh if dropdown open)
-                                    fetchNotifications(notifOpen);
-                                    // Move card to new column instantly
-                                    const card = this.closest('.kanban-card');
-                                    const board = card.closest('.kanban-board');
-                                    let newColClass = '';
-                                    if (newStatus === 'Pending') newColClass = 'todo';
-                                    else if (newStatus === 'In Progress') newColClass = 'inprogress';
-                                    else if (newStatus === 'Completed') newColClass = 'done';
-                                    const newCol = board.querySelector('.kanban-column.' + newColClass);
-                                    if (newCol && !newCol.contains(card)) newCol.appendChild(card);
-                                } else {
-                                    alert('فشل في تحديث الحالة!');
-                                }
-                            })
-                        .catch(() => alert('فشل في الاتصال بالخادم!'));
-                    });
-                });
         });
         // Update counts
         statuses['Pending'].querySelector('.kanban-count').textContent = tasks.filter(t => t.status === 'Pending').length;
@@ -571,7 +536,7 @@ if (isset($_GET['edit_task_id'])) {
     setInterval(pollTasks, 5000); // Poll every 5 seconds
     pollTasks(); // Initial fetch
     </script>
-    <?php include '../includes/nav.php'; render_nav('../'); ?>
+    <?php include '../includes/nav.php'; render_nav($base); ?>
 
 <svg style="display:none">
     <symbol id="icon-edit" viewBox="0 0 24 24">
@@ -583,7 +548,7 @@ if (isset($_GET['edit_task_id'])) {
 </svg>
 
 <header>
-    <h1>مشروع: <?= htmlspecialchars($project['title']) ?></h1>
+    <h1>مشروع: <?= e($project['title']) ?></h1>
     <div class="header-actions">
         <button class="add-task-btn" id="openAddTask">+ إضافة مهمة</button>
         <a href="../dashboard.php" class="btn btn-back">← العودة للوحة التحكم</a>
@@ -594,9 +559,9 @@ if (isset($_GET['edit_task_id'])) {
     <section class="tasks">
         <h2>قائمة المهام</h2>
         <?php if ($error): ?>
-            <p class="error"><?= $error ?></p>
+            <p class="error"><?= e($error) ?></p>
         <?php elseif ($success): ?>
-            <p class="success"><?= $success ?></p>
+            <p class="success"><?= e($success) ?></p>
         <?php endif; ?>
 
         <!-- Add/Edit Task Popup -->
@@ -606,13 +571,14 @@ if (isset($_GET['edit_task_id'])) {
                 <div class="pro-form-container" style="margin-bottom:0;box-shadow:none;">
                     <h3><?= $edit_task ? 'تعديل مهمة' : 'إضافة مهمة جديدة' ?></h3>
                     <form method="POST" id="taskForm">
+                        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                         <?php if ($edit_task): ?>
-                            <input type="hidden" name="task_id" value="<?= $edit_task['id'] ?>">
+                            <input type="hidden" name="task_id" value="<?= (int)$edit_task['id'] ?>">
                         <?php endif; ?>
                         <label>عنوان المهمة:</label>
-                        <input type="text" name="title" value="<?= $edit_task['title'] ?? '' ?>" required>
+                        <input type="text" name="title" value="<?= e($edit_task['title'] ?? '') ?>" required>
                         <label>الوصف:</label>
-                        <textarea name="description" rows="4"><?= $edit_task['description'] ?? '' ?></textarea>
+                        <textarea name="description" rows="4"><?= e($edit_task['description'] ?? '') ?></textarea>
                         <label>الأولوية:</label>
                         <select name="priority" required>
                             <option value="Low" <?= (isset($edit_task) && $edit_task['priority']=='Low') ? 'selected' : '' ?>>منخفضة</option>
@@ -620,11 +586,11 @@ if (isset($_GET['edit_task_id'])) {
                             <option value="High" <?= (isset($edit_task) && $edit_task['priority']=='High') ? 'selected' : '' ?>>عالية</option>
                         </select>
                         <label>تاريخ الاستحقاق:</label>
-                        <input type="date" name="due_date" value="<?= $edit_task['due_date'] ?? '' ?>" required>
+                        <input type="date" name="due_date" value="<?= e($edit_task['due_date'] ?? '') ?>" required>
                         <label>تعيين إلى:</label>
                         <select name="assigned_to" required>
                             <?php foreach ($users as $user_option): ?>
-                                <option value="<?= $user_option['id'] ?>" <?= (isset($edit_task) && $edit_task['assigned_to']==$user_option['id']) ? 'selected' : '' ?>><?= htmlspecialchars($user_option['name']) ?></option>
+                                <option value="<?= (int)$user_option['id'] ?>" <?= (isset($edit_task) && $edit_task['assigned_to']==$user_option['id']) ? 'selected' : '' ?>><?= e($user_option['name']) ?></option>
                             <?php endforeach; ?>
                         </select>
                         <button type="submit" name="<?= $edit_task ? 'edit_task' : 'add_task' ?>">
@@ -692,8 +658,8 @@ if (isset($_GET['edit_task_id'])) {
                     <?php foreach ($tasks as $task): if ($task['status'] !== 'Pending') continue; ?>
                     <div class="kanban-card">
                         <div class="kanban-card-title">
-                            <strong><?= htmlspecialchars($task['title']) ?></strong>
-                            <span class="priority-sign <?= strtolower($task['priority']) ?>" title="الأولوية: <?= htmlspecialchars($task['priority']) ?>">
+                            <strong><?= e($task['title']) ?></strong>
+                            <span class="priority-sign <?= strtolower(e($task['priority'])) ?>" title="الأولوية: <?= e($task['priority']) ?>">
                                 <?php if ($task['priority'] == 'High'): ?>
                                     &#9888;
                                 <?php elseif ($task['priority'] == 'Medium'): ?>
@@ -703,29 +669,28 @@ if (isset($_GET['edit_task_id'])) {
                                 <?php endif; ?>
                             </span>
                         </div>
-                        <div class="kanban-card-assignee">Assignee: <?= htmlspecialchars($task['assignee_name'] ?? 'No one') ?></div>
-                        <div class="kanban-card-desc"><?= htmlspecialchars($task['description']) ?></div>
+                        <div class="kanban-card-assignee">Assignee: <?= e($task['assignee_name'] ?? 'No one') ?></div>
+                        <div class="kanban-card-desc"><?= e($task['description']) ?></div>
                         <div class="kanban-card-status">
-                            <select class="task-status" data-task-id="<?= $task['id'] ?>">
+                            <select class="task-status" data-task-id="<?= (int)$task['id'] ?>">
                                 <option value="Pending" <?= $task['status'] == 'Pending' ? 'selected' : '' ?>>To Do</option>
                                 <option value="In Progress" <?= $task['status'] == 'In Progress' ? 'selected' : '' ?>>In Progress</option>
                                 <option value="Completed" <?= $task['status'] == 'Completed' ? 'selected' : '' ?>>Done</option>
                             </select>
                         </div>
-                            <?php if ($user_id == $project_owner_id): ?>
-                        <?php if ($user_id == $project_owner_id): ?>
+                        <?php if ($is_project_owner): ?>
                         <div class="kanban-card-footer">
                             <span>Created: <?= date('n/j/Y', strtotime($task['created_at'] ?? $task['due_date'])) ?></span>
                             <div class="kanban-card-actions">
-                                <a href="view-tasks.php?project_id=<?= $project_id ?>&edit_task_id=<?= $task['id'] ?>" title="Edit"><svg width="18" height="18" fill="#888"><use href="#icon-edit"/></svg></a>
+                                <a href="view-tasks.php?project_id=<?= (int)$project_id ?>&edit_task_id=<?= (int)$task['id'] ?>" title="Edit"><svg width="18" height="18" fill="#888"><use href="#icon-edit"/></svg></a>
                                 <form method="POST" style="display:inline;">
-                                    <input type="hidden" name="task_id" value="<?= $task['id'] ?>">
+                                    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                                    <input type="hidden" name="task_id" value="<?= (int)$task['id'] ?>">
                                     <button type="submit" name="delete_task" class="kanban-delete" title="Delete" onclick="return confirm('Delete this task?')"><svg width="18" height="18" fill="#e74c3c"><use href="#icon-trash"/></svg></button>
                                 </form>
                             </div>
                         </div>
                         <?php endif; ?>
-                            <?php endif; ?>
                     </div>
                     <?php endforeach; ?>
                 </div>
@@ -737,8 +702,8 @@ if (isset($_GET['edit_task_id'])) {
                     <?php foreach ($tasks as $task): if ($task['status'] !== 'In Progress') continue; ?>
                     <div class="kanban-card">
                         <div class="kanban-card-title">
-                            <strong><?= htmlspecialchars($task['title']) ?></strong>
-                            <span class="priority-sign <?= strtolower($task['priority']) ?>" title="الأولوية: <?= htmlspecialchars($task['priority']) ?>">
+                            <strong><?= e($task['title']) ?></strong>
+                            <span class="priority-sign <?= strtolower(e($task['priority'])) ?>" title="الأولوية: <?= e($task['priority']) ?>">
                                 <?php if ($task['priority'] == 'High'): ?>
                                     &#9888;
                                 <?php elseif ($task['priority'] == 'Medium'): ?>
@@ -748,22 +713,23 @@ if (isset($_GET['edit_task_id'])) {
                                 <?php endif; ?>
                             </span>
                         </div>
-                        <div class="kanban-card-assignee">Assignee: <?= htmlspecialchars($task['assignee_name'] ?? 'No one') ?></div>
-                        <div class="kanban-card-desc"><?= htmlspecialchars($task['description']) ?></div>
+                        <div class="kanban-card-assignee">Assignee: <?= e($task['assignee_name'] ?? 'No one') ?></div>
+                        <div class="kanban-card-desc"><?= e($task['description']) ?></div>
                         <div class="kanban-card-status">
-                            <select class="task-status" data-task-id="<?= $task['id'] ?>">
+                            <select class="task-status" data-task-id="<?= (int)$task['id'] ?>">
                                 <option value="Pending" <?= $task['status'] == 'Pending' ? 'selected' : '' ?>>To Do</option>
                                 <option value="In Progress" <?= $task['status'] == 'In Progress' ? 'selected' : '' ?>>In Progress</option>
                                 <option value="Completed" <?= $task['status'] == 'Completed' ? 'selected' : '' ?>>Done</option>
                             </select>
                         </div>
-                        <?php if ($user_id == $project_owner_id): ?>
+                        <?php if ($is_project_owner): ?>
                         <div class="kanban-card-footer">
                             <span>Created: <?= date('n/j/Y', strtotime($task['created_at'] ?? $task['due_date'])) ?></span>
                             <div class="kanban-card-actions">
-                                <a href="view-tasks.php?project_id=<?= $project_id ?>&edit_task_id=<?= $task['id'] ?>" title="Edit"><svg width="18" height="18" fill="#888"><use href="#icon-edit"/></svg></a>
+                                <a href="view-tasks.php?project_id=<?= (int)$project_id ?>&edit_task_id=<?= (int)$task['id'] ?>" title="Edit"><svg width="18" height="18" fill="#888"><use href="#icon-edit"/></svg></a>
                                 <form method="POST" style="display:inline;">
-                                    <input type="hidden" name="task_id" value="<?= $task['id'] ?>">
+                                    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                                    <input type="hidden" name="task_id" value="<?= (int)$task['id'] ?>">
                                     <button type="submit" name="delete_task" class="kanban-delete" title="Delete" onclick="return confirm('Delete this task?')"><svg width="18" height="18" fill="#e74c3c"><use href="#icon-trash"/></svg></button>
                                 </form>
                             </div>
@@ -780,8 +746,8 @@ if (isset($_GET['edit_task_id'])) {
                     <?php foreach ($tasks as $task): if ($task['status'] !== 'Completed') continue; ?>
                     <div class="kanban-card">
                         <div class="kanban-card-title">
-                            <strong><?= htmlspecialchars($task['title']) ?></strong>
-                            <span class="priority-sign <?= strtolower($task['priority']) ?>" title="الأولوية: <?= htmlspecialchars($task['priority']) ?>">
+                            <strong><?= e($task['title']) ?></strong>
+                            <span class="priority-sign <?= strtolower(e($task['priority'])) ?>" title="الأولوية: <?= e($task['priority']) ?>">
                                 <?php if ($task['priority'] == 'High'): ?>
                                     &#9888;
                                 <?php elseif ($task['priority'] == 'Medium'): ?>
@@ -791,25 +757,28 @@ if (isset($_GET['edit_task_id'])) {
                                 <?php endif; ?>
                             </span>
                         </div>
-                        <div class="kanban-card-assignee">Assignee: <?= htmlspecialchars($task['assignee_name'] ?? 'No one') ?></div>
-                        <div class="kanban-card-desc"><?= htmlspecialchars($task['description']) ?></div>
+                        <div class="kanban-card-assignee">Assignee: <?= e($task['assignee_name'] ?? 'No one') ?></div>
+                        <div class="kanban-card-desc"><?= e($task['description']) ?></div>
                         <div class="kanban-card-status">
-                            <select class="task-status" data-task-id="<?= $task['id'] ?>">
+                            <select class="task-status" data-task-id="<?= (int)$task['id'] ?>">
                                 <option value="Pending" <?= $task['status'] == 'Pending' ? 'selected' : '' ?>>To Do</option>
                                 <option value="In Progress" <?= $task['status'] == 'In Progress' ? 'selected' : '' ?>>In Progress</option>
                                 <option value="Completed" <?= $task['status'] == 'Completed' ? 'selected' : '' ?>>Done</option>
                             </select>
                         </div>
+                        <?php if ($is_project_owner): ?>
                         <div class="kanban-card-footer">
                             <span>Created: <?= date('n/j/Y', strtotime($task['created_at'] ?? $task['due_date'])) ?></span>
                             <div class="kanban-card-actions">
-                                <a href="view-tasks.php?project_id=<?= $project_id ?>&edit_task_id=<?= $task['id'] ?>" title="Edit"><svg width="18" height="18" fill="#888"><use href="#icon-edit"/></svg></a>
+                                <a href="view-tasks.php?project_id=<?= (int)$project_id ?>&edit_task_id=<?= (int)$task['id'] ?>" title="Edit"><svg width="18" height="18" fill="#888"><use href="#icon-edit"/></svg></a>
                                 <form method="POST" style="display:inline;">
-                                    <input type="hidden" name="task_id" value="<?= $task['id'] ?>">
+                                    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                                    <input type="hidden" name="task_id" value="<?= (int)$task['id'] ?>">
                                     <button type="submit" name="delete_task" class="kanban-delete" title="Delete" onclick="return confirm('Delete this task?')"><svg width="18" height="18" fill="#e74c3c"><use href="#icon-trash"/></svg></button>
                                 </form>
                             </div>
                         </div>
+                        <?php endif; ?>
                     </div>
                     <?php endforeach; ?>
                 </div>
@@ -818,61 +787,73 @@ if (isset($_GET['edit_task_id'])) {
     </section>
 </main>
 
-<script src="../js/main.js"></script>
+<script src="<?= $base ?>js/main.js"></script>
 <script>
-// Move task on status change (AJAX)
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.task-status').forEach(function(select) {
-        select.addEventListener('change', function() {
-            const taskId = this.dataset.taskId;
-            const newStatus = this.value;
-            const formData = new FormData();
-            formData.append('task_id', taskId);
-            formData.append('status', newStatus);
-            fetch('../tasks/update-status.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(res => res.json())
-                            .then(data => {
-                                if (data.success) {
-                                    // Show notification
-                                    const notif = document.createElement('div');
-                                    notif.textContent = 'تم تحديث حالة المهمة!';
-                                    notif.style.position = 'fixed';
-                                    notif.style.top = '32px';
-                                    notif.style.left = '50%';
-                                    notif.style.transform = 'translateX(-50%)';
-                                    notif.style.background = '#1abc9c';
-                                    notif.style.color = '#fff';
-                                    notif.style.padding = '12px 32px';
-                                    notif.style.borderRadius = '8px';
-                                    notif.style.fontSize = '1.1rem';
-                                    notif.style.boxShadow = '0 2px 12px rgba(26,188,156,0.13)';
-                                    notif.style.zIndex = 9999;
-                                    document.body.appendChild(notif);
-                                    setTimeout(() => notif.remove(), 1500);
-                                    // Update notifications immediately (full refresh if dropdown open)
-                                    fetchNotifications(notifOpen);
-                                    // Move task card to new column
-                                    const card = this.closest('.kanban-card');
-                                    const board = card.closest('.kanban-board');
-                                    const newCol = board.querySelector('.kanban-column.' + (newStatus === 'Pending' ? 'todo' : newStatus === 'In Progress' ? 'inprogress' : 'done'));
-                                    if (newCol) newCol.appendChild(card);
-                                    // Update counts
-                                    const todoCount = document.querySelector('.kanban-column.todo .kanban-count');
-                                    const inprogressCount = document.querySelector('.kanban-column.inprogress .kanban-count');
-                                    const doneCount = document.querySelector('.kanban-column.done .kanban-count');
-                                    todoCount.textContent = document.querySelectorAll('.kanban-column.todo .kanban-card').length;
-                                    inprogressCount.textContent = document.querySelectorAll('.kanban-column.inprogress .kanban-card').length;
-                                    doneCount.textContent = document.querySelectorAll('.kanban-column.done .kanban-card').length;
-                                } else {
-                                    alert('فشل في تحديث الحالة!');
-                                }
-                            })
-            .catch(() => alert('فشل في الاتصال بالخادم!'));
-        });
-    });
+// Move task on status change (delegated AJAX listener)
+document.addEventListener('change', e => {
+    if (e.target.matches('.task-status')) {
+        const select = e.target;
+        const taskId = select.dataset.taskId;
+        const newStatus = select.value;
+        const formData = new FormData();
+        formData.append('task_id', taskId);
+        formData.append('status', newStatus);
+        formData.append('csrf_token', csrfToken);
+        fetch('../tasks/update-status.php', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-Token': csrfToken
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // Show notification
+                const notif = document.createElement('div');
+                notif.textContent = 'تم تحديث حالة المهمة!';
+                notif.style.position = 'fixed';
+                notif.style.top = '32px';
+                notif.style.left = '50%';
+                notif.style.transform = 'translateX(-50%)';
+                notif.style.background = '#1abc9c';
+                notif.style.color = '#fff';
+                notif.style.padding = '12px 32px';
+                notif.style.borderRadius = '8px';
+                notif.style.fontSize = '1.1rem';
+                notif.style.boxShadow = '0 2px 12px rgba(26,188,156,0.13)';
+                notif.style.zIndex = 9999;
+                document.body.appendChild(notif);
+                setTimeout(() => notif.remove(), 1500);
+                // Update notifications immediately (full refresh if dropdown open)
+                if (typeof fetchNotifications === 'function') {
+                    fetchNotifications(typeof notifOpen !== 'undefined' ? notifOpen : false);
+                }
+                // Move task card to new column
+                const card = select.closest('.kanban-card');
+                if (card) {
+                    const board = card.closest('.kanban-board');
+                    if (board) {
+                        const colClass = newStatus === 'Pending' ? 'todo' : (newStatus === 'In Progress' ? 'inprogress' : 'done');
+                        const newCol = board.querySelector('.kanban-column.' + colClass);
+                        if (newCol && !newCol.contains(card)) {
+                            newCol.appendChild(card);
+                        }
+                    }
+                }
+                // Update counts
+                const todoCount = document.querySelector('.kanban-column.todo .kanban-count');
+                const inprogressCount = document.querySelector('.kanban-column.inprogress .kanban-count');
+                const doneCount = document.querySelector('.kanban-column.done .kanban-count');
+                if (todoCount) todoCount.textContent = document.querySelectorAll('.kanban-column.todo .kanban-card').length;
+                if (inprogressCount) inprogressCount.textContent = document.querySelectorAll('.kanban-column.inprogress .kanban-card').length;
+                if (doneCount) doneCount.textContent = document.querySelectorAll('.kanban-column.done .kanban-card').length;
+            } else {
+                alert('فشل في تحديث الحالة!');
+            }
+        })
+        .catch(() => alert('فشل في الاتصال بالخادم!'));
+    }
 });
 </script>
 

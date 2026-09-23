@@ -1,5 +1,6 @@
 <?php
-session_start();
+require_once __DIR__ . '/includes/auth.php';
+$base = '';
 // Pro skin redesign with animated loader and modern look
 ?>
 <!DOCTYPE html>
@@ -8,7 +9,7 @@ session_start();
     <meta charset="UTF-8">
     <title>TaskFlow - الصفحة الرئيسية</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="<?= $base ?>css/styles.css">
     <style>
         body {
             background: linear-gradient(135deg, #232526 0%, #414345 100%);
@@ -96,7 +97,7 @@ session_start();
     </script>
 </head>
 <body>
-    <?php include 'includes/nav.php'; render_nav(''); ?>
+    <?php include 'includes/nav.php'; render_nav($base); ?>
     <div class="pro-container">
         <div class="loader"></div>
         <div class="pro-logo">TaskFlow</div>
@@ -104,5 +105,6 @@ session_start();
         <a href="login.php" class="pro-btn">تسجيل الدخول</a>
         <a href="register.php" class="pro-btn" style="background:linear-gradient(90deg,#3498db 0%,#2980b9 100%)">إنشاء حساب</a>
     </div>
+    <script src="<?= $base ?>js/main.js"></script>
 </body>
 </html>

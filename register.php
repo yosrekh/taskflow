@@ -1,23 +1,40 @@
 <?php
-session_start();
-include 'includes/db.php';
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/db.php';
+
+if (!ALLOW_REGISTRATION) {
+    http_response_code(403);
+    die("التسجيل مغلق حالياً.");
+}
 
 $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $name = $_POST['name'];
-    $email = $_POST['email'];
-    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $error = "رمز التحقق غير صالح. يرجى إعادة المحاولة.";
+    } else {
+        $name = trim($_POST['name'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $passwordRaw = $_POST['password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
 
-    try {
-        $stmt = $pdo->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)");
-        $stmt->execute([$name, $email, $password]);
-        $success = "تم التسجيل بنجاح! يمكنك تسجيل الدخول الآن.";
-    } catch (PDOException $e) {
-        $error = "فشل التسجيل. البريد موجود مسبقًا.";
+        if ($passwordRaw !== $confirmPassword) {
+            $error = "كلمتا المرور غير متطابقتين.";
+        } else {
+            $password = password_hash($passwordRaw, PASSWORD_DEFAULT);
+            try {
+                $stmt = $pdo->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)");
+                $stmt->execute([$name, $email, $password]);
+                $success = "تم التسجيل بنجاح! يمكنك تسجيل الدخول الآن.";
+            } catch (PDOException $e) {
+                error_log("Registration error: " . $e->getMessage());
+                $error = "فشل التسجيل. البريد موجود مسبقًا.";
+            }
+        }
     }
 }
+$base = '';
 ?>
 
 <!DOCTYPE html>
@@ -25,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <title>إنشاء حساب - TaskFlow</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="<?= $base ?>css/styles.css">
     <style>
         body {
             background: linear-gradient(135deg, #232526 0%, #414345 100%);
@@ -159,11 +176,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div id="pro-loader" class="loader" style="display:none;"></div>
         <h2>إنشاء حساب جديد</h2>
         <?php if ($error): ?>
-            <p class="error"><?= $error ?></p>
+            <p class="error"><?= e($error) ?></p>
         <?php elseif ($success): ?>
-            <p class="success"><?= $success ?></p>
+            <p class="success"><?= e($success) ?></p>
         <?php endif; ?>
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
             <input type="text" name="name" placeholder="اسمك الكامل" required>
             <input type="email" name="email" placeholder="البريد الإلكتروني" required>
             <input type="password" name="password" placeholder="كلمة المرور" required>
@@ -172,5 +190,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </form>
         <p>لديك حساب بالفعل؟ <a href="login.php">سجل دخولك</a></p>
     </div>
+    <script src="<?= $base ?>js/main.js"></script>
 </body>
 </html>

@@ -18,7 +18,10 @@ function render_nav($base = '') {
                     <div id="notif-list" style="max-height:320px;overflow-y:auto;"></div>
                 </div>
             </div>
-            <a href="<?= $base ?>logout.php" class="btn logout-btn" style="background:linear-gradient(90deg,#e74c3c 0%,#c0392b 100%);color:#fff;padding:8px 18px;border-radius:8px;font-weight:bold;text-decoration:none;">تسجيل الخروج</a>
+            <form method="POST" action="<?= $base ?>logout.php" style="display:inline;margin:0;">
+                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                <button type="submit" class="btn logout-btn" style="background:linear-gradient(90deg,#e74c3c 0%,#c0392b 100%);color:#fff;padding:8px 18px;border-radius:8px;font-weight:bold;text-decoration:none;border:none;cursor:pointer;font-family:inherit;font-size:1rem;">تسجيل الخروج</button>
+            </form>
         </div>
     </nav>
     <div style="height:58px;"></div>
@@ -26,8 +29,17 @@ function render_nav($base = '') {
     // Notification Bell Logic
     function fetchNotifications(updateCountOnly = false, markRead = false) {
         let url = '<?= $base ?>get-notifications.php';
-        if (markRead) url += '?mark_read=1';
-        fetch(url)
+        let fetchOptions = { method: 'GET' };
+        if (markRead) {
+            url += '?mark_read=1';
+            fetchOptions = {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-Token': '<?= csrf_token() ?>'
+                }
+            };
+        }
+        fetch(url, fetchOptions)
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
@@ -76,11 +88,29 @@ function render_nav($base = '') {
                                     item.style.opacity = '0.7';
                                 }
                                 if (match) {
-                                    let actionText = `${action} <span style='color:#2980b9'>'${task}'</span>`;
-                                    if (action === 'غيّر حالة المهمة') {
-                                        actionText += ` إلى ${status}`;
+                                    const actorEl = document.createElement('div');
+                                    actorEl.style.cssText = 'font-size:0.97em;color:#1abc9c;font-weight:bold;';
+                                    actorEl.textContent = actor;
+
+                                    const actionEl = document.createElement('div');
+                                    actionEl.style.fontSize = '0.97em';
+                                    actionEl.textContent = action + " '" + task + "'";
+                                    if (action === 'غيّر حالة المهمة' && status) {
+                                        actionEl.textContent += ' إلى ' + status;
                                     }
-                                    item.innerHTML = `<div style='font-size:0.97em;color:#1abc9c;font-weight:bold;'>${actor}</div><div style='font-size:0.97em;'>${actionText}</div><div style='font-size:0.95em;color:#888;'>${project}</div><div style='font-size:0.92em;color:#aaa;'>${time}</div>`;
+
+                                    const projectEl = document.createElement('div');
+                                    projectEl.style.cssText = 'font-size:0.95em;color:#888;';
+                                    projectEl.textContent = project;
+
+                                    const timeEl = document.createElement('div');
+                                    timeEl.style.cssText = 'font-size:0.92em;color:#aaa;';
+                                    timeEl.textContent = time;
+
+                                    item.appendChild(actorEl);
+                                    item.appendChild(actionEl);
+                                    item.appendChild(projectEl);
+                                    item.appendChild(timeEl);
                                 } else {
                                     item.textContent = msg;
                                 }
