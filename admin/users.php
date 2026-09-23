@@ -215,6 +215,10 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <title>إدارة المستخدمين - TaskFlow</title>
     <link rel="stylesheet" href="<?= $base ?>css/styles.css">
     <style>
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
         body {
             background: linear-gradient(135deg, #232526 0%, #414345 100%);
             min-height: 100vh;
@@ -223,10 +227,13 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
             display: flex;
             flex-direction: column;
             align-items: center;
+            width: 100%;
+            box-sizing: border-box;
         }
         .admin-container {
             width: 95%;
             max-width: 1100px;
+            min-width: 0;
             margin: 30px auto;
             background: rgba(255,255,255,0.06);
             backdrop-filter: blur(10px);
@@ -244,6 +251,8 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
             border-bottom: 1px solid rgba(255,255,255,0.12);
             padding-bottom: 20px;
             margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
         }
         .header-section h1 {
             margin: 0;
@@ -285,6 +294,7 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
             align-items: center;
             gap: 12px;
             margin: 16px 0;
+            flex-wrap: wrap;
         }
         .pwd-code {
             font-family: 'Courier New', Courier, monospace;
@@ -297,6 +307,9 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
             letter-spacing: 2px;
             border: 1px solid #333;
             user-select: all;
+            max-width: 100%;
+            box-sizing: border-box;
+            word-break: break-all;
         }
         .copy-btn {
             background: #1abc9c;
@@ -347,6 +360,8 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
             font-size: 0.98rem;
             outline: none;
             flex: 1 1 200px;
+            min-width: 0;
+            box-sizing: border-box;
         }
         .create-form input::placeholder {
             color: #bbb;
@@ -372,24 +387,110 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         .table-responsive {
             overflow-x: auto;
-        }
-        table {
+            -webkit-overflow-scrolling: touch;
             width: 100%;
+            max-width: 100%;
+            display: block;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.03);
+            margin-top: 10px;
+            box-sizing: border-box;
+        }
+        .users-table {
+            width: 100%;
+            min-width: 680px;
             border-collapse: collapse;
+            background: transparent !important;
+            box-shadow: none !important;
+            margin: 0 !important;
             text-align: right;
         }
-        th, td {
-            padding: 14px 16px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        th {
+        .users-table thead tr {
             background: rgba(255,255,255,0.06);
-            color: #1abc9c;
-            font-weight: bold;
-            font-size: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.12);
         }
-        tr:hover td {
-            background: rgba(255,255,255,0.03);
+        .users-table th {
+            background-color: transparent !important;
+            color: #1abc9c;
+            font-weight: 700;
+            font-size: 0.95rem;
+            padding: 14px 18px;
+            border: none;
+            border-bottom: 1px solid rgba(255,255,255,0.12);
+            text-align: right;
+            white-space: nowrap;
+        }
+        .users-table td {
+            padding: 14px 18px;
+            border: none;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            color: #e2e8f0;
+            font-size: 0.95rem;
+            vertical-align: middle;
+            text-align: right;
+            background: transparent !important;
+        }
+        .users-table tbody tr {
+            transition: background-color 0.15s ease;
+        }
+        .users-table tbody tr:hover td {
+            background-color: rgba(255,255,255,0.05) !important;
+        }
+        .users-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        /* Admin's own row */
+        .users-table tr.user-row-self {
+            background-color: rgba(26,188,156,0.07);
+        }
+        .users-table tr.user-row-self:hover td {
+            background-color: rgba(26,188,156,0.12) !important;
+        }
+        .users-table tr.user-row-self td {
+            color: #ffffff;
+        }
+        /* Inactive row */
+        .users-table tr.user-row-inactive {
+            background-color: rgba(0,0,0,0.15);
+        }
+        .users-table tr.user-row-inactive td {
+            color: #94a3b8;
+        }
+        .users-table tr.user-row-inactive:hover td {
+            background-color: rgba(255,255,255,0.04) !important;
+        }
+        .users-table .user-name {
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .users-table tr.user-row-inactive .user-name {
+            color: #cbd5e1;
+        }
+        .users-table .user-email {
+            color: #cbd5e1;
+            font-family: inherit;
+            direction: ltr;
+            display: inline-block;
+        }
+        .users-table tr.user-row-inactive .user-email {
+            color: #94a3b8;
+        }
+        .users-table .user-date {
+            color: #94a3b8;
+            font-size: 0.88rem;
+            white-space: nowrap;
+        }
+        .self-label {
+            color: #94a3b8;
+            font-size: 0.88rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.1);
+            display: inline-block;
+            white-space: nowrap;
         }
         .badge {
             display: inline-block;
@@ -397,6 +498,7 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
             border-radius: 6px;
             font-size: 0.85rem;
             font-weight: bold;
+            white-space: nowrap;
         }
         .badge-admin {
             background: rgba(155,89,182,0.25);
@@ -436,6 +538,7 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
             font-weight: bold;
             cursor: pointer;
             transition: opacity 0.2s, transform 0.1s;
+            white-space: nowrap;
         }
         .btn-sm:hover:not(:disabled) {
             opacity: 0.85;
@@ -461,6 +564,41 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
             background: #34495e;
             color: #ecf0f1;
             border: 1px solid #556b82;
+        }
+
+        @media (max-width: 600px) {
+            .admin-container {
+                width: 96%;
+                padding: 18px 14px;
+                margin: 15px auto;
+                border-radius: 14px;
+            }
+            .header-section {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            .header-section h1 {
+                font-size: 1.4rem;
+            }
+            .create-form {
+                flex-direction: column;
+            }
+            .create-form input, .create-form select, .create-form button {
+                width: 100%;
+                flex: 1 1 100%;
+                box-sizing: border-box;
+            }
+            .pwd-display {
+                flex-direction: column;
+            }
+            .pwd-code {
+                font-size: 1.2rem;
+                padding: 8px 14px;
+                max-width: 100%;
+                box-sizing: border-box;
+                word-break: break-all;
+            }
         }
     </style>
 </head>
@@ -509,7 +647,7 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
 
         <div class="table-responsive">
-            <table>
+            <table class="users-table">
                 <thead>
                     <tr>
                         <th>الاسم</th>
@@ -522,9 +660,17 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </thead>
                 <tbody>
                     <?php foreach ($all_users as $u): ?>
-                        <tr>
-                            <td><strong><?= e($u['name']) ?></strong></td>
-                            <td><?= e($u['email']) ?></td>
+                        <?php 
+                        $isSelf = ((int)$u['id'] === $admin_id); 
+                        $isActive = ((int)$u['is_active'] === 1);
+                        $rowClasses = [];
+                        if ($isSelf) $rowClasses[] = 'user-row-self';
+                        if (!$isActive) $rowClasses[] = 'user-row-inactive';
+                        $rowClassAttr = !empty($rowClasses) ? ' class="' . implode(' ', $rowClasses) . '"' : '';
+                        ?>
+                        <tr<?= $rowClassAttr ?>>
+                            <td><span class="user-name"><?= e($u['name']) ?></span></td>
+                            <td><span class="user-email"><?= e($u['email']) ?></span></td>
                             <td>
                                 <?php if ($u['role'] === 'admin'): ?>
                                     <span class="badge badge-admin">مدير</span>
@@ -533,51 +679,52 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <?php if ((int)$u['is_active'] === 1): ?>
+                                <?php if ($isActive): ?>
                                     <span class="badge badge-active">نشط</span>
                                 <?php else: ?>
                                     <span class="badge badge-inactive">معطل</span>
                                 <?php endif; ?>
                             </td>
-                            <td><?= date('Y-m-d H:i', strtotime($u['created_at'])) ?></td>
+                            <td><span class="user-date"><?= date('Y-m-d H:i', strtotime($u['created_at'])) ?></span></td>
                             <td>
                                 <div class="action-btns">
-                                    <?php $isSelf = ((int)$u['id'] === $admin_id); ?>
-                                    <!-- Reset Password -->
-                                    <?php if (!$isSelf): ?>
-                                    <form method="POST" onsubmit="return confirm('هل أنت متأكد من إعادة تعيين كلمة المرور لهذا المستخدم؟ سيتم إنهاء جلساته النشطة فوراً.');">
-                                        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                                        <input type="hidden" name="action" value="reset_password">
-                                        <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
-                                        <button type="submit" class="btn-sm btn-reset">إعادة تعيين الباسورد</button>
-                                    </form>
+                                    <?php if ($isSelf): ?>
+                                        <span class="self-label">(حسابك)</span>
+                                    <?php else: ?>
+                                        <!-- Reset Password -->
+                                        <form method="POST">
+                                            <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                                            <input type="hidden" name="action" value="reset_password">
+                                            <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                                            <button type="submit" class="btn-sm btn-reset action-confirm-btn" data-confirm-action="reset_password" data-user-name="<?= e($u['name']) ?>">إعادة تعيين الباسورد</button>
+                                        </form>
+
+                                        <!-- Deactivate / Activate -->
+                                        <form method="POST">
+                                            <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                                            <input type="hidden" name="action" value="toggle_active">
+                                            <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                                            <?php if ($isActive): ?>
+                                                <button type="submit" class="btn-sm btn-deactivate action-confirm-btn" data-confirm-action="deactivate" data-user-name="<?= e($u['name']) ?>">تعطيل</button>
+                                            <?php else: ?>
+                                                <button type="submit" class="btn-sm btn-activate action-confirm-btn" data-confirm-action="reactivate" data-user-name="<?= e($u['name']) ?>">تفعيل</button>
+                                            <?php endif; ?>
+                                        </form>
+
+                                        <!-- Change Role -->
+                                        <form method="POST">
+                                            <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                                            <input type="hidden" name="action" value="change_role">
+                                            <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                                            <?php if ($u['role'] === 'admin'): ?>
+                                                <input type="hidden" name="role" value="member">
+                                                <button type="submit" class="btn-sm btn-role action-confirm-btn" data-confirm-action="demote" data-user-name="<?= e($u['name']) ?>">خفض لعضو</button>
+                                            <?php else: ?>
+                                                <input type="hidden" name="role" value="admin">
+                                                <button type="submit" class="btn-sm btn-role action-confirm-btn" data-confirm-action="promote" data-user-name="<?= e($u['name']) ?>">ترقية لمدير</button>
+                                            <?php endif; ?>
+                                        </form>
                                     <?php endif; ?>
-
-                                    <!-- Deactivate / Activate -->
-                                    <form method="POST">
-                                        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                                        <input type="hidden" name="action" value="toggle_active">
-                                        <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
-                                        <?php if ((int)$u['is_active'] === 1): ?>
-                                            <button type="submit" class="btn-sm btn-deactivate" <?= $isSelf ? 'disabled title="لا يمكنك تعطيل حسابك الخاص"' : '' ?> onclick="return confirm('هل تريد تعطيل هذا الحساب؟')">تعطيل</button>
-                                        <?php else: ?>
-                                            <button type="submit" class="btn-sm btn-activate" onclick="return confirm('هل تريد تفعيل هذا الحساب؟')">تفعيل</button>
-                                        <?php endif; ?>
-                                    </form>
-
-                                    <!-- Change Role -->
-                                    <form method="POST">
-                                        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                                        <input type="hidden" name="action" value="change_role">
-                                        <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
-                                        <?php if ($u['role'] === 'admin'): ?>
-                                            <input type="hidden" name="role" value="member">
-                                            <button type="submit" class="btn-sm btn-role" <?= $isSelf ? 'disabled title="لا يمكنك خفض صلاحيات حسابك الخاص"' : '' ?> onclick="return confirm('تحويل المستخدم إلى عضو عادي؟')">خفض لعضو</button>
-                                        <?php else: ?>
-                                            <input type="hidden" name="role" value="admin">
-                                            <button type="submit" class="btn-sm btn-role" onclick="return confirm('ترقية المستخدم إلى مدير؟')">ترقية لمدير</button>
-                                        <?php endif; ?>
-                                    </form>
                                 </div>
                             </td>
                         </tr>
@@ -588,6 +735,39 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
 
     <script>
+    // Delegated confirmation listener for admin user actions
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.action-confirm-btn');
+        if (!btn) return;
+
+        const action = btn.dataset.confirmAction;
+        const userName = btn.dataset.userName || '';
+        let msg = '';
+
+        switch (action) {
+            case 'deactivate':
+                msg = `تعطيل حساب ${userName}؟ هيتم تسجيل خروجه فوراً.`;
+                break;
+            case 'reactivate':
+                msg = `تفعيل حساب ${userName}؟`;
+                break;
+            case 'reset_password':
+                msg = `إعادة تعيين كلمة المرور لحساب ${userName}؟ هيتم تسجيل خروجه فوراً.`;
+                break;
+            case 'promote':
+                msg = `ترقية ${userName} إلى مدير؟`;
+                break;
+            case 'demote':
+                msg = `خفض رتبة ${userName} إلى عضو عادي؟`;
+                break;
+        }
+
+        if (msg && !window.confirm(msg)) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    });
+
     function copyPassword() {
         const text = document.getElementById('pwd-val').textContent.trim();
         if (navigator.clipboard && navigator.clipboard.writeText) {
