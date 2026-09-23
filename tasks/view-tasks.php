@@ -74,6 +74,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $due_date = $_POST['due_date'] ?? null;
         $assigned_to = !empty($_POST['assigned_to']) ? (int)$_POST['assigned_to'] : null;
         try {
+            $old_stmt = $pdo->prepare("SELECT assigned_to, title FROM tasks WHERE id = ? AND project_id = ?");
+            $old_stmt->execute([$task_id, $project_id]);
+            $old_task = $old_stmt->fetch();
+            $old_assigned_to = $old_task ? $old_task['assigned_to'] : null;
+
             $stmt = $pdo->prepare("UPDATE tasks SET title=?, description=?, priority=?, due_date=?, assigned_to=? WHERE id=? AND project_id=?");
             $stmt->execute([$title, $description, $priority, $due_date, $assigned_to, $task_id, $project_id]);
             $success = "تم تحديث المهمة بنجاح.";
@@ -89,6 +94,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($uid != $actor_id) {
                     $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$uid, $msg]);
                 }
+            }
+
+            // If assignee changed, notify the previous assignee
+            if ($old_assigned_to && $old_assigned_to != $assigned_to && $old_assigned_to != $actor_id) {
+                $unassign_msg = "[{$action_time}] {$actor_name} ألغى إسناد المهمة '{$title}' لك في مشروع '{$project_title}'";
+                $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$old_assigned_to, $unassign_msg]);
             }
         } catch (PDOException $e) {
             error_log("Edit task error: " . $e->getMessage());
@@ -511,6 +522,7 @@ if (isset($_GET['edit_task_id'])) {
                     const newTasksJson = JSON.stringify(data.tasks);
                     if (newTasksJson !== lastTasksJson) {
                         renderKanban(data.tasks);
+                        lastTasksJson = newTasksJson;
                     }
                 }
             })
