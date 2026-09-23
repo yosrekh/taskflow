@@ -210,7 +210,6 @@ $base = '';
             <input type="password" name="password" placeholder="كلمة المرور" required>
             <button type="submit">دخول</button>
         </form>
-        <p>ليس لديك حساب؟ <a href="register.php">اشترك الآن</a></p>
     </div>
     <script src="<?= $base ?>js/main.js"></script>
 </body>
