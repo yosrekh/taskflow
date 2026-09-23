@@ -8,14 +8,18 @@ function start_secure_session() {
     if (session_status() === PHP_SESSION_NONE) {
         $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
                    (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+        $isProduction = (defined('APP_ENV') && APP_ENV === 'production');
 
         ini_set('session.use_strict_mode', '1');
+
+        $sessionName = defined('SESSION_NAME') ? SESSION_NAME : 'TASKFLOW_SESSID';
+        session_name($sessionName);
 
         session_set_cookie_params([
             'lifetime' => 0,
             'path'     => '/',
             'domain'   => '',
-            'secure'   => $isHttps,
+            'secure'   => $isProduction || $isHttps,
             'httponly' => true,
             'samesite' => 'Lax',
         ]);
