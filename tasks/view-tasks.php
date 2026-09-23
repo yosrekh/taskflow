@@ -476,58 +476,6 @@ if (isset($_GET['edit_task_id'])) {
                 `).join('');
             col.querySelectorAll('.kanban-card').forEach(e => e.remove());
             col.insertAdjacentHTML('beforeend', cards);
-                // Re-attach status change event listeners
-                col.querySelectorAll('.task-status').forEach(function(select) {
-                    select.addEventListener('change', function() {
-                        const taskId = this.dataset.taskId;
-                        const newStatus = this.value;
-                        const formData = new FormData();
-                        formData.append('task_id', taskId);
-                        formData.append('status', newStatus);
-                        formData.append('csrf_token', csrfToken);
-                        fetch('../tasks/update-status.php', {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-Token': csrfToken
-                            },
-                            body: formData
-                        })
-                        .then(res => res.json())
-                            .then(data => {
-                                if (data.success) {
-                                    const notif = document.createElement('div');
-                                    notif.textContent = 'تم تحديث حالة المهمة!';
-                                    notif.style.position = 'fixed';
-                                    notif.style.top = '32px';
-                                    notif.style.left = '50%';
-                                    notif.style.transform = 'translateX(-50%)';
-                                    notif.style.background = '#1abc9c';
-                                    notif.style.color = '#fff';
-                                    notif.style.padding = '12px 32px';
-                                    notif.style.borderRadius = '8px';
-                                    notif.style.fontSize = '1.1rem';
-                                    notif.style.boxShadow = '0 2px 12px rgba(26,188,156,0.13)';
-                                    notif.style.zIndex = 9999;
-                                    document.body.appendChild(notif);
-                                    setTimeout(() => notif.remove(), 1500);
-                                    // Update notifications immediately (full refresh if dropdown open)
-                                    fetchNotifications(notifOpen);
-                                    // Move card to new column instantly
-                                    const card = this.closest('.kanban-card');
-                                    const board = card.closest('.kanban-board');
-                                    let newColClass = '';
-                                    if (newStatus === 'Pending') newColClass = 'todo';
-                                    else if (newStatus === 'In Progress') newColClass = 'inprogress';
-                                    else if (newStatus === 'Completed') newColClass = 'done';
-                                    const newCol = board.querySelector('.kanban-column.' + newColClass);
-                                    if (newCol && !newCol.contains(card)) newCol.appendChild(card);
-                                } else {
-                                    alert('فشل في تحديث الحالة!');
-                                }
-                            })
-                        .catch(() => alert('فشل في الاتصال بالخادم!'));
-                    });
-                });
         });
         // Update counts
         statuses['Pending'].querySelector('.kanban-count').textContent = tasks.filter(t => t.status === 'Pending').length;
@@ -841,63 +789,71 @@ if (isset($_GET['edit_task_id'])) {
 
 <script src="<?= $base ?>js/main.js"></script>
 <script>
-// Move task on status change (AJAX)
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.task-status').forEach(function(select) {
-        select.addEventListener('change', function() {
-            const taskId = this.dataset.taskId;
-            const newStatus = this.value;
-            const formData = new FormData();
-            formData.append('task_id', taskId);
-            formData.append('status', newStatus);
-            formData.append('csrf_token', csrfToken);
-            fetch('../tasks/update-status.php', {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-Token': csrfToken
-                },
-                body: formData
-            })
-            .then(res => res.json())
-                            .then(data => {
-                                if (data.success) {
-                                    // Show notification
-                                    const notif = document.createElement('div');
-                                    notif.textContent = 'تم تحديث حالة المهمة!';
-                                    notif.style.position = 'fixed';
-                                    notif.style.top = '32px';
-                                    notif.style.left = '50%';
-                                    notif.style.transform = 'translateX(-50%)';
-                                    notif.style.background = '#1abc9c';
-                                    notif.style.color = '#fff';
-                                    notif.style.padding = '12px 32px';
-                                    notif.style.borderRadius = '8px';
-                                    notif.style.fontSize = '1.1rem';
-                                    notif.style.boxShadow = '0 2px 12px rgba(26,188,156,0.13)';
-                                    notif.style.zIndex = 9999;
-                                    document.body.appendChild(notif);
-                                    setTimeout(() => notif.remove(), 1500);
-                                    // Update notifications immediately (full refresh if dropdown open)
-                                    fetchNotifications(notifOpen);
-                                    // Move task card to new column
-                                    const card = this.closest('.kanban-card');
-                                    const board = card.closest('.kanban-board');
-                                    const newCol = board.querySelector('.kanban-column.' + (newStatus === 'Pending' ? 'todo' : newStatus === 'In Progress' ? 'inprogress' : 'done'));
-                                    if (newCol) newCol.appendChild(card);
-                                    // Update counts
-                                    const todoCount = document.querySelector('.kanban-column.todo .kanban-count');
-                                    const inprogressCount = document.querySelector('.kanban-column.inprogress .kanban-count');
-                                    const doneCount = document.querySelector('.kanban-column.done .kanban-count');
-                                    todoCount.textContent = document.querySelectorAll('.kanban-column.todo .kanban-card').length;
-                                    inprogressCount.textContent = document.querySelectorAll('.kanban-column.inprogress .kanban-card').length;
-                                    doneCount.textContent = document.querySelectorAll('.kanban-column.done .kanban-card').length;
-                                } else {
-                                    alert('فشل في تحديث الحالة!');
-                                }
-                            })
-            .catch(() => alert('فشل في الاتصال بالخادم!'));
-        });
-    });
+// Move task on status change (delegated AJAX listener)
+document.addEventListener('change', e => {
+    if (e.target.matches('.task-status')) {
+        const select = e.target;
+        const taskId = select.dataset.taskId;
+        const newStatus = select.value;
+        const formData = new FormData();
+        formData.append('task_id', taskId);
+        formData.append('status', newStatus);
+        formData.append('csrf_token', csrfToken);
+        fetch('../tasks/update-status.php', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-Token': csrfToken
+            },
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // Show notification
+                const notif = document.createElement('div');
+                notif.textContent = 'تم تحديث حالة المهمة!';
+                notif.style.position = 'fixed';
+                notif.style.top = '32px';
+                notif.style.left = '50%';
+                notif.style.transform = 'translateX(-50%)';
+                notif.style.background = '#1abc9c';
+                notif.style.color = '#fff';
+                notif.style.padding = '12px 32px';
+                notif.style.borderRadius = '8px';
+                notif.style.fontSize = '1.1rem';
+                notif.style.boxShadow = '0 2px 12px rgba(26,188,156,0.13)';
+                notif.style.zIndex = 9999;
+                document.body.appendChild(notif);
+                setTimeout(() => notif.remove(), 1500);
+                // Update notifications immediately (full refresh if dropdown open)
+                if (typeof fetchNotifications === 'function') {
+                    fetchNotifications(typeof notifOpen !== 'undefined' ? notifOpen : false);
+                }
+                // Move task card to new column
+                const card = select.closest('.kanban-card');
+                if (card) {
+                    const board = card.closest('.kanban-board');
+                    if (board) {
+                        const colClass = newStatus === 'Pending' ? 'todo' : (newStatus === 'In Progress' ? 'inprogress' : 'done');
+                        const newCol = board.querySelector('.kanban-column.' + colClass);
+                        if (newCol && !newCol.contains(card)) {
+                            newCol.appendChild(card);
+                        }
+                    }
+                }
+                // Update counts
+                const todoCount = document.querySelector('.kanban-column.todo .kanban-count');
+                const inprogressCount = document.querySelector('.kanban-column.inprogress .kanban-count');
+                const doneCount = document.querySelector('.kanban-column.done .kanban-count');
+                if (todoCount) todoCount.textContent = document.querySelectorAll('.kanban-column.todo .kanban-card').length;
+                if (inprogressCount) inprogressCount.textContent = document.querySelectorAll('.kanban-column.inprogress .kanban-card').length;
+                if (doneCount) doneCount.textContent = document.querySelectorAll('.kanban-column.done .kanban-card').length;
+            } else {
+                alert('فشل في تحديث الحالة!');
+            }
+        })
+        .catch(() => alert('فشل في الاتصال بالخادم!'));
+    }
 });
 </script>
 

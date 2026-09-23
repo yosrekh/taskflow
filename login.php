@@ -12,17 +12,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (!verify_csrf($_POST['csrf_token'] ?? '')) {
         $error = "رمز التحقق غير صالح. يرجى إعادة المحاولة.";
     } else {
-        // Check login throttling: 5 failures in 15 minutes for the same email or IP
+        // Opportunistic cleanup of rows older than 24 hours and login throttling check
         try {
-            $throttleStmt = $pdo->prepare("
+            $pdo->exec("DELETE FROM login_attempts WHERE attempted_at < (NOW() - INTERVAL 24 HOUR)");
+
+            // Check login throttling: 5 failures per email OR 30 failures per IP within 15 minutes
+            $emailStmt = $pdo->prepare("
                 SELECT COUNT(*) FROM login_attempts 
-                WHERE (email = ? OR ip = ?) 
+                WHERE email = ? 
                   AND attempted_at >= (NOW() - INTERVAL 15 MINUTE)
             ");
-            $throttleStmt->execute([$email, $ip]);
-            $failedCount = (int)$throttleStmt->fetchColumn();
+            $emailStmt->execute([$email]);
+            $emailFailures = (int)$emailStmt->fetchColumn();
 
-            if ($failedCount >= 5) {
+            $ipStmt = $pdo->prepare("
+                SELECT COUNT(*) FROM login_attempts 
+                WHERE ip = ? 
+                  AND attempted_at >= (NOW() - INTERVAL 15 MINUTE)
+            ");
+            $ipStmt->execute([$ip]);
+            $ipFailures = (int)$ipStmt->fetchColumn();
+
+            if ($emailFailures >= 5 || $ipFailures >= 30) {
                 $error = "تم حظر محاولات تسجيل الدخول مؤقتاً لكثرة المحاولات الفاشلة. يرجى المحاولة بعد 15 دقيقة.";
             } else {
                 $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
@@ -33,9 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     session_regenerate_id(true);
                     $_SESSION['user_id'] = $user['id'];
 
-                    // Clear failed attempts for this email and IP upon successful login
-                    $clearStmt = $pdo->prepare("DELETE FROM login_attempts WHERE email = ? OR ip = ?");
-                    $clearStmt->execute([$email, $ip]);
+                    // Clear failed attempts for this email upon successful login
+                    $clearStmt = $pdo->prepare("DELETE FROM login_attempts WHERE email = ?");
+                    $clearStmt->execute([$email]);
 
                     header("Location: dashboard.php");
                     exit;

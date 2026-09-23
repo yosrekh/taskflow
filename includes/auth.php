@@ -94,8 +94,3 @@ function can_update_task_status($pdo, $userId, $taskId) {
            ($row['assigned_to'] !== null && (int)$row['assigned_to'] === (int)$userId);
 }
 
-// HTML Escaping Helper (ENT_QUOTES, UTF-8)
-function e($str) {
-    return htmlspecialchars((string)($str ?? ''), ENT_QUOTES, 'UTF-8');
-}
-

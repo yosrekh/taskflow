@@ -66,7 +66,7 @@ if (APP_ENV === 'production') {
     ini_set('display_errors', '0');
     ini_set('display_startup_errors', '0');
     ini_set('log_errors', '1');
-    error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
+    error_reporting(E_ALL & ~E_DEPRECATED);
 } else {
     ini_set('display_errors', '1');
     ini_set('display_startup_errors', '1');

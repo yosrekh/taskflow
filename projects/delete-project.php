@@ -37,19 +37,28 @@ try {
         die("غير مصرح لك بحذف هذا المشروع.");
     }
 
+    $pdo->beginTransaction();
+
     // Delete tasks first due to foreign key constraint
     $pdo->prepare("DELETE FROM tasks WHERE project_id = ?")->execute([$project_id]);
 
     // Then delete the project
     $pdo->prepare("DELETE FROM projects WHERE id = ?")->execute([$project_id]);
 
-    // Notify owner
-    $msg = "تم حذف المشروع '{$project['title']}'";
-    $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$project['user_id'], $msg]);
+    // Notify owner only if actor is not the project owner
+    if ((int)$project['user_id'] !== (int)$user_id) {
+        $msg = "تم حذف المشروع '{$project['title']}'";
+        $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$project['user_id'], $msg]);
+    }
+
+    $pdo->commit();
 
     header("Location: ../dashboard.php");
     exit;
 } catch (PDOException $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     error_log("Delete project error: " . $e->getMessage());
     die("فشل في حذف المشروع.");
 }
