@@ -165,7 +165,7 @@ if ($is_project_owner) {
 }
 
 // Get all users for assignment
-$users_stmt = $pdo->query("SELECT id, name FROM users");
+$users_stmt = $pdo->query("SELECT id, name FROM users WHERE is_active = 1");
 $users = $users_stmt->fetchAll();
 
 // For edit form
@@ -547,7 +547,9 @@ if (isset($_GET['edit_task_id'])) {
 <header>
     <h1>مشروع: <?= e($project['title']) ?></h1>
     <div class="header-actions">
-        <button class="add-task-btn" id="openAddTask">+ إضافة مهمة</button>
+        <?php if ($is_project_owner): ?>
+            <button class="add-task-btn" id="openAddTask">+ إضافة مهمة</button>
+        <?php endif; ?>
         <a href="../dashboard.php" class="btn btn-back">← العودة للوحة التحكم</a>
     </div>
 </header>
@@ -607,12 +609,16 @@ if (isset($_GET['edit_task_id'])) {
         const openBtn = document.getElementById('openAddTask');
         const closeBtn = document.getElementById('closePopup');
         <?php if (!$edit_task): ?>
-        openBtn.addEventListener('click', function() {
-            popup.classList.add('active');
-        });
-        closeBtn.addEventListener('click', function() {
-            popup.classList.remove('active');
-        });
+        if (openBtn) {
+            openBtn.addEventListener('click', function() {
+                popup.classList.add('active');
+            });
+        }
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function() {
+                popup.classList.remove('active');
+            });
+        }
         window.addEventListener('click', function(e) {
             if (e.target === popup) popup.classList.remove('active');
         });

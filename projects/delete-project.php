@@ -26,12 +26,13 @@ try {
     $project_stmt->execute([$project_id]);
     $project = $project_stmt->fetch();
 
+    $user_id = $_SESSION['user_id'];
+
     if (!$project || !can_view_project($pdo, $user_id, $project_id)) {
         http_response_code(404);
         die("المشروع غير موجود.");
     }
 
-    $user_id = $_SESSION['user_id'];
     if (!can_manage_project($pdo, $user_id, $project_id)) {
         http_response_code(403);
         die("غير مصرح لك بحذف هذا المشروع.");
@@ -47,7 +48,11 @@ try {
 
     // Notify owner only if actor is not the project owner
     if ((int)$project['user_id'] !== (int)$user_id) {
-        $msg = "تم حذف المشروع '{$project['title']}'";
+        $actor_stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
+        $actor_stmt->execute([$user_id]);
+        $actor_name = $actor_stmt->fetchColumn() ?: 'المسؤول';
+        $action_time = date('Y-m-d H:i');
+        $msg = "[{$action_time}] {$actor_name} حذف المشروع '{$project['title']}'";
         $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$project['user_id'], $msg]);
     }
 

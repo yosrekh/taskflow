@@ -11,21 +11,33 @@ $stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Get visible projects for current user (owned OR assigned to at least one task)
-$stmt = $pdo->prepare("
-    SELECT projects.*, users.name AS owner_name 
-    FROM projects 
-    JOIN users ON projects.user_id = users.id 
-    WHERE projects.user_id = ? 
-       OR EXISTS (
-           SELECT 1 FROM tasks 
-           WHERE tasks.project_id = projects.id 
-             AND tasks.assigned_to = ?
-       )
-    ORDER BY projects.created_at DESC
-");
-$stmt->execute([$user_id, $user_id]);
-$projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Get visible projects for current user
+if (is_admin()) {
+    $stmt = $pdo->query("
+        SELECT projects.*, users.name AS owner_name 
+        FROM projects 
+        JOIN users ON projects.user_id = users.id 
+        ORDER BY projects.created_at DESC
+    ");
+    $allProjects = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $myProjects = array_values(array_filter($allProjects, fn($p) => (int)$p['user_id'] === (int)$user_id));
+    $teamProjects = array_values(array_filter($allProjects, fn($p) => (int)$p['user_id'] !== (int)$user_id));
+} else {
+    $stmt = $pdo->prepare("
+        SELECT projects.*, users.name AS owner_name 
+        FROM projects 
+        JOIN users ON projects.user_id = users.id 
+        WHERE projects.user_id = ? 
+           OR EXISTS (
+               SELECT 1 FROM tasks 
+               WHERE tasks.project_id = projects.id 
+                 AND tasks.assigned_to = ?
+           )
+        ORDER BY projects.created_at DESC
+    ");
+    $stmt->execute([$user_id, $user_id]);
+    $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 ?>
 
 <!DOCTYPE html>
@@ -308,42 +320,122 @@ $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <a href="projects/add-project.php" class="btn">+ مشروع جديد</a>
             </div>
         </div>
+        <?php if (isset($_GET['msg']) && $_GET['msg'] === 'password_changed'): ?>
+            <div style="background:rgba(46,204,113,0.15);border:1px solid #2ecc71;color:#2ecc71;padding:12px 18px;border-radius:10px;margin-top:16px;font-size:1.05rem;">
+                تم تغيير كلمة المرور بنجاح.
+            </div>
+        <?php endif; ?>
         <main>
-            <section class="projects">
-                <h2>مشاريعك</h2>
-                <?php if (!empty($projects)): ?>
-                    <ul>
-                        <?php foreach ($projects as $project): ?>
-                            <li>
-                                <strong><?= e($project['title']) ?></strong><br>
-                                <small><?= e($project['description']) ?></small><br>
-                                <span style="color:#b2dfdb;font-size:0.95em;">مالك المشروع: <?= e($project['owner_name']) ?></span>
-                                <div class="project-actions">
-                                    <a href="tasks/view-tasks.php?project_id=<?= (int)$project['id'] ?>" title="عرض المهام" class="list-btn">
-                                        <svg width="20" height="20" style="vertical-align:middle; margin-left:4px;"><use href="#icon-tasks-alt"/></svg>
-                                        <span>عرض المهام</span>
-                                    </a>
-                                    <span style="flex:1"></span>
-                                    <?php if ($project['user_id'] == $user_id): ?>
-                                        <a href="projects/edit-project.php?id=<?= $project['id'] ?>" title="تعديل المشروع" class="icon-btn left-icon">
-                                            <svg width="22" height="22"><use href="#icon-edit-stylish"/></svg>
+            <?php if (!is_admin()): ?>
+                <section class="projects">
+                    <h2>مشاريعك</h2>
+                    <?php if (!empty($projects)): ?>
+                        <ul>
+                            <?php foreach ($projects as $project): ?>
+                                <li>
+                                    <strong><?= e($project['title']) ?></strong><br>
+                                    <small><?= e($project['description']) ?></small><br>
+                                    <span style="color:#b2dfdb;font-size:0.95em;">مالك المشروع: <?= e($project['owner_name']) ?></span>
+                                    <div class="project-actions">
+                                        <a href="tasks/view-tasks.php?project_id=<?= (int)$project['id'] ?>" title="عرض المهام" class="list-btn">
+                                            <svg width="20" height="20" style="vertical-align:middle; margin-left:4px;"><use href="#icon-tasks-alt"/></svg>
+                                            <span>عرض المهام</span>
                                         </a>
-                                        <form method="POST" action="projects/delete-project.php" style="display:inline;margin:0;" onsubmit="return confirm('هل أنت متأكد من الحذف؟');">
-                                            <input type="hidden" name="id" value="<?= $project['id'] ?>">
-                                            <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                                            <button type="submit" title="حذف المشروع" class="icon-btn left-icon" style="background:none;border:none;cursor:pointer;padding:0;">
-                                                <svg width="22" height="22"><use href="#icon-trash-alt"/></svg>
-                                            </button>
-                                        </form>
-                                    <?php endif; ?>
-                                </div>
-                            </li>
-                        <?php endforeach    ; ?>
-                    </ul>
+                                        <span style="flex:1"></span>
+                                        <?php if (can_manage_project($pdo, $user_id, $project['id'])): ?>
+                                            <a href="projects/edit-project.php?id=<?= $project['id'] ?>" title="تعديل المشروع" class="icon-btn left-icon">
+                                                <svg width="22" height="22"><use href="#icon-edit-stylish"/></svg>
+                                            </a>
+                                            <form method="POST" action="projects/delete-project.php" style="display:inline;margin:0;" onsubmit="return confirm('هل أنت متأكد من الحذف؟');">
+                                                <input type="hidden" name="id" value="<?= $project['id'] ?>">
+                                                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                                                <button type="submit" title="حذف المشروع" class="icon-btn left-icon" style="background:none;border:none;cursor:pointer;padding:0;">
+                                                    <svg width="22" height="22"><use href="#icon-trash-alt"/></svg>
+                                                </button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </div>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php else: ?>
+                        <p>لا توجد مشاريع بعد. ابدأ بإنشاء أول مشروع لك.</p>
+                    <?php endif; ?>
+                </section>
+            <?php else: ?>
+                <?php if (empty($myProjects) && empty($teamProjects)): ?>
+                    <section class="projects">
+                        <p>لا توجد مشاريع بعد. ابدأ بإنشاء أول مشروع لك.</p>
+                    </section>
                 <?php else: ?>
-                    <p>لا توجد مشاريع بعد. ابدأ بإنشاء أول مشروع لك.</p>
+                    <?php if (!empty($myProjects)): ?>
+                        <section class="projects">
+                            <h2>مشاريعي</h2>
+                            <ul>
+                                <?php foreach ($myProjects as $project): ?>
+                                    <li>
+                                        <strong><?= e($project['title']) ?></strong><br>
+                                        <small><?= e($project['description']) ?></small><br>
+                                        <div class="project-actions">
+                                            <a href="tasks/view-tasks.php?project_id=<?= (int)$project['id'] ?>" title="عرض المهام" class="list-btn">
+                                                <svg width="20" height="20" style="vertical-align:middle; margin-left:4px;"><use href="#icon-tasks-alt"/></svg>
+                                                <span>عرض المهام</span>
+                                            </a>
+                                            <span style="flex:1"></span>
+                                            <?php if (can_manage_project($pdo, $user_id, $project['id'])): ?>
+                                                <a href="projects/edit-project.php?id=<?= $project['id'] ?>" title="تعديل المشروع" class="icon-btn left-icon">
+                                                    <svg width="22" height="22"><use href="#icon-edit-stylish"/></svg>
+                                                </a>
+                                                <form method="POST" action="projects/delete-project.php" style="display:inline;margin:0;" onsubmit="return confirm('هل أنت متأكد من الحذف؟');">
+                                                    <input type="hidden" name="id" value="<?= $project['id'] ?>">
+                                                    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                                                    <button type="submit" title="حذف المشروع" class="icon-btn left-icon" style="background:none;border:none;cursor:pointer;padding:0;">
+                                                        <svg width="22" height="22"><use href="#icon-trash-alt"/></svg>
+                                                    </button>
+                                                </form>
+                                            <?php endif; ?>
+                                        </div>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </section>
+                    <?php endif; ?>
+
+                    <?php if (!empty($teamProjects)): ?>
+                        <section class="projects" style="<?= !empty($myProjects) ? 'margin-top: 36px;' : '' ?>">
+                            <h2>مشاريع الفريق</h2>
+                            <ul>
+                                <?php foreach ($teamProjects as $project): ?>
+                                    <li>
+                                        <strong><?= e($project['title']) ?></strong><br>
+                                        <small><?= e($project['description']) ?></small><br>
+                                        <span style="color:#b2dfdb;font-size:0.95em;">مالك المشروع: <?= e($project['owner_name']) ?></span>
+                                        <div class="project-actions">
+                                            <a href="tasks/view-tasks.php?project_id=<?= (int)$project['id'] ?>" title="عرض المهام" class="list-btn">
+                                                <svg width="20" height="20" style="vertical-align:middle; margin-left:4px;"><use href="#icon-tasks-alt"/></svg>
+                                                <span>عرض المهام</span>
+                                            </a>
+                                            <span style="flex:1"></span>
+                                            <?php if (can_manage_project($pdo, $user_id, $project['id'])): ?>
+                                                <a href="projects/edit-project.php?id=<?= $project['id'] ?>" title="تعديل المشروع" class="icon-btn left-icon">
+                                                    <svg width="22" height="22"><use href="#icon-edit-stylish"/></svg>
+                                                </a>
+                                                <form method="POST" action="projects/delete-project.php" style="display:inline;margin:0;" onsubmit="return confirm('هل أنت متأكد من الحذف؟');">
+                                                    <input type="hidden" name="id" value="<?= $project['id'] ?>">
+                                                    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                                                    <button type="submit" title="حذف المشروع" class="icon-btn left-icon" style="background:none;border:none;cursor:pointer;padding:0;">
+                                                        <svg width="22" height="22"><use href="#icon-trash-alt"/></svg>
+                                                    </button>
+                                                </form>
+                                            <?php endif; ?>
+                                        </div>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </section>
+                    <?php endif; ?>
                 <?php endif; ?>
-            </section>
+            <?php endif; ?>
         </main>
     </div>
     <svg style="display:none">

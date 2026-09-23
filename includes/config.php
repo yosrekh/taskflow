@@ -54,13 +54,6 @@ define('DB_PASS', env('DB_PASS', ''));
 // Environment configuration
 define('APP_ENV', env('APP_ENV', 'development'));
 
-// Registration setting (default false)
-$allowRegistrationVal = env('ALLOW_REGISTRATION', false);
-if (is_string($allowRegistrationVal)) {
-    $allowRegistrationVal = in_array(strtolower($allowRegistrationVal), ['true', '1', 'yes', 'on'], true);
-}
-define('ALLOW_REGISTRATION', (bool)$allowRegistrationVal);
-
 // Error reporting and display based on environment
 if (APP_ENV === 'production') {
     ini_set('display_errors', '0');
