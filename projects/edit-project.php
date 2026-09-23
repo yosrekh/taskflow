@@ -19,6 +19,12 @@ if (!$project) {
     die("المشروع غير موجود.");
 }
 
+$user_id = $_SESSION['user_id'];
+if (!can_manage_project($pdo, $user_id, $project_id)) {
+    http_response_code(403);
+    die("غير مصرح لك بتعديل هذا المشروع.");
+}
+
 $error = '';
 $success = '';
 

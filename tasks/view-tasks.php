@@ -5,8 +5,24 @@ require_once __DIR__ . '/../includes/db.php';
 
 $project_id = $_GET['project_id'] ?? null;
 if (!$project_id) {
+    http_response_code(400);
     die("رقم المشروع غير موجود.");
 }
+
+$user_id = $_SESSION['user_id'];
+
+// Load project data at the TOP
+$stmt = $pdo->prepare("SELECT * FROM projects WHERE id = ?");
+$stmt->execute([$project_id]);
+$project = $stmt->fetch();
+
+if (!$project) {
+    http_response_code(404);
+    die("المشروع غير موجود.");
+}
+
+$project_owner_id = (int)$project['user_id'];
+$is_project_owner = can_manage_project($pdo, $user_id, $project_id);
 
 // Handle Task Actions (POST)
 $error = '';
@@ -15,125 +31,106 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf($_POST['csrf_token'] ?? '')) {
         $error = "رمز التحقق غير صالح. يرجى إعادة المحاولة.";
     } elseif (isset($_POST['add_task'])) {
-        $title = $_POST['title'];
-        $description = $_POST['description'];
-        $priority = $_POST['priority'];
-        $due_date = $_POST['due_date'];
-        $assigned_to = $_POST['assigned_to'];
+        if (!$is_project_owner) {
+            http_response_code(403);
+            die("غير مصرح لك بإضافة مهام في هذا المشروع.");
+        }
+        $title = trim($_POST['title'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $priority = $_POST['priority'] ?? 'Medium';
+        $due_date = $_POST['due_date'] ?? null;
+        $assigned_to = !empty($_POST['assigned_to']) ? (int)$_POST['assigned_to'] : null;
         try {
             $stmt = $pdo->prepare("INSERT INTO tasks (project_id, title, description, priority, due_date, assigned_to, status) VALUES (?, ?, ?, ?, ?, ?, 'Pending')");
             $stmt->execute([$project_id, $title, $description, $priority, $due_date, $assigned_to]);
-        $success = "تم إضافة المهمة بنجاح.";
-        // Notify owner and assignee
-        $owner_stmt = $pdo->prepare("SELECT user_id FROM projects WHERE id = ?");
-        $owner_stmt->execute([$project_id]);
-        $owner_id = $owner_stmt->fetchColumn();
-        $actor_id = $_SESSION['user_id'];
-        $actor_stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
-        $actor_stmt->execute([$actor_id]);
-        $actor_name = $actor_stmt->fetchColumn();
-        $project_title = $project['title'];
-        $action_time = date('Y-m-d H:i');
-        $msg = "[${action_time}] ${actor_name} أضاف مهمة جديدة '{$title}' في مشروع '{$project_title}'";
-        foreach ([$owner_id, $assigned_to] as $uid) {
-            if ($uid && $uid != $actor_id) {
-                $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$uid, $msg]);
+            $success = "تم إضافة المهمة بنجاح.";
+            // Notify owner and assignee
+            $actor_id = $user_id;
+            $actor_stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
+            $actor_stmt->execute([$actor_id]);
+            $actor_name = $actor_stmt->fetchColumn();
+            $project_title = $project['title'];
+            $action_time = date('Y-m-d H:i');
+            $msg = "[{$action_time}] {$actor_name} أضاف مهمة جديدة '{$title}' في مشروع '{$project_title}'";
+            foreach (array_unique(array_filter([$project_owner_id, $assigned_to])) as $uid) {
+                if ($uid != $actor_id) {
+                    $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$uid, $msg]);
+                }
             }
+        } catch (PDOException $e) {
+            error_log("Add task error: " . $e->getMessage());
+            $error = "فشل في إضافة المهمة.";
         }
-    } catch (PDOException $e) {
-        $error = "فشل في إضافة المهمة.";
-    }
-}
-
-// Handle Edit Task
-if (isset($_POST['edit_task'])) {
-    // Only project owner can edit any task
-    if ($user_id == $project_owner_id) {
-        $task_id = $_POST['task_id'];
-        $title = $_POST['title'];
-        $description = $_POST['description'];
-        $priority = $_POST['priority'];
-        $due_date = $_POST['due_date'];
-        $assigned_to = $_POST['assigned_to'];
+    } elseif (isset($_POST['edit_task'])) {
+        if (!$is_project_owner) {
+            http_response_code(403);
+            die("غير مصرح لك بتعديل هذه المهمة.");
+        }
+        $task_id = $_POST['task_id'] ?? null;
+        $title = trim($_POST['title'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $priority = $_POST['priority'] ?? 'Medium';
+        $due_date = $_POST['due_date'] ?? null;
+        $assigned_to = !empty($_POST['assigned_to']) ? (int)$_POST['assigned_to'] : null;
         try {
-            $stmt = $pdo->prepare("UPDATE tasks SET title=?, description=?, priority=?, due_date=?, assigned_to=? WHERE id=?");
-            $stmt->execute([$title, $description, $priority, $due_date, $assigned_to, $task_id]);
+            $stmt = $pdo->prepare("UPDATE tasks SET title=?, description=?, priority=?, due_date=?, assigned_to=? WHERE id=? AND project_id=?");
+            $stmt->execute([$title, $description, $priority, $due_date, $assigned_to, $task_id, $project_id]);
             $success = "تم تحديث المهمة بنجاح.";
             // Notify owner and assignee
-            $owner_stmt = $pdo->prepare("SELECT user_id FROM projects WHERE id = ?");
-            $owner_stmt->execute([$project_id]);
-            $owner_id = $owner_stmt->fetchColumn();
-            $actor_id = $_SESSION['user_id'];
+            $actor_id = $user_id;
             $actor_stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
             $actor_stmt->execute([$actor_id]);
             $actor_name = $actor_stmt->fetchColumn();
             $project_title = $project['title'];
             $action_time = date('Y-m-d H:i');
-            $msg = "[${action_time}] ${actor_name} عدّل مهمة '{$title}' في مشروع '{$project_title}'";
-            foreach ([$owner_id, $assigned_to] as $uid) {
-                if ($uid && $uid != $actor_id) {
+            $msg = "[{$action_time}] {$actor_name} عدّل مهمة '{$title}' في مشروع '{$project_title}'";
+            foreach (array_unique(array_filter([$project_owner_id, $assigned_to])) as $uid) {
+                if ($uid != $actor_id) {
                     $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$uid, $msg]);
                 }
             }
         } catch (PDOException $e) {
+            error_log("Edit task error: " . $e->getMessage());
             $error = "فشل في تحديث المهمة.";
         }
-    } else {
-        $error = "غير مصرح لك بتعديل هذه المهمة.";
-    }
-}
-
-// Handle Delete Task
-if (isset($_POST['delete_task'])) {
-    // Only project owner can delete any task
-    if ($user_id == $project_owner_id) {
-        $task_id = $_POST['task_id'];
+    } elseif (isset($_POST['delete_task'])) {
+        if (!$is_project_owner) {
+            http_response_code(403);
+            die("غير مصرح لك بحذف هذه المهمة.");
+        }
+        $task_id = $_POST['task_id'] ?? null;
         try {
             // Get task info for notification
-            $task_stmt = $pdo->prepare("SELECT * FROM tasks WHERE id = ?");
-            $task_stmt->execute([$task_id]);
-            $task = $task_stmt->fetch(PDO::FETCH_ASSOC);
-            $stmt = $pdo->prepare("DELETE FROM tasks WHERE id = ?");
-            $stmt->execute([$task_id]);
-            $success = "تم حذف المهمة بنجاح.";
-            // Notify owner and assignee
-            $owner_stmt = $pdo->prepare("SELECT user_id FROM projects WHERE id = ?");
-            $owner_stmt->execute([$project_id]);
-            $owner_id = $owner_stmt->fetchColumn();
-            $actor_id = $_SESSION['user_id'];
-            $actor_stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
-            $actor_stmt->execute([$actor_id]);
-            $actor_name = $actor_stmt->fetchColumn();
-            $project_title = $project['title'];
-            $action_time = date('Y-m-d H:i');
-            $msg = "[${action_time}] ${actor_name} حذف المهمة '{$task['title']}' في مشروع '{$project_title}'";
-            foreach ([$owner_id, $task['assigned_to']] as $uid) {
-                if ($uid && $uid != $actor_id) {
-                    $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$uid, $msg]);
+            $task_stmt = $pdo->prepare("SELECT * FROM tasks WHERE id = ? AND project_id = ?");
+            $task_stmt->execute([$task_id, $project_id]);
+            $task = $task_stmt->fetch();
+            if ($task) {
+                $stmt = $pdo->prepare("DELETE FROM tasks WHERE id = ? AND project_id = ?");
+                $stmt->execute([$task_id, $project_id]);
+                $success = "تم حذف المهمة بنجاح.";
+                // Notify owner and assignee
+                $actor_id = $user_id;
+                $actor_stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
+                $actor_stmt->execute([$actor_id]);
+                $actor_name = $actor_stmt->fetchColumn();
+                $project_title = $project['title'];
+                $action_time = date('Y-m-d H:i');
+                $msg = "[{$action_time}] {$actor_name} حذف المهمة '{$task['title']}' في مشروع '{$project_title}'";
+                foreach (array_unique(array_filter([$project_owner_id, $task['assigned_to']])) as $uid) {
+                    if ($uid != $actor_id) {
+                        $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$uid, $msg]);
+                    }
                 }
             }
         } catch (PDOException $e) {
+            error_log("Delete task error: " . $e->getMessage());
             $error = "فشل في حذف المهمة.";
         }
-    } else {
-        $error = "غير مصرح لك بحذف هذه المهمة.";
     }
 }
-}
-
-// Get project title
-$stmt = $pdo->prepare("SELECT title FROM projects WHERE id = ?");
-$stmt->execute([$project_id]);
-$project = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // Get all tasks in this project
-
-$user_id = $_SESSION['user_id'];
-$project_owner_stmt = $pdo->prepare("SELECT user_id FROM projects WHERE id = ?");
-$project_owner_stmt->execute([$project_id]);
-$project_owner_id = $project_owner_stmt->fetchColumn();
-
-if ($user_id == $project_owner_id) {
+if ($is_project_owner) {
     // Owner sees all tasks in the project
     $stmt = $pdo->prepare("
         SELECT t.*, u.name AS assignee_name 
@@ -142,7 +139,7 @@ if ($user_id == $project_owner_id) {
         WHERE t.project_id = ?
     ");
     $stmt->execute([$project_id]);
-    $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $tasks = $stmt->fetchAll();
 } else {
     // Other users see only their assigned tasks
     $stmt = $pdo->prepare("
@@ -152,20 +149,24 @@ if ($user_id == $project_owner_id) {
         WHERE t.project_id = ? AND t.assigned_to = ?
     ");
     $stmt->execute([$project_id, $user_id]);
-    $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $tasks = $stmt->fetchAll();
 }
 
 // Get all users for assignment
 $users_stmt = $pdo->query("SELECT id, name FROM users");
-$users = $users_stmt->fetchAll(PDO::FETCH_ASSOC);
+$users = $users_stmt->fetchAll();
 
 // For edit form
 $edit_task = null;
 if (isset($_GET['edit_task_id'])) {
+    if (!$is_project_owner) {
+        http_response_code(403);
+        die("غير مصرح لك بتعديل هذه المهمة.");
+    }
     $edit_id = $_GET['edit_task_id'];
-    $stmt = $pdo->prepare("SELECT * FROM tasks WHERE id = ?");
-    $stmt->execute([$edit_id]);
-    $edit_task = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt = $pdo->prepare("SELECT * FROM tasks WHERE id = ? AND project_id = ?");
+    $stmt->execute([$edit_id, $project_id]);
+    $edit_task = $stmt->fetch();
 }
 ?>
 
@@ -809,6 +810,7 @@ if (isset($_GET['edit_task_id'])) {
                                 <option value="Completed" <?= $task['status'] == 'Completed' ? 'selected' : '' ?>>Done</option>
                             </select>
                         </div>
+                        <?php if ($is_project_owner): ?>
                         <div class="kanban-card-footer">
                             <span>Created: <?= date('n/j/Y', strtotime($task['created_at'] ?? $task['due_date'])) ?></span>
                             <div class="kanban-card-actions">
@@ -820,6 +822,7 @@ if (isset($_GET['edit_task_id'])) {
                                 </form>
                             </div>
                         </div>
+                        <?php endif; ?>
                     </div>
                     <?php endforeach; ?>
                 </div>

@@ -31,6 +31,12 @@ try {
         die("المشروع غير موجود.");
     }
 
+    $user_id = $_SESSION['user_id'];
+    if (!can_manage_project($pdo, $user_id, $project_id)) {
+        http_response_code(403);
+        die("غير مصرح لك بحذف هذا المشروع.");
+    }
+
     // Delete tasks first due to foreign key constraint
     $pdo->prepare("DELETE FROM tasks WHERE project_id = ?")->execute([$project_id]);
 

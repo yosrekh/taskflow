@@ -64,7 +64,38 @@ function require_login_json() {
     }
 }
 
+// Authorization Helpers
+function can_manage_project($pdo, $userId, $projectId) {
+    if (!$userId || !$projectId) {
+        return false;
+    }
+    $stmt = $pdo->prepare("SELECT user_id FROM projects WHERE id = ?");
+    $stmt->execute([$projectId]);
+    $ownerId = $stmt->fetchColumn();
+    return $ownerId !== false && (int)$ownerId === (int)$userId;
+}
+
+function can_update_task_status($pdo, $userId, $taskId) {
+    if (!$userId || !$taskId) {
+        return false;
+    }
+    $stmt = $pdo->prepare("
+        SELECT p.user_id AS owner_id, t.assigned_to 
+        FROM tasks t 
+        JOIN projects p ON t.project_id = p.id 
+        WHERE t.id = ?
+    ");
+    $stmt->execute([$taskId]);
+    $row = $stmt->fetch();
+    if (!$row) {
+        return false;
+    }
+    return ((int)$row['owner_id'] === (int)$userId) ||
+           ($row['assigned_to'] !== null && (int)$row['assigned_to'] === (int)$userId);
+}
+
 // HTML Escaping Helper (ENT_QUOTES, UTF-8)
 function e($str) {
     return htmlspecialchars((string)($str ?? ''), ENT_QUOTES, 'UTF-8');
 }
+

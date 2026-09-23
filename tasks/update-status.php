@@ -19,6 +19,13 @@ if (!verify_csrf($csrfToken)) {
 $task_id = $_POST['task_id'] ?? null;
 $status = $_POST['status'] ?? null;
 
+$user_id = $_SESSION['user_id'];
+if (!$task_id || !can_update_task_status($pdo, $user_id, $task_id)) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'forbidden']);
+    exit;
+}
+
 if ($task_id && in_array($status, ['Pending', 'In Progress', 'Completed'])) {
     $stmt = $pdo->prepare("UPDATE tasks SET status = ? WHERE id = ?");
     if ($stmt->execute([$status, $task_id])) {
