@@ -1,21 +1,37 @@
 <?php
-session_start();
-include 'includes/db.php';
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/db.php';
+
+if (!ALLOW_REGISTRATION) {
+    http_response_code(403);
+    die("التسجيل مغلق حالياً.");
+}
 
 $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $name = $_POST['name'];
-    $email = $_POST['email'];
-    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $error = "رمز التحقق غير صالح. يرجى إعادة المحاولة.";
+    } else {
+        $name = trim($_POST['name'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $passwordRaw = $_POST['password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
 
-    try {
-        $stmt = $pdo->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)");
-        $stmt->execute([$name, $email, $password]);
-        $success = "تم التسجيل بنجاح! يمكنك تسجيل الدخول الآن.";
-    } catch (PDOException $e) {
-        $error = "فشل التسجيل. البريد موجود مسبقًا.";
+        if ($passwordRaw !== $confirmPassword) {
+            $error = "كلمتا المرور غير متطابقتين.";
+        } else {
+            $password = password_hash($passwordRaw, PASSWORD_DEFAULT);
+            try {
+                $stmt = $pdo->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)");
+                $stmt->execute([$name, $email, $password]);
+                $success = "تم التسجيل بنجاح! يمكنك تسجيل الدخول الآن.";
+            } catch (PDOException $e) {
+                error_log("Registration error: " . $e->getMessage());
+                $error = "فشل التسجيل. البريد موجود مسبقًا.";
+            }
+        }
     }
 }
 ?>
@@ -164,6 +180,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <p class="success"><?= $success ?></p>
         <?php endif; ?>
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
             <input type="text" name="name" placeholder="اسمك الكامل" required>
             <input type="email" name="email" placeholder="البريد الإلكتروني" required>
             <input type="password" name="password" placeholder="كلمة المرور" required>

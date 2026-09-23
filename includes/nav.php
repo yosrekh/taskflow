@@ -18,7 +18,10 @@ function render_nav($base = '') {
                     <div id="notif-list" style="max-height:320px;overflow-y:auto;"></div>
                 </div>
             </div>
-            <a href="<?= $base ?>logout.php" class="btn logout-btn" style="background:linear-gradient(90deg,#e74c3c 0%,#c0392b 100%);color:#fff;padding:8px 18px;border-radius:8px;font-weight:bold;text-decoration:none;">تسجيل الخروج</a>
+            <form method="POST" action="<?= $base ?>logout.php" style="display:inline;margin:0;">
+                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                <button type="submit" class="btn logout-btn" style="background:linear-gradient(90deg,#e74c3c 0%,#c0392b 100%);color:#fff;padding:8px 18px;border-radius:8px;font-weight:bold;text-decoration:none;border:none;cursor:pointer;font-family:inherit;font-size:1rem;">تسجيل الخروج</button>
+            </form>
         </div>
     </nav>
     <div style="height:58px;"></div>

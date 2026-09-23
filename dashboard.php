@@ -1,10 +1,7 @@
 <?php
-session_start();
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit;
-}
-include 'includes/db.php';
+require_once __DIR__ . '/includes/auth.php';
+require_login();
+require_once __DIR__ . '/includes/db.php';
 
 $user_id = $_SESSION['user_id'];
 
