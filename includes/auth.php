@@ -137,9 +137,13 @@ function require_login_json() {
     exit;
 }
 
+function is_admin(): bool {
+    return ($_SESSION['role'] ?? '') === 'admin';
+}
+
 function require_admin($base = '') {
     require_login($base);
-    if (($_SESSION['role'] ?? '') !== 'admin') {
+    if (!is_admin()) {
         http_response_code(403);
         die("غير مصرح لك بالوصول لهذه الصفحة.");
     }
@@ -147,6 +151,9 @@ function require_admin($base = '') {
 
 // Authorization Helpers
 function can_view_project($pdo, $userId, $projectId) {
+    if (is_admin()) {
+        return true;
+    }
     if (!$userId || !$projectId) {
         return false;
     }
@@ -167,6 +174,9 @@ function can_view_project($pdo, $userId, $projectId) {
 }
 
 function can_manage_project($pdo, $userId, $projectId) {
+    if (is_admin()) {
+        return true;
+    }
     if (!$userId || !$projectId) {
         return false;
     }
@@ -177,6 +187,9 @@ function can_manage_project($pdo, $userId, $projectId) {
 }
 
 function can_update_task_status($pdo, $userId, $taskId) {
+    if (is_admin()) {
+        return true;
+    }
     if (!$userId || !$taskId) {
         return false;
     }

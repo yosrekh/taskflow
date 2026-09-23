@@ -10,6 +10,8 @@ if (!$project_id) {
     die("رقم المشروع غير موجود.");
 }
 
+$user_id = $_SESSION['user_id'];
+
 // Fetch project data
 $stmt = $pdo->prepare("SELECT * FROM projects WHERE id = ?");
 $stmt->execute([$project_id]);
@@ -20,7 +22,6 @@ if (!$project || !can_view_project($pdo, $user_id, $project_id)) {
     die("المشروع غير موجود.");
 }
 
-$user_id = $_SESSION['user_id'];
 if (!can_manage_project($pdo, $user_id, $project_id)) {
     http_response_code(403);
     die("غير مصرح لك بتعديل هذا المشروع.");
@@ -42,10 +43,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $project['title'] = $title;
             $project['description'] = $description;
             $success = "تم تحديث المشروع بنجاح.";
-            // Notify owner
-            $owner_id = $project['user_id'];
-            $msg = "تم تعديل مشروع '{$title}'";
-            $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$owner_id, $msg]);
+            // Notify owner if actor is not the owner
+            $owner_id = (int)$project['user_id'];
+            if ($owner_id !== (int)$user_id) {
+                $actor_stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
+                $actor_stmt->execute([$user_id]);
+                $actor_name = $actor_stmt->fetchColumn() ?: 'المسؤول';
+                $action_time = date('Y-m-d H:i');
+                $msg = "[{$action_time}] {$actor_name} عدّل المشروع '{$title}'";
+                $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$owner_id, $msg]);
+            }
         } catch (PDOException $e) {
             error_log("Edit project error: " . $e->getMessage());
             $error = "فشل في تحديث المشروع.";

@@ -12,7 +12,9 @@ if (!$project_id) {
     exit;
 }
 
-if (!can_view_project($pdo, $user_id, $project_id)) {
+$projectStmt = $pdo->prepare("SELECT 1 FROM projects WHERE id = ?");
+$projectStmt->execute([$project_id]);
+if (!$projectStmt->fetchColumn() || !can_view_project($pdo, $user_id, $project_id)) {
     http_response_code(404);
     echo json_encode(['success' => false, 'error' => 'not_found']);
     exit;
