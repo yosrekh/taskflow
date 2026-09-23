@@ -1,0 +1,21 @@
+{
+    "name": "TaskFlow",
+    "short_name": "TaskFlow",
+    "description": "نظام إدارة المهام والمشاريع",
+    "start_url": "./",
+    "display": "standalone",
+    "background_color": "#0d4e65",
+    "theme_color": "#0d4e65",
+    "icons": [
+        {
+            "src": "assets/icon-dark.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        },
+        {
+            "src": "assets/icon-light.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ]
+}
