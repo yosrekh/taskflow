@@ -41,15 +41,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $user = $stmt->fetch();
 
                 if ($user && password_verify($password, $user['password'])) {
-                    session_regenerate_id(true);
-                    $_SESSION['user_id'] = $user['id'];
+                    if ((int)$user['is_active'] !== 1) {
+                        // Reject inactive users with identical generic message
+                        $logStmt = $pdo->prepare("INSERT INTO login_attempts (email, ip) VALUES (?, ?)");
+                        $logStmt->execute([$email, $ip]);
+                        $error = "البريد أو كلمة المرور غير صحيحة.";
+                    } else {
+                        session_regenerate_id(true);
+                        $_SESSION['user_id'] = $user['id'];
+                        $_SESSION['role'] = $user['role'];
+                        $_SESSION['is_active'] = 1;
+                        $_SESSION['must_change_password'] = (int)$user['must_change_password'];
+                        $_SESSION['login_time'] = time();
 
-                    // Clear failed attempts for this email upon successful login
-                    $clearStmt = $pdo->prepare("DELETE FROM login_attempts WHERE email = ?");
-                    $clearStmt->execute([$email]);
+                        // Clear failed attempts for this email upon successful login
+                        $clearStmt = $pdo->prepare("DELETE FROM login_attempts WHERE email = ?");
+                        $clearStmt->execute([$email]);
 
-                    header("Location: dashboard.php");
-                    exit;
+                        if ((int)$user['must_change_password'] === 1) {
+                            header("Location: change-password.php");
+                        } else {
+                            header("Location: dashboard.php");
+                        }
+                        exit;
+                    }
                 } else {
                     // Record failed attempt
                     $logStmt = $pdo->prepare("INSERT INTO login_attempts (email, ip) VALUES (?, ?)");

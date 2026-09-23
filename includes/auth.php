@@ -1,6 +1,7 @@
 <?php
 // includes/auth.php
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/db.php';
 
 // Secure Session Initialization
 function start_secure_session() {
@@ -53,6 +54,50 @@ function require_login($base = '') {
         header("Location: " . $base . "login.php");
         exit;
     }
+
+    global $pdo;
+    $stmt = $pdo->prepare("
+        SELECT id, role, is_active, must_change_password, password_changed_at, 
+               UNIX_TIMESTAMP(password_changed_at) AS password_changed_at_ts 
+        FROM users 
+        WHERE id = ?
+    ");
+    $stmt->execute([$_SESSION['user_id']]);
+    $user = $stmt->fetch();
+
+    if (!$user || (int)$user['is_active'] !== 1) {
+        $_SESSION = [];
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_destroy();
+        }
+        header("Location: " . $base . "login.php");
+        exit;
+    }
+
+    if (!empty($user['password_changed_at_ts'])) {
+        $pwdChangedTime = (int)$user['password_changed_at_ts'];
+        $loginTime = (int)($_SESSION['login_time'] ?? 0);
+        if ($pwdChangedTime > $loginTime) {
+            $_SESSION = [];
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                session_destroy();
+            }
+            header("Location: " . $base . "login.php");
+            exit;
+        }
+    }
+
+    $_SESSION['role'] = $user['role'];
+    $_SESSION['is_active'] = (int)$user['is_active'];
+    $_SESSION['must_change_password'] = (int)$user['must_change_password'];
+
+    if ((int)$user['must_change_password'] === 1) {
+        $currentScript = basename($_SERVER['SCRIPT_NAME'] ?? '');
+        if (!in_array($currentScript, ['change-password.php', 'logout.php'], true)) {
+            header("Location: " . $base . "change-password.php");
+            exit;
+        }
+    }
 }
 
 function require_login_json() {
@@ -61,6 +106,58 @@ function require_login_json() {
         http_response_code(401);
         echo json_encode(['success' => false, 'error' => 'unauthorized']);
         exit;
+    }
+
+    global $pdo;
+    $stmt = $pdo->prepare("
+        SELECT id, role, is_active, must_change_password, password_changed_at, 
+               UNIX_TIMESTAMP(password_changed_at) AS password_changed_at_ts 
+        FROM users 
+        WHERE id = ?
+    ");
+    $stmt->execute([$_SESSION['user_id']]);
+    $user = $stmt->fetch();
+
+    if (!$user || (int)$user['is_active'] !== 1) {
+        $_SESSION = [];
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_destroy();
+        }
+        http_response_code(401);
+        echo json_encode(['success' => false, 'error' => 'unauthorized']);
+        exit;
+    }
+
+    if (!empty($user['password_changed_at_ts'])) {
+        $pwdChangedTime = (int)$user['password_changed_at_ts'];
+        $loginTime = (int)($_SESSION['login_time'] ?? 0);
+        if ($pwdChangedTime > $loginTime) {
+            $_SESSION = [];
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                session_destroy();
+            }
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'unauthorized']);
+            exit;
+        }
+    }
+
+    $_SESSION['role'] = $user['role'];
+    $_SESSION['is_active'] = (int)$user['is_active'];
+    $_SESSION['must_change_password'] = (int)$user['must_change_password'];
+
+    if ((int)$user['must_change_password'] === 1) {
+        http_response_code(403);
+        echo json_encode(['error' => 'password_change_required']);
+        exit;
+    }
+}
+
+function require_admin($base = '') {
+    require_login($base);
+    if (($_SESSION['role'] ?? '') !== 'admin') {
+        http_response_code(403);
+        die("غير مصرح لك بالوصول لهذه الصفحة.");
     }
 }
 
