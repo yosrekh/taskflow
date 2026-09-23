@@ -1,10 +1,7 @@
 <?php
-session_start();
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../login.php");
-    exit;
-}
-include '../includes/db.php';
+require_once __DIR__ . '/../includes/auth.php';
+require_login('../');
+require_once __DIR__ . '/../includes/db.php';
 
 $project_id = $_GET['id'] ?? null;
 
@@ -15,9 +12,10 @@ if (!$project_id) {
 // Fetch project data
 $stmt = $pdo->prepare("SELECT * FROM projects WHERE id = ?");
 $stmt->execute([$project_id]);
-$project = $stmt->fetch(PDO::FETCH_ASSOC);
+$project = $stmt->fetch();
 
 if (!$project) {
+    http_response_code(404);
     die("المشروع غير موجود.");
 }
 
@@ -25,19 +23,26 @@ $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $title = $_POST['title'];
-    $description = $_POST['description'];
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $error = "رمز التحقق غير صالح. يرجى إعادة المحاولة.";
+    } else {
+        $title = trim($_POST['title'] ?? '');
+        $description = trim($_POST['description'] ?? '');
 
-    try {
-        $stmt = $pdo->prepare("UPDATE projects SET title = ?, description = ? WHERE id = ?");
-        $stmt->execute([$title, $description, $project_id]);
-        $success = "تم تحديث المشروع بنجاح.";
-        // Notify owner
-        $owner_id = $project['user_id'];
-        $msg = "تم تعديل مشروع '{$title}'";
-        $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$owner_id, $msg]);
-    } catch (PDOException $e) {
-        $error = "فشل في تحديث المشروع.";
+        try {
+            $stmt = $pdo->prepare("UPDATE projects SET title = ?, description = ? WHERE id = ?");
+            $stmt->execute([$title, $description, $project_id]);
+            $project['title'] = $title;
+            $project['description'] = $description;
+            $success = "تم تحديث المشروع بنجاح.";
+            // Notify owner
+            $owner_id = $project['user_id'];
+            $msg = "تم تعديل مشروع '{$title}'";
+            $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$owner_id, $msg]);
+        } catch (PDOException $e) {
+            error_log("Edit project error: " . $e->getMessage());
+            $error = "فشل في تحديث المشروع.";
+        }
     }
 }
 ?>
@@ -170,6 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <?php endif; ?>
 
     <form method="POST">
+        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
         <label>عنوان المشروع:</label>
         <input type="text" name="title" value="<?= htmlspecialchars($project['title']) ?>" required>
 

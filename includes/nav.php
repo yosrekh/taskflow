@@ -29,8 +29,17 @@ function render_nav($base = '') {
     // Notification Bell Logic
     function fetchNotifications(updateCountOnly = false, markRead = false) {
         let url = '<?= $base ?>get-notifications.php';
-        if (markRead) url += '?mark_read=1';
-        fetch(url)
+        let fetchOptions = { method: 'GET' };
+        if (markRead) {
+            url += '?mark_read=1';
+            fetchOptions = {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-Token': '<?= csrf_token() ?>'
+                }
+            };
+        }
+        fetch(url, fetchOptions)
             .then(res => res.json())
             .then(data => {
                 if (data.success) {

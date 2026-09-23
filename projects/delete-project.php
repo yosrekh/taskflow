@@ -1,24 +1,36 @@
 <?php
-session_start();
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../login.php");
-    exit;
-}
-include '../includes/db.php';
+require_once __DIR__ . '/../includes/auth.php';
+require_login('../');
+require_once __DIR__ . '/../includes/db.php';
 
-$project_id = $_GET['id'] ?? null;
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    die("طريقة الطلب غير مسموح بها. يجب استخدام POST.");
+}
+
+if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+    http_response_code(403);
+    die("رمز التحقق غير صالح أو انتهت صلاحية الجلسة.");
+}
+
+$project_id = $_POST['id'] ?? null;
 
 if (!$project_id) {
+    http_response_code(400);
     die("رقم المشروع غير موجود.");
 }
-
-include '../includes/nav.php'; render_nav('../');
 
 try {
     // Get project info for notification
     $project_stmt = $pdo->prepare("SELECT * FROM projects WHERE id = ?");
     $project_stmt->execute([$project_id]);
-    $project = $project_stmt->fetch(PDO::FETCH_ASSOC);
+    $project = $project_stmt->fetch();
+
+    if (!$project) {
+        http_response_code(404);
+        die("المشروع غير موجود.");
+    }
+
     // Delete tasks first due to foreign key constraint
     $pdo->prepare("DELETE FROM tasks WHERE project_id = ?")->execute([$project_id]);
 
@@ -26,14 +38,12 @@ try {
     $pdo->prepare("DELETE FROM projects WHERE id = ?")->execute([$project_id]);
 
     // Notify owner
-    if ($project) {
-        $msg = "تم حذف المشروع '{$project['title']}'";
-        $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$project['user_id'], $msg]);
-    }
+    $msg = "تم حذف المشروع '{$project['title']}'";
+    $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$project['user_id'], $msg]);
 
     header("Location: ../dashboard.php");
     exit;
 } catch (PDOException $e) {
+    error_log("Delete project error: " . $e->getMessage());
     die("فشل في حذف المشروع.");
 }
-?>

@@ -1,11 +1,20 @@
 <?php
-session_start();
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['success' => false, 'error' => 'unauthorized']);
+require_once __DIR__ . '/../includes/auth.php';
+require_login_json();
+require_once __DIR__ . '/../includes/db.php';
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405);
+    echo json_encode(['success' => false, 'error' => 'method_not_allowed']);
     exit;
 }
 
-include '../includes/db.php';
+$csrfToken = get_csrf_token_from_request();
+if (!verify_csrf($csrfToken)) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'invalid_csrf']);
+    exit;
+}
 
 $task_id = $_POST['task_id'] ?? null;
 $status = $_POST['status'] ?? null;

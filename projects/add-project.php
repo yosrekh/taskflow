@@ -1,28 +1,30 @@
 <?php
-session_start();
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../login.php");
-    exit;
-}
-include '../includes/db.php';
+require_once __DIR__ . '/../includes/auth.php';
+require_login('../');
+require_once __DIR__ . '/../includes/db.php';
 
 $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $title = $_POST['title'];
-    $description = $_POST['description'];
-    $user_id = $_SESSION['user_id'];
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $error = "رمز التحقق غير صالح. يرجى إعادة المحاولة.";
+    } else {
+        $title = trim($_POST['title'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $user_id = $_SESSION['user_id'];
 
-    try {
-        $stmt = $pdo->prepare("INSERT INTO projects (user_id, title, description) VALUES (?, ?, ?)");
-        $stmt->execute([$user_id, $title, $description]);
-        $success = "تم إنشاء المشروع بنجاح.";
-        // Notify owner
-        $msg = "تم إنشاء مشروع جديد '{$title}'";
-        $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$user_id, $msg]);
-    } catch (PDOException $e) {
-        $error = "فشل في إنشاء المشروع.";
+        try {
+            $stmt = $pdo->prepare("INSERT INTO projects (user_id, title, description) VALUES (?, ?, ?)");
+            $stmt->execute([$user_id, $title, $description]);
+            $success = "تم إنشاء المشروع بنجاح.";
+            // Notify owner
+            $msg = "تم إنشاء مشروع جديد '{$title}'";
+            $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$user_id, $msg]);
+        } catch (PDOException $e) {
+            error_log("Add project error: " . $e->getMessage());
+            $error = "فشل في إنشاء المشروع.";
+        }
     }
 }
 ?>
@@ -159,6 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <?php endif; ?>
 
     <form method="POST">
+        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
         <label>عنوان المشروع:</label>
         <input type="text" name="title" required>
 

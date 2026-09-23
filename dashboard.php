@@ -316,9 +316,13 @@ $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <a href="projects/edit-project.php?id=<?= $project['id'] ?>" title="تعديل المشروع" class="icon-btn left-icon">
                                             <svg width="22" height="22"><use href="#icon-edit-stylish"/></svg>
                                         </a>
-                                        <a href="projects/delete-project.php?id=<?= $project['id'] ?>" title="حذف المشروع" class="icon-btn left-icon" onclick="return confirm('هل أنت متأكد من الحذف؟')">
-                                            <svg width="22" height="22"><use href="#icon-trash-alt"/></svg>
-                                        </a>
+                                        <form method="POST" action="projects/delete-project.php" style="display:inline;margin:0;" onsubmit="return confirm('هل أنت متأكد من الحذف؟');">
+                                            <input type="hidden" name="id" value="<?= $project['id'] ?>">
+                                            <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                                            <button type="submit" title="حذف المشروع" class="icon-btn left-icon" style="background:none;border:none;cursor:pointer;padding:0;">
+                                                <svg width="22" height="22"><use href="#icon-trash-alt"/></svg>
+                                            </button>
+                                        </form>
                                     <?php endif; ?>
                                 </div>
                             </li>

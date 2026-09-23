@@ -1,28 +1,28 @@
 <?php
-session_start();
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../login.php");
-    exit;
-}
-include '../includes/db.php';
+require_once __DIR__ . '/../includes/auth.php';
+require_login('../');
+require_once __DIR__ . '/../includes/db.php';
 
 $project_id = $_GET['project_id'] ?? null;
 if (!$project_id) {
     die("رقم المشروع غير موجود.");
 }
 
-// Handle Add Task
+// Handle Task Actions (POST)
 $error = '';
 $success = '';
-if (isset($_POST['add_task'])) {
-    $title = $_POST['title'];
-    $description = $_POST['description'];
-    $priority = $_POST['priority'];
-    $due_date = $_POST['due_date'];
-    $assigned_to = $_POST['assigned_to'];
-    try {
-        $stmt = $pdo->prepare("INSERT INTO tasks (project_id, title, description, priority, due_date, assigned_to, status) VALUES (?, ?, ?, ?, ?, ?, 'Pending')");
-        $stmt->execute([$project_id, $title, $description, $priority, $due_date, $assigned_to]);
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $error = "رمز التحقق غير صالح. يرجى إعادة المحاولة.";
+    } elseif (isset($_POST['add_task'])) {
+        $title = $_POST['title'];
+        $description = $_POST['description'];
+        $priority = $_POST['priority'];
+        $due_date = $_POST['due_date'];
+        $assigned_to = $_POST['assigned_to'];
+        try {
+            $stmt = $pdo->prepare("INSERT INTO tasks (project_id, title, description, priority, due_date, assigned_to, status) VALUES (?, ?, ?, ?, ?, ?, 'Pending')");
+            $stmt->execute([$project_id, $title, $description, $priority, $due_date, $assigned_to]);
         $success = "تم إضافة المهمة بنجاح.";
         // Notify owner and assignee
         $owner_stmt = $pdo->prepare("SELECT user_id FROM projects WHERE id = ?");
@@ -118,6 +118,7 @@ if (isset($_POST['delete_task'])) {
     } else {
         $error = "غير مصرح لك بحذف هذه المهمة.";
     }
+}
 }
 
 // Get project title
@@ -430,6 +431,7 @@ if (isset($_GET['edit_task_id'])) {
 </head>
 <body>
     <script>
+    const csrfToken = '<?= csrf_token() ?>';
     let lastTasksJson = '';
     function renderKanban(tasks) {
         const statuses = {
@@ -456,7 +458,7 @@ if (isset($_GET['edit_task_id'])) {
                             <span>Created: ${task.created_at ? new Date(task.created_at).toLocaleDateString() : (task.due_date ? new Date(task.due_date).toLocaleDateString() : '')}</span>
                             <div class=\"kanban-card-actions\">
                                 ${task.can_edit ? `<a href=\"view-tasks.php?project_id=${task.project_id}&edit_task_id=${task.id}\" title=\"Edit\"><svg width=\"18\" height=\"18\" fill=\"#888\"><use href=\"#icon-edit\"/></svg></a>` : ''}
-                                ${task.can_delete ? `<form method=\"POST\" style=\"display:inline;\"><input type=\"hidden\" name=\"task_id\" value=\"${task.id}\"><button type=\"submit\" name=\"delete_task\" class=\"kanban-delete\" title=\"Delete\" onclick=\"return confirm('Delete this task?')\"><svg width=\"18\" height=\"18\" fill=\"#e74c3c\"><use href=\"#icon-trash\"/></svg></button></form>` : ''}
+                                ${task.can_delete ? `<form method=\"POST\" style=\"display:inline;\"><input type=\"hidden\" name=\"csrf_token\" value=\"${csrfToken}\"><input type=\"hidden\" name=\"task_id\" value=\"${task.id}\"><button type=\"submit\" name=\"delete_task\" class=\"kanban-delete\" title=\"Delete\" onclick=\"return confirm('Delete this task?')\"><svg width=\"18\" height=\"18\" fill=\"#e74c3c\"><use href=\"#icon-trash\"/></svg></button></form>` : ''}
                             </div>
                         </div>
                     </div>
@@ -471,8 +473,12 @@ if (isset($_GET['edit_task_id'])) {
                         const formData = new FormData();
                         formData.append('task_id', taskId);
                         formData.append('status', newStatus);
+                        formData.append('csrf_token', csrfToken);
                         fetch('../tasks/update-status.php', {
                             method: 'POST',
+                            headers: {
+                                'X-CSRF-Token': csrfToken
+                            },
                             body: formData
                         })
                         .then(res => res.json())
@@ -606,6 +612,7 @@ if (isset($_GET['edit_task_id'])) {
                 <div class="pro-form-container" style="margin-bottom:0;box-shadow:none;">
                     <h3><?= $edit_task ? 'تعديل مهمة' : 'إضافة مهمة جديدة' ?></h3>
                     <form method="POST" id="taskForm">
+                        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                         <?php if ($edit_task): ?>
                             <input type="hidden" name="task_id" value="<?= $edit_task['id'] ?>">
                         <?php endif; ?>
@@ -719,6 +726,7 @@ if (isset($_GET['edit_task_id'])) {
                             <div class="kanban-card-actions">
                                 <a href="view-tasks.php?project_id=<?= $project_id ?>&edit_task_id=<?= $task['id'] ?>" title="Edit"><svg width="18" height="18" fill="#888"><use href="#icon-edit"/></svg></a>
                                 <form method="POST" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                                     <input type="hidden" name="task_id" value="<?= $task['id'] ?>">
                                     <button type="submit" name="delete_task" class="kanban-delete" title="Delete" onclick="return confirm('Delete this task?')"><svg width="18" height="18" fill="#e74c3c"><use href="#icon-trash"/></svg></button>
                                 </form>
@@ -763,6 +771,7 @@ if (isset($_GET['edit_task_id'])) {
                             <div class="kanban-card-actions">
                                 <a href="view-tasks.php?project_id=<?= $project_id ?>&edit_task_id=<?= $task['id'] ?>" title="Edit"><svg width="18" height="18" fill="#888"><use href="#icon-edit"/></svg></a>
                                 <form method="POST" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                                     <input type="hidden" name="task_id" value="<?= $task['id'] ?>">
                                     <button type="submit" name="delete_task" class="kanban-delete" title="Delete" onclick="return confirm('Delete this task?')"><svg width="18" height="18" fill="#e74c3c"><use href="#icon-trash"/></svg></button>
                                 </form>
@@ -805,6 +814,7 @@ if (isset($_GET['edit_task_id'])) {
                             <div class="kanban-card-actions">
                                 <a href="view-tasks.php?project_id=<?= $project_id ?>&edit_task_id=<?= $task['id'] ?>" title="Edit"><svg width="18" height="18" fill="#888"><use href="#icon-edit"/></svg></a>
                                 <form method="POST" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                                     <input type="hidden" name="task_id" value="<?= $task['id'] ?>">
                                     <button type="submit" name="delete_task" class="kanban-delete" title="Delete" onclick="return confirm('Delete this task?')"><svg width="18" height="18" fill="#e74c3c"><use href="#icon-trash"/></svg></button>
                                 </form>
@@ -829,8 +839,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const formData = new FormData();
             formData.append('task_id', taskId);
             formData.append('status', newStatus);
+            formData.append('csrf_token', csrfToken);
             fetch('../tasks/update-status.php', {
                 method: 'POST',
+                headers: {
+                    'X-CSRF-Token': csrfToken
+                },
                 body: formData
             })
             .then(res => res.json())
