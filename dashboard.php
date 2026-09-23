@@ -11,9 +11,20 @@ $stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Get all projects for all users
-$stmt = $pdo->prepare("SELECT projects.*, users.name AS owner_name FROM projects JOIN users ON projects.user_id = users.id ORDER BY projects.created_at DESC");
-$stmt->execute();
+// Get visible projects for current user (owned OR assigned to at least one task)
+$stmt = $pdo->prepare("
+    SELECT projects.*, users.name AS owner_name 
+    FROM projects 
+    JOIN users ON projects.user_id = users.id 
+    WHERE projects.user_id = ? 
+       OR EXISTS (
+           SELECT 1 FROM tasks 
+           WHERE tasks.project_id = projects.id 
+             AND tasks.assigned_to = ?
+       )
+    ORDER BY projects.created_at DESC
+");
+$stmt->execute([$user_id, $user_id]);
 $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 

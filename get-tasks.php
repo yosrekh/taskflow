@@ -12,6 +12,12 @@ if (!$project_id) {
     exit;
 }
 
+if (!can_view_project($pdo, $user_id, $project_id)) {
+    http_response_code(404);
+    echo json_encode(['success' => false, 'error' => 'not_found']);
+    exit;
+}
+
 try {
     $canManage = can_manage_project($pdo, $user_id, $project_id);
     if ($canManage) {

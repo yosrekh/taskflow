@@ -65,6 +65,26 @@ function require_login_json() {
 }
 
 // Authorization Helpers
+function can_view_project($pdo, $userId, $projectId) {
+    if (!$userId || !$projectId) {
+        return false;
+    }
+    $stmt = $pdo->prepare("
+        SELECT 1 FROM projects p 
+        WHERE p.id = ? 
+          AND (
+            p.user_id = ? 
+            OR EXISTS (
+              SELECT 1 FROM tasks t 
+              WHERE t.project_id = p.id AND t.assigned_to = ?
+            )
+          )
+        LIMIT 1
+    ");
+    $stmt->execute([$projectId, $userId, $userId]);
+    return (bool)$stmt->fetchColumn();
+}
+
 function can_manage_project($pdo, $userId, $projectId) {
     if (!$userId || !$projectId) {
         return false;

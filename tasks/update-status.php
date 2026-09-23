@@ -53,11 +53,13 @@ if ($task_id && in_array($status, ['Pending', 'In Progress', 'Completed'])) {
         $project_title = $project_stmt->fetchColumn();
 
         $action_time = date('Y-m-d H:i');
-        // Notify owner, assignee, and actor (unique to avoid duplicates)
+        // Notify owner and assignee (skip actor)
         $msg = "[{$action_time}] {$actor_name} غيّر حالة المهمة '{$task['title']}' إلى {$status} في مشروع '{$project_title}'";
-        $notify_users = array_unique(array_filter([$owner_id, $task['assigned_to'], $actor_id]));
+        $notify_users = array_unique(array_filter([$owner_id, $task['assigned_to']]));
         foreach ($notify_users as $uid) {
-            $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$uid, $msg]);
+            if ($uid != $actor_id) {
+                $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$uid, $msg]);
+            }
         }
         echo json_encode(['success' => true]);
         exit;
