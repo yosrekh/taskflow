@@ -3,6 +3,7 @@ require_once __DIR__ . '/includes/auth.php';
 require_login();
 require_once __DIR__ . '/includes/db.php';
 
+$base = '';
 $user_id = $_SESSION['user_id'];
 
 // Get user info
@@ -22,7 +23,7 @@ $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <head>
     <meta charset="UTF-8">
     <title>لوحة التحكم - TaskFlow</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="<?= $base ?>css/styles.css">
     <style>
         body {
             background: linear-gradient(135deg, #44434b  0%, #414345 100%);
@@ -287,7 +288,7 @@ $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </style>
 </head>
 <body>
-    <?php include 'includes/nav.php'; render_nav(''); ?>
+    <?php include 'includes/nav.php'; render_nav($base); ?>
 
     <div class="pro-dashboard-container">
         <div class="pro-dashboard-header">
@@ -342,6 +343,6 @@ $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </symbol>
         <symbol id="icon-trash-alt" viewBox="0 0 24 24"><rect x="5" y="7" width="14" height="12" rx="2" stroke="#e74c3c" stroke-width="2" fill="none"/><path d="M3 7h18M10 11v4M14 11v4" stroke="#e74c3c" stroke-width="2" fill="none"/><rect x="9" y="3" width="6" height="4" rx="1" stroke="#e74c3c" stroke-width="2" fill="none"/></symbol>
     </svg>
-
+    <script src="<?= $base ?>js/main.js"></script>
 </body>
 </html>

@@ -3,6 +3,7 @@ require_once __DIR__ . '/../includes/auth.php';
 require_login('../');
 require_once __DIR__ . '/../includes/db.php';
 
+$base = '../';
 $project_id = $_GET['project_id'] ?? null;
 if (!$project_id) {
     http_response_code(400);
@@ -175,7 +176,7 @@ if (isset($_GET['edit_task_id'])) {
 <head>
     <meta charset="UTF-8">
     <title>مهام المشروع - <?= e($project['title']) ?></title>
-    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="<?= $base ?>css/styles.css">
     <style>
         .pro-form-container {
             background: rgba(255,255,255,0.07);
@@ -587,7 +588,7 @@ if (isset($_GET['edit_task_id'])) {
     setInterval(pollTasks, 5000); // Poll every 5 seconds
     pollTasks(); // Initial fetch
     </script>
-    <?php include '../includes/nav.php'; render_nav('../'); ?>
+    <?php include '../includes/nav.php'; render_nav($base); ?>
 
 <svg style="display:none">
     <symbol id="icon-edit" viewBox="0 0 24 24">
@@ -838,7 +839,7 @@ if (isset($_GET['edit_task_id'])) {
     </section>
 </main>
 
-<script src="../js/main.js"></script>
+<script src="<?= $base ?>js/main.js"></script>
 <script>
 // Move task on status change (AJAX)
 document.addEventListener('DOMContentLoaded', function() {

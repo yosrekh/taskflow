@@ -52,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 }
+$base = '';
 ?>
 
 <!DOCTYPE html>
@@ -59,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <title>تسجيل دخول - TaskFlow</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="<?= $base ?>css/styles.css">
     <style>
         body {
             background: linear-gradient(135deg, #232526 0%, #414345 100%);
@@ -200,5 +201,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </form>
         <p>ليس لديك حساب؟ <a href="register.php">اشترك الآن</a></p>
     </div>
+    <script src="<?= $base ?>js/main.js"></script>
 </body>
 </html>

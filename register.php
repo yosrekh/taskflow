@@ -34,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 }
+$base = '';
 ?>
 
 <!DOCTYPE html>
@@ -41,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <title>إنشاء حساب - TaskFlow</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="<?= $base ?>css/styles.css">
     <style>
         body {
             background: linear-gradient(135deg, #232526 0%, #414345 100%);
@@ -189,5 +190,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         </form>
         <p>لديك حساب بالفعل؟ <a href="login.php">سجل دخولك</a></p>
     </div>
+    <script src="<?= $base ?>js/main.js"></script>
 </body>
 </html>

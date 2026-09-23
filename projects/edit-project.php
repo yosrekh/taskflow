@@ -3,6 +3,7 @@ require_once __DIR__ . '/../includes/auth.php';
 require_login('../');
 require_once __DIR__ . '/../includes/db.php';
 
+$base = '../';
 $project_id = $_GET['id'] ?? null;
 
 if (!$project_id) {
@@ -58,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <title>تعديل المشروع - <?= e($project['title']) ?></title>
-    <link rel="stylesheet" href="../../css/styles.css">
+    <link rel="stylesheet" href="<?= $base ?>css/styles.css">
     <style>
         body {
             background: linear-gradient(135deg, #232526 0%, #414345 100%);
@@ -169,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </style>
 </head>
 <body>
-    <?php include '../includes/nav.php'; render_nav('../'); ?>
+    <?php include '../includes/nav.php'; render_nav($base); ?>
 
 <div class="pro-form-container">
     <a href="../dashboard.php" class="back-btn">&larr; العودة إلى لوحة التحكم</a>
@@ -192,6 +193,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </form>
 </div>
 
-<script src="../../js/main.js"></script>
+<script src="<?= $base ?>js/main.js"></script>
 </body>
 </html>

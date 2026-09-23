@@ -3,6 +3,7 @@ require_once __DIR__ . '/../includes/auth.php';
 require_login('../');
 require_once __DIR__ . '/../includes/db.php';
 
+$base = '../';
 $error = '';
 $success = '';
 
@@ -34,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <title>إنشاء مشروع - TaskFlow</title>
-    <link rel="stylesheet" href="../../css/styles.css">
+    <link rel="stylesheet" href="<?= $base ?>css/styles.css">
     <style>
         body {
             background: linear-gradient(135deg, #232526 0%, #414345 100%);
@@ -149,7 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </style>
 </head>
 <body>
-    <?php include '../includes/nav.php'; render_nav('../'); ?>
+    <?php include '../includes/nav.php'; render_nav($base); ?>
 <div class="pro-form-container">
 <a href="../dashboard.php" class="btn"> الرجوع إلى قائمة المشاريع </a>
 
@@ -172,6 +173,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </form>
 </div>
 
-<script src="../../js/main.js"></script>
+<script src="<?= $base ?>js/main.js"></script>
 </body>
 </html>
