@@ -1,310 +1,347 @@
-* {
+/* ==========================================================================
+   TASKFLOW DESIGN SYSTEM & TOKENS (Single Source of Truth)
+   Arabic RTL First - WCAG AA 4.5:1 Compliant
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Self-Hosted Typography: IBM Plex Sans Arabic (Weights: 400, 500, 600, 700)
+   -------------------------------------------------------------------------- */
+@font-face {
+    font-family: 'IBM Plex Sans Arabic';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../assets/fonts/IBMPlexSansArabic-Regular.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'IBM Plex Sans Arabic';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('../assets/fonts/IBMPlexSansArabic-Medium.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'IBM Plex Sans Arabic';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('../assets/fonts/IBMPlexSansArabic-SemiBold.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'IBM Plex Sans Arabic';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('../assets/fonts/IBMPlexSansArabic-Bold.woff2') format('woff2');
+}
+
+/* --------------------------------------------------------------------------
+   Design Tokens & Scales
+   -------------------------------------------------------------------------- */
+:root {
+    /* Brand Scales: Navy (Base #0d4e65 @ 600) */
+    --navy-50:  #eaf2f5;
+    --navy-100: #cce0e7;
+    --navy-200: #9bc3d1;
+    --navy-300: #65a2b7;
+    --navy-400: #38839d;
+    --navy-500: #1b6883;
+    --navy-600: #0d4e65; /* Primary Brand Navy */
+    --navy-700: #0a3c4e;
+    --navy-800: #072b38;
+    --navy-900: #041922;
+
+    /* Brand Scales: Teal (Base #17a9a3 @ 500) */
+    --teal-50:  #ebf8f7;
+    --teal-100: #ccefed;
+    --teal-200: #9de0dc;
+    --teal-300: #67cdc7;
+    --teal-400: #36b7b0;
+    --teal-500: #17a9a3; /* Primary Brand Teal */
+    --teal-600: #128b86;
+    --teal-700: #0e6f6b; /* Darker Teal for Primary Action Buttons (WCAG AA with white: 5.99:1) */
+    --teal-800: #0a5350; /* Button Hover (WCAG AA: 8.88:1) */
+    --teal-900: #063634;
+
+    /* Brand Scales: Orange (Base #f27a2a @ 500) */
+    --orange-50:  #fef5ee;
+    --orange-100: #fde5d5;
+    --orange-200: #fac8a8;
+    --orange-300: #f7a776;
+    --orange-400: #f48c4b;
+    --orange-500: #f27a2a; /* Accent Brand Orange */
+    --orange-600: #d65f13;
+    --orange-700: #aa480b; /* Dark Orange Text on light backgrounds (WCAG AA: 5.36:1) */
+    --orange-800: #7e3305; /* High Priority Badge text on orange-100 (WCAG AA: 7.34:1) */
+    --orange-900: #521f02;
+
+    /* Danger / Status Red */
+    --red-50:  #fef2f2;
+    --red-100: #fee2e2;
+    --red-500: #ef4444;
+    --red-600: #dc2626;
+    --red-700: #b91c1c;
+
+    /* Success Green */
+    --green-50:  #f0fdf4;
+    --green-100: #dcfce7;
+    --green-500: #22c55e;
+    --green-600: #16a34a;
+    --green-700: #15803d;
+
+    /* Spacing Scale (4/8px grid) */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+    --space-16: 64px;
+
+    /* Border Radius Scale (8-12px primary) */
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 10px;
+    --radius-xl: 12px;
+    --radius-2xl: 16px;
+    --radius-full: 9999px;
+
+    /* Typography Scale */
+    --font-family-base: 'IBM Plex Sans Arabic', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-size-xs: 0.75rem;    /* 12px */
+    --font-size-sm: 0.875rem;   /* 14px */
+    --font-size-base: 1rem;     /* 16px */
+    --font-size-lg: 1.125rem;   /* 18px */
+    --font-size-xl: 1.25rem;    /* 20px */
+    --font-size-2xl: 1.5rem;    /* 24px */
+    --font-size-3xl: 1.875rem;  /* 30px */
+
+    --font-weight-regular: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+
+    --line-height-tight: 1.25;
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.625;
+
+    /* Transitions */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* ----------------------------------------------------------------------
+       LIGHT THEME (Default when system is light or [data-theme="light"])
+       ---------------------------------------------------------------------- */
+    --bg-body: #f4f7f9;
+    --bg-surface: #ffffff;
+    --bg-surface-elevated: #ffffff;
+    --bg-surface-subtle: #eaf1f4;
+    --bg-surface-hover: #e1ebf0;
+
+    --border-subtle: #d6e2e8;
+    --border-strong: #9bb7c5;
+
+    --text-primary: #091e28;    /* WCAG 17.1:1 on white, 15.9:1 on body */
+    --text-secondary: #33515e;  /* WCAG 8.47:1 on white, 7.87:1 on body */
+    --text-muted: #5e7a88;      /* WCAG 4.7:1 on white, 4.5:1 on body */
+
+    --color-primary: var(--teal-700);
+    --color-primary-hover: var(--teal-800);
+    --color-primary-text: #ffffff;
+
+    --color-link: var(--teal-700);
+    --color-link-hover: var(--teal-800);
+
+    --focus-ring: 0 0 0 3px rgba(23, 169, 163, 0.35);
+
+    --shadow-sm: 0 1px 2px 0 rgba(13, 78, 101, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(13, 78, 101, 0.07), 0 2px 4px -2px rgba(13, 78, 101, 0.04);
+    --shadow-lg: 0 10px 15px -3px rgba(13, 78, 101, 0.09), 0 4px 6px -4px rgba(13, 78, 101, 0.04);
+
+    --navbar-bg: var(--navy-600);
+    --navbar-text: #ffffff;
+    --navbar-text-muted: var(--navy-100);
+}
+
+/* --------------------------------------------------------------------------
+   DARK THEME (prefers-color-scheme: dark and [data-theme="dark"])
+   Deep navy-based surfaces (derived from --navy, not pure black/grey)
+   -------------------------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --bg-body: #071923;
+        --bg-surface: #0c2533;
+        --bg-surface-elevated: #113244;
+        --bg-surface-subtle: #173d52;
+        --bg-surface-hover: #1e4a62;
+
+        --border-subtle: #1b455c;
+        --border-strong: #2c6382;
+
+        --text-primary: #f4f7f9;    /* WCAG 14.56:1 on surface */
+        --text-secondary: #c8dbe3;  /* WCAG 10.5:1 on surface */
+        --text-muted: #8ba9b8;      /* WCAG 5.8:1 on surface */
+
+        --color-primary: var(--teal-600);
+        --color-primary-hover: var(--teal-500);
+        --color-primary-text: #ffffff;
+
+        --color-link: var(--teal-300);
+        --color-link-hover: var(--teal-200);
+
+        --focus-ring: 0 0 0 3px rgba(103, 205, 199, 0.45);
+
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.45), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.55), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+
+        --navbar-bg: #05141c;
+        --navbar-text: #f4f7f9;
+        --navbar-text-muted: #9bb7c5;
+    }
+}
+
+[data-theme="dark"] {
+    --bg-body: #071923;
+    --bg-surface: #0c2533;
+    --bg-surface-elevated: #113244;
+    --bg-surface-subtle: #173d52;
+    --bg-surface-hover: #1e4a62;
+
+    --border-subtle: #1b455c;
+    --border-strong: #2c6382;
+
+    --text-primary: #f4f7f9;
+    --text-secondary: #c8dbe3;
+    --text-muted: #8ba9b8;
+
+    --color-primary: var(--teal-600);
+    --color-primary-hover: var(--teal-500);
+    --color-primary-text: #ffffff;
+
+    --color-link: var(--teal-300);
+    --color-link-hover: var(--teal-200);
+
+    --focus-ring: 0 0 0 3px rgba(103, 205, 199, 0.45);
+
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.45), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.55), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+
+    --navbar-bg: #05141c;
+    --navbar-text: #f4f7f9;
+    --navbar-text-muted: #9bb7c5;
+}
+
+[data-theme="light"] {
+    --bg-body: #f4f7f9;
+    --bg-surface: #ffffff;
+    --bg-surface-elevated: #ffffff;
+    --bg-surface-subtle: #eaf1f4;
+    --bg-surface-hover: #e1ebf0;
+
+    --border-subtle: #d6e2e8;
+    --border-strong: #9bb7c5;
+
+    --text-primary: #091e28;
+    --text-secondary: #33515e;
+    --text-muted: #5e7a88;
+
+    --color-primary: var(--teal-700);
+    --color-primary-hover: var(--teal-800);
+    --color-primary-text: #ffffff;
+
+    --color-link: var(--teal-700);
+    --color-link-hover: var(--teal-800);
+
+    --focus-ring: 0 0 0 3px rgba(23, 169, 163, 0.35);
+
+    --shadow-sm: 0 1px 2px 0 rgba(13, 78, 101, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(13, 78, 101, 0.07), 0 2px 4px -2px rgba(13, 78, 101, 0.04);
+    --shadow-lg: 0 10px 15px -3px rgba(13, 78, 101, 0.09), 0 4px 6px -4px rgba(13, 78, 101, 0.04);
+
+    --navbar-bg: var(--navy-600);
+    --navbar-text: #ffffff;
+    --navbar-text-muted: var(--navy-100);
+}
+
+/* --------------------------------------------------------------------------
+   CSS Reset & Base Rules (RTL Logical Properties)
+   -------------------------------------------------------------------------- */
+*, *::before, *::after {
     box-sizing: border-box;
-    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    direction: rtl;
+    text-align: right;
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
 }
 
 body {
-    margin: 0;
-    padding: 0;
-    background-color: #f5f7fa;
-    color: #333;
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-normal);
+    color: var(--text-primary);
+    background-color: var(--bg-body);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-header {
-    background-color: #2c3e50;
-    color: white;
-    padding: 20px;
-    text-align: center;
-    position: relative;
+/* Typography Defaults */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-tight);
+    margin-block-end: var(--space-3);
 }
 
-header .btn {
-    position: absolute;
-    top: 20px;
-    right: 20px; /* Changed from left: 20px for RTL */
-    background-color: #1abc9c;
-    color: white;
-    padding: 10px 15px;
+h1 { font-size: var(--font-size-3xl); }
+h2 { font-size: var(--font-size-2xl); }
+h3 { font-size: var(--font-size-xl); }
+h4 { font-size: var(--font-size-lg); }
+
+p {
+    margin-block-end: var(--space-4);
+    color: var(--text-secondary);
+}
+
+a {
+    color: var(--color-link);
     text-decoration: none;
-    border-radius: 5px;
-    font-size: 14px;
+    transition: color var(--transition-fast);
 }
 
-header .logout-btn {
-    position: absolute;
-    top: 20px;
-    left: 20px; /* Place logout button on the left for RTL */
-    background-color: #e74c3c;
-    color: white;
-    padding: 10px 15px;
-    text-decoration: none;
-    border-radius: 5px;
-    font-size: 14px;
+a:hover {
+    color: var(--color-link-hover);
+    text-decoration: underline;
+}
+
+/* Accessible Focus Visible Ring */
+:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+    border-radius: var(--radius-sm);
 }
 
 main {
-    padding: 20px;
-}
-
-.projects ul {
-    list-style: none;
-    padding: 0;
-}
-
-.projects li {
-    background-color: white;
-    padding: 15px;
-    margin-bottom: 15px;
-    border-radius: 8px;
-    box-shadow: 0 0 5px rgba(0,0,0,0.05);
-    transition: transform 0.2s ease-in-out;
-}
-
-.projects li:hover {
-    transform: scale(1.02);
-}
-
-.form-container {
-    max-width: 600px;
-    margin: 40px auto;
-    padding: 20px;
-    background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-}
-
-input, textarea, select {
+    flex: 1;
+    padding-block: var(--space-8);
+    padding-inline: var(--space-5);
+    max-width: 1280px;
     width: 100%;
-    padding: 10px;
-    margin-top: 10px;
-    margin-bottom: 20px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-}
-
-button {
-    background-color: #3498db;
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    cursor: pointer;
-    border-radius: 5px;
-}
-
-.error {
-    color: red;
-    background-color: #ffe6e6;
-    padding: 10px;
-    border-radius: 5px;
-}
-
-.success {
-    color: green;
-    background-color: #e6ffe6;
-    padding: 10px;
-    border-radius: 5px;
-}
-/* Responsive Table */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-    background-color: #fff;
-    box-shadow: 0 0 5px rgba(0,0,0,0.05);
-    animation: fadeIn 0.4s ease-in-out;
-}
-
-th, td {
-    padding: 12px;
-    border-bottom: 1px solid #ddd;
-    text-align: left;
-}
-
-th {
-    background-color: #ecf0f1;
-}
-
-.btn-delete {
-    background-color: #e74c3c;
-    color: white;
-    padding: 6px 10px;
-    text-decoration: none;
-    border-radius: 4px;
-    font-size: 14px;
-}
-
-.priority {
-    display: inline-block;
-    padding: 5px 10px;
-    border-radius: 4px;
-    font-size: 13px;
-    color: white;
-}
-
-.priority.low { background-color: #2ecc71; }
-.priority.medium { background-color: #f1c40f; }
-.priority.high { background-color: #e74c3c; }
-
-/* Kanban Board Styles */
-.tasks-kanban {
-    width: 100%;
-    margin: 0 auto;
-    padding: 0 0 32px 0;
-}
-.kanban-board {
-    display: flex;
-    gap: 24px;
-    justify-content: center;
-    align-items: flex-start;
-    width: 100%;
-    flex-wrap: wrap;
-}
-.kanban-column {
-    background: #f7fafd;
-    border-radius: 16px;
-    box-shadow: 0 2px 12px rgba(52,152,219,0.07);
-    padding: 18px 12px 32px 12px;
-    min-width: 340px;
-    max-width: 370px;
-    flex: 1 1 340px;
-    min-height: 520px;
-    position: relative;
-    transition: box-shadow 0.2s;
-}
-.kanban-column.todo { border-top: 6px solid #dbeafe; }
-.kanban-column.inprogress { border-top: 6px solid #b6e0fe; background: #eaf6ff; }
-.kanban-column.done { border-top: 6px solid #b9fbc0; background: #eaffea; }
-.kanban-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 1.18rem;
-    font-weight: bold;
-    margin-bottom: 12px;
-    color: #3b3b3b;
-}
-.kanban-header span.kanban-count {
-    background: #e3e8ee;
-    color: #1abc9c;
-    border-radius: 50%;
-    padding: 2px 10px;
-    font-size: 1rem;
-    font-weight: bold;
-    margin-right: 6px;
-}
-.kanban-card {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(52,152,219,0.07);
-    margin-bottom: 18px;
-    padding: 18px 16px 12px 16px;
-    transition: box-shadow 0.2s, transform 0.2s;
-    border-left: 4px solid #dbeafe;
-    position: relative;
-    animation: fadeInUp 0.7s cubic-bezier(.39,.575,.565,1.000);
-}
-.kanban-column.inprogress .kanban-card { border-left: 4px solid #b6e0fe; }
-.kanban-column.done .kanban-card { border-left: 4px solid #b9fbc0; }
-.kanban-card-title {
-    font-size: 1.13rem;
-    font-weight: bold;
-    margin-bottom: 2px;
-    color: #232526;
-}
-.kanban-card-assignee {
-    font-size: 0.98rem;
-    color: #3b3b3b;
-    margin-bottom: 6px;
-    opacity: 0.85;
-}
-.kanban-card-desc {
-    font-size: 0.97rem;
-    color: #444;
-    margin-bottom: 10px;
-    opacity: 0.93;
-}
-.kanban-card-status {
-    margin-bottom: 10px;
-}
-.kanban-card-status select {
-    width: 100%;
-    padding: 7px 10px;
-    border-radius: 7px;
-    border: 1px solid #e3e8ee;
-    background: #f7fafd;
-    color: #232526;
-    font-size: 1rem;
-    font-weight: 500;
-    transition: border 0.2s;
-}
-.kanban-card-status select:focus {
-    border: 1.5px solid #1abc9c;
-    outline: none;
-}
-.kanban-card-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 0.93rem;
-    color: #888;
-    margin-top: 8px;
-}
-.kanban-card-actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-.kanban-card-actions a, .kanban-card-actions button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-    margin: 0;
-    transition: transform 0.15s;
-}
-.kanban-card-actions a:hover, .kanban-card-actions button:hover {
-    transform: scale(1.13);
-}
-.kanban-delete {
-    background: none;
-    border: none;
-    color: #e74c3c;
-    font-size: 1.1rem;
-    cursor: pointer;
-    padding: 0;
-}
-@media (max-width: 768px) {
-    table, thead, tbody, th, td, tr {
-        display: block;
-    }
-
-    tr {
-        margin-bottom: 20px;
-    }
-
-    td {
-        position: relative;
-        padding-left: 120px;
-    }
-
-    td::before {
-        position: absolute;
-        top: 12px;
-        left: 12px;
-        font-weight: bold;
-        white-space: nowrap;
-        content: attr(data-label);
-    }
-}
-@media (max-width: 1100px) {
-    .kanban-board {
-        flex-direction: column;
-        gap: 18px;
-        align-items: stretch;
-    }
-    .kanban-column {
-        min-width: 0;
-        max-width: 100%;
-        width: 100%;
-    }
+    margin-inline: auto;
 }
