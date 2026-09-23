@@ -30,7 +30,7 @@ TaskFlow is a modern, professional task and project management platform designed
 ### Steps
 1. **Clone the Repository**:
    ```
-   git clone https://github.com/yourusername/taskflow.git
+   git clone https://github.com/yosrekh/taskflow.git
    cd taskflow
    ```
 
