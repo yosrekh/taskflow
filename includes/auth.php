@@ -48,11 +48,10 @@ function get_csrf_token_from_request() {
 }
 
 // Access Control Helpers
-function require_login($base = '') {
+function check_current_user(): ?string {
     start_secure_session();
     if (!isset($_SESSION['user_id'])) {
-        header("Location: " . $base . "login.php");
-        exit;
+        return 'no_session';
     }
 
     global $pdo;
@@ -66,24 +65,14 @@ function require_login($base = '') {
     $user = $stmt->fetch();
 
     if (!$user || (int)$user['is_active'] !== 1) {
-        $_SESSION = [];
-        if (session_status() === PHP_SESSION_ACTIVE) {
-            session_destroy();
-        }
-        header("Location: " . $base . "login.php");
-        exit;
+        return 'inactive';
     }
 
     if (!empty($user['password_changed_at_ts'])) {
         $pwdChangedTime = (int)$user['password_changed_at_ts'];
         $loginTime = (int)($_SESSION['login_time'] ?? 0);
         if ($pwdChangedTime > $loginTime) {
-            $_SESSION = [];
-            if (session_status() === PHP_SESSION_ACTIVE) {
-                session_destroy();
-            }
-            header("Location: " . $base . "login.php");
-            exit;
+            return 'session_expired';
         }
     }
 
@@ -92,65 +81,60 @@ function require_login($base = '') {
     $_SESSION['must_change_password'] = (int)$user['must_change_password'];
 
     if ((int)$user['must_change_password'] === 1) {
+        return 'password_change_required';
+    }
+
+    return null;
+}
+
+function require_login($base = '') {
+    $status = check_current_user();
+    if ($status === null) {
+        return;
+    }
+
+    if ($status === 'password_change_required') {
         $currentScript = basename($_SERVER['SCRIPT_NAME'] ?? '');
         if (!in_array($currentScript, ['change-password.php', 'logout.php'], true)) {
             header("Location: " . $base . "change-password.php");
             exit;
         }
-    }
-}
-
-function require_login_json() {
-    start_secure_session();
-    if (!isset($_SESSION['user_id'])) {
-        http_response_code(401);
-        echo json_encode(['success' => false, 'error' => 'unauthorized']);
-        exit;
+        return;
     }
 
-    global $pdo;
-    $stmt = $pdo->prepare("
-        SELECT id, role, is_active, must_change_password, password_changed_at, 
-               UNIX_TIMESTAMP(password_changed_at) AS password_changed_at_ts 
-        FROM users 
-        WHERE id = ?
-    ");
-    $stmt->execute([$_SESSION['user_id']]);
-    $user = $stmt->fetch();
-
-    if (!$user || (int)$user['is_active'] !== 1) {
+    if ($status === 'inactive' || $status === 'session_expired') {
         $_SESSION = [];
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_destroy();
         }
-        http_response_code(401);
-        echo json_encode(['success' => false, 'error' => 'unauthorized']);
-        exit;
     }
 
-    if (!empty($user['password_changed_at_ts'])) {
-        $pwdChangedTime = (int)$user['password_changed_at_ts'];
-        $loginTime = (int)($_SESSION['login_time'] ?? 0);
-        if ($pwdChangedTime > $loginTime) {
-            $_SESSION = [];
-            if (session_status() === PHP_SESSION_ACTIVE) {
-                session_destroy();
-            }
-            http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'unauthorized']);
-            exit;
-        }
+    header("Location: " . $base . "login.php");
+    exit;
+}
+
+function require_login_json() {
+    $status = check_current_user();
+    if ($status === null) {
+        return;
     }
 
-    $_SESSION['role'] = $user['role'];
-    $_SESSION['is_active'] = (int)$user['is_active'];
-    $_SESSION['must_change_password'] = (int)$user['must_change_password'];
-
-    if ((int)$user['must_change_password'] === 1) {
+    if ($status === 'password_change_required') {
         http_response_code(403);
         echo json_encode(['error' => 'password_change_required']);
         exit;
     }
+
+    if ($status === 'inactive' || $status === 'session_expired') {
+        $_SESSION = [];
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_destroy();
+        }
+    }
+
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => 'unauthorized']);
+    exit;
 }
 
 function require_admin($base = '') {

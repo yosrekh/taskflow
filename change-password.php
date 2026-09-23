@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $updateStmt->execute([$hashed, $user_id]);
 
                     session_regenerate_id(true);
-                    $_SESSION['login_time'] = time();
+                    $_SESSION['login_time'] = (int)$pdo->query("SELECT UNIX_TIMESTAMP()")->fetchColumn();
                     $_SESSION['must_change_password'] = 0;
 
                     header("Location: dashboard.php?msg=password_changed");

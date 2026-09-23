@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         $_SESSION['role'] = $user['role'];
                         $_SESSION['is_active'] = 1;
                         $_SESSION['must_change_password'] = (int)$user['must_change_password'];
-                        $_SESSION['login_time'] = time();
+                        $_SESSION['login_time'] = (int)$pdo->query("SELECT UNIX_TIMESTAMP()")->fetchColumn();
 
                         // Clear failed attempts for this email upon successful login
                         $clearStmt = $pdo->prepare("DELETE FROM login_attempts WHERE email = ?");

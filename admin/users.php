@@ -25,151 +25,179 @@ function generate_temp_password($length = 14) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf($_POST['csrf_token'] ?? '')) {
-        $error = "رمز التحقق غير صالح. يرجى إعادة المحاولة.";
-    } else {
-        $action = $_POST['action'] ?? '';
+        $_SESSION['admin_flash_error'] = "رمز التحقق غير صالح. يرجى إعادة المحاولة.";
+        header("Location: users.php");
+        exit;
+    }
 
-        if ($action === 'create_user') {
-            $name = trim($_POST['name'] ?? '');
-            $email = trim($_POST['email'] ?? '');
-            $role = $_POST['role'] ?? 'member';
+    $action = $_POST['action'] ?? '';
 
-            if (empty($name) || empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $error = "يرجى إدخال اسم وبريد إلكتروني صالحين.";
-            } elseif (!in_array($role, ['admin', 'member'], true)) {
-                $error = "الدور المحدد غير صالح.";
-            } else {
-                try {
-                    $checkStmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
-                    $checkStmt->execute([$email]);
-                    if ($checkStmt->fetch()) {
-                        $error = "البريد الإلكتروني مستخدم بالفعل.";
-                    } else {
-                        $temp_pwd = generate_temp_password(14);
-                        $hashed = password_hash($temp_pwd, PASSWORD_DEFAULT);
+    if ($action === 'create_user') {
+        $name = trim($_POST['name'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $role = $_POST['role'] ?? 'member';
 
-                        $insertStmt = $pdo->prepare("
-                            INSERT INTO users (name, email, password, role, is_active, must_change_password) 
-                            VALUES (?, ?, ?, ?, 1, 1)
-                        ");
-                        $insertStmt->execute([$name, $email, $hashed, $role]);
-
-                        $one_time_password = $temp_pwd;
-                        $one_time_user_email = $email;
-                        $one_time_action = 'create';
-                        $success = "تم إنشاء المستخدم بنجاح.";
-                    }
-                } catch (PDOException $e) {
-                    error_log("Admin create user error: " . $e->getMessage());
-                    $error = "حدث خطأ أثناء إنشاء المستخدم.";
-                }
-            }
-        } elseif ($action === 'reset_password') {
-            $target_id = (int)($_POST['user_id'] ?? 0);
+        if (empty($name) || empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $_SESSION['admin_flash_error'] = "يرجى إدخال اسم وبريد إلكتروني صالحين.";
+        } elseif (!in_array($role, ['admin', 'member'], true)) {
+            $_SESSION['admin_flash_error'] = "الدور المحدد غير صالح.";
+        } else {
             try {
-                $stmt = $pdo->prepare("SELECT id, name, email FROM users WHERE id = ?");
-                $stmt->execute([$target_id]);
-                $target = $stmt->fetch();
-
-                if (!$target) {
-                    $error = "المستخدم غير موجود.";
+                $checkStmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+                $checkStmt->execute([$email]);
+                if ($checkStmt->fetch()) {
+                    $_SESSION['admin_flash_error'] = "البريد الإلكتروني مستخدم بالفعل.";
                 } else {
                     $temp_pwd = generate_temp_password(14);
                     $hashed = password_hash($temp_pwd, PASSWORD_DEFAULT);
 
-                    $updateStmt = $pdo->prepare("
-                        UPDATE users 
-                        SET password = ?, must_change_password = 1, password_changed_at = NOW() 
-                        WHERE id = ?
+                    $insertStmt = $pdo->prepare("
+                        INSERT INTO users (name, email, password, role, is_active, must_change_password) 
+                        VALUES (?, ?, ?, ?, 1, 1)
                     ");
-                    $updateStmt->execute([$hashed, $target_id]);
+                    $insertStmt->execute([$name, $email, $hashed, $role]);
 
-                    $one_time_password = $temp_pwd;
-                    $one_time_user_email = $target['email'];
-                    $one_time_action = 'reset';
-                    $success = "تمت إعادة تعيين كلمة المرور بنجاح للمستخدم '{$target['name']}'.";
+                    $_SESSION['one_time_pwd_flash'] = [
+                        'password' => $temp_pwd,
+                        'email' => $email,
+                        'action' => 'create',
+                        'success' => "تم إنشاء المستخدم بنجاح."
+                    ];
                 }
             } catch (PDOException $e) {
-                error_log("Admin reset password error: " . $e->getMessage());
-                $error = "حدث خطأ أثناء إعادة تعيين كلمة المرور.";
+                error_log("Admin create user error: " . $e->getMessage());
+                $_SESSION['admin_flash_error'] = "حدث خطأ أثناء إنشاء المستخدم.";
             }
-        } elseif ($action === 'toggle_active') {
-            $target_id = (int)($_POST['user_id'] ?? 0);
+        }
+    } elseif ($action === 'reset_password') {
+        $target_id = (int)($_POST['user_id'] ?? 0);
+        try {
+            $stmt = $pdo->prepare("SELECT id, name, email FROM users WHERE id = ?");
+            $stmt->execute([$target_id]);
+            $target = $stmt->fetch();
+
+            if (!$target) {
+                $_SESSION['admin_flash_error'] = "المستخدم غير موجود.";
+            } else {
+                $temp_pwd = generate_temp_password(14);
+                $hashed = password_hash($temp_pwd, PASSWORD_DEFAULT);
+
+                $updateStmt = $pdo->prepare("
+                    UPDATE users 
+                    SET password = ?, must_change_password = 1, password_changed_at = NOW() 
+                    WHERE id = ?
+                ");
+                $updateStmt->execute([$hashed, $target_id]);
+
+                $_SESSION['one_time_pwd_flash'] = [
+                    'password' => $temp_pwd,
+                    'email' => $target['email'],
+                    'action' => 'reset',
+                    'success' => "تمت إعادة تعيين كلمة المرور بنجاح للمستخدم '{$target['name']}'."
+                ];
+            }
+        } catch (PDOException $e) {
+            error_log("Admin reset password error: " . $e->getMessage());
+            $_SESSION['admin_flash_error'] = "حدث خطأ أثناء إعادة تعيين كلمة المرور.";
+        }
+    } elseif ($action === 'toggle_active') {
+        $target_id = (int)($_POST['user_id'] ?? 0);
+        try {
+            $stmt = $pdo->prepare("SELECT id, name, role, is_active FROM users WHERE id = ?");
+            $stmt->execute([$target_id]);
+            $target = $stmt->fetch();
+
+            if (!$target) {
+                $_SESSION['admin_flash_error'] = "المستخدم غير موجود.";
+            } elseif ($target_id === $admin_id) {
+                $_SESSION['admin_flash_error'] = "لا يمكنك تعطيل حسابك الخاص.";
+            } else {
+                $new_status = ((int)$target['is_active'] === 1) ? 0 : 1;
+
+                // If deactivating an admin, ensure at least one other active admin remains
+                if ($new_status === 0 && $target['role'] === 'admin') {
+                    $checkAdmins = $pdo->prepare("
+                        SELECT COUNT(*) FROM users 
+                        WHERE role = 'admin' AND is_active = 1 AND id != ?
+                    ");
+                    $checkAdmins->execute([$target_id]);
+                    if ((int)$checkAdmins->fetchColumn() < 1) {
+                        $_SESSION['admin_flash_error'] = "لا يمكن تعطيل هذا المستخدم؛ يجب وجود مدير نشط واحد على الأقل في النظام.";
+                    }
+                }
+
+                if (empty($_SESSION['admin_flash_error'])) {
+                    $updateStmt = $pdo->prepare("UPDATE users SET is_active = ? WHERE id = ?");
+                    $updateStmt->execute([$new_status, $target_id]);
+                    $_SESSION['admin_flash_success'] = $new_status ? "تم تفعيل المستخدم بنجاح." : "تم تعطيل المستخدم بنجاح.";
+                }
+            }
+        } catch (PDOException $e) {
+            error_log("Admin toggle active error: " . $e->getMessage());
+            $_SESSION['admin_flash_error'] = "حدث خطأ أثناء تعديل حالة الحساب.";
+        }
+    } elseif ($action === 'change_role') {
+        $target_id = (int)($_POST['user_id'] ?? 0);
+        $new_role = $_POST['role'] ?? '';
+
+        if (!in_array($new_role, ['admin', 'member'], true)) {
+            $_SESSION['admin_flash_error'] = "الدور المحدد غير صالح.";
+        } else {
             try {
                 $stmt = $pdo->prepare("SELECT id, name, role, is_active FROM users WHERE id = ?");
                 $stmt->execute([$target_id]);
                 $target = $stmt->fetch();
 
                 if (!$target) {
-                    $error = "المستخدم غير موجود.";
-                } elseif ($target_id === $admin_id) {
-                    $error = "لا يمكنك تعطيل حسابك الخاص.";
-                } else {
-                    $new_status = ((int)$target['is_active'] === 1) ? 0 : 1;
-
-                    // If deactivating an admin, ensure at least one other active admin remains
-                    if ($new_status === 0 && $target['role'] === 'admin') {
-                        $checkAdmins = $pdo->prepare("
-                            SELECT COUNT(*) FROM users 
-                            WHERE role = 'admin' AND is_active = 1 AND id != ?
-                        ");
-                        $checkAdmins->execute([$target_id]);
-                        if ((int)$checkAdmins->fetchColumn() < 1) {
-                            $error = "لا يمكن تعطيل هذا المستخدم؛ يجب وجود مدير نشط واحد على الأقل في النظام.";
-                        }
-                    }
-
-                    if (!$error) {
-                        $updateStmt = $pdo->prepare("UPDATE users SET is_active = ? WHERE id = ?");
-                        $updateStmt->execute([$new_status, $target_id]);
-                        $success = $new_status ? "تم تفعيل المستخدم بنجاح." : "تم تعطيل المستخدم بنجاح.";
-                    }
-                }
-            } catch (PDOException $e) {
-                error_log("Admin toggle active error: " . $e->getMessage());
-                $error = "حدث خطأ أثناء تعديل حالة الحساب.";
-            }
-        } elseif ($action === 'change_role') {
-            $target_id = (int)($_POST['user_id'] ?? 0);
-            $new_role = $_POST['role'] ?? '';
-
-            if (!in_array($new_role, ['admin', 'member'], true)) {
-                $error = "الدور المحدد غير صالح.";
-            } else {
-                try {
-                    $stmt = $pdo->prepare("SELECT id, name, role, is_active FROM users WHERE id = ?");
-                    $stmt->execute([$target_id]);
-                    $target = $stmt->fetch();
-
-                    if (!$target) {
-                        $error = "المستخدم غير موجود.";
-                    } elseif ($target_id === $admin_id && $new_role !== 'admin') {
-                        $error = "لا يمكنك خفض صلاحيات حسابك الخاص.";
-                    } elseif ($target['role'] === 'admin' && $new_role !== 'admin') {
-                        $checkAdmins = $pdo->prepare("
-                            SELECT COUNT(*) FROM users 
-                            WHERE role = 'admin' AND is_active = 1 AND id != ?
-                        ");
-                        $checkAdmins->execute([$target_id]);
-                        if ((int)$checkAdmins->fetchColumn() < 1) {
-                            $error = "لا يمكن خفض صلاحيات هذا المدير؛ يجب وجود مدير نشط واحد على الأقل في النظام.";
-                        } else {
-                            $updateStmt = $pdo->prepare("UPDATE users SET role = ? WHERE id = ?");
-                            $updateStmt->execute([$new_role, $target_id]);
-                            $success = "تم تغيير دور المستخدم بنجاح.";
-                        }
+                    $_SESSION['admin_flash_error'] = "المستخدم غير موجود.";
+                } elseif ($target_id === $admin_id && $new_role !== 'admin') {
+                    $_SESSION['admin_flash_error'] = "لا يمكنك خفض صلاحيات حسابك الخاص.";
+                } elseif ($target['role'] === 'admin' && $new_role !== 'admin') {
+                    $checkAdmins = $pdo->prepare("
+                        SELECT COUNT(*) FROM users 
+                        WHERE role = 'admin' AND is_active = 1 AND id != ?
+                    ");
+                    $checkAdmins->execute([$target_id]);
+                    if ((int)$checkAdmins->fetchColumn() < 1) {
+                        $_SESSION['admin_flash_error'] = "لا يمكن خفض صلاحيات هذا المدير؛ يجب وجود مدير نشط واحد على الأقل في النظام.";
                     } else {
                         $updateStmt = $pdo->prepare("UPDATE users SET role = ? WHERE id = ?");
                         $updateStmt->execute([$new_role, $target_id]);
-                        $success = "تم تغيير دور المستخدم بنجاح.";
+                        $_SESSION['admin_flash_success'] = "تم تغيير دور المستخدم بنجاح.";
                     }
-                } catch (PDOException $e) {
-                    error_log("Admin change role error: " . $e->getMessage());
-                    $error = "حدث خطأ أثناء تغيير الدور.";
+                } else {
+                    $updateStmt = $pdo->prepare("UPDATE users SET role = ? WHERE id = ?");
+                    $updateStmt->execute([$new_role, $target_id]);
+                    $_SESSION['admin_flash_success'] = "تم تغيير دور المستخدم بنجاح.";
                 }
+            } catch (PDOException $e) {
+                error_log("Admin change role error: " . $e->getMessage());
+                $_SESSION['admin_flash_error'] = "حدث خطأ أثناء تغيير الدور.";
             }
         }
     }
+
+    header("Location: users.php");
+    exit;
+}
+
+// Retrieve flash messages and immediately clear them from session
+$error = $_SESSION['admin_flash_error'] ?? '';
+unset($_SESSION['admin_flash_error']);
+
+$success = $_SESSION['admin_flash_success'] ?? '';
+unset($_SESSION['admin_flash_success']);
+
+$one_time_password = null;
+$one_time_user_email = '';
+$one_time_action = '';
+
+if (!empty($_SESSION['one_time_pwd_flash'])) {
+    $one_time_password = $_SESSION['one_time_pwd_flash']['password'];
+    $one_time_user_email = $_SESSION['one_time_pwd_flash']['email'];
+    $one_time_action = $_SESSION['one_time_pwd_flash']['action'];
+    $success = $_SESSION['one_time_pwd_flash']['success'];
+    unset($_SESSION['one_time_pwd_flash']); // Cleared immediately!
 }
 
 // Fetch all users for the table
