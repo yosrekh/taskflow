@@ -190,7 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div id="pro-loader" class="loader" style="display:none;"></div>
         <h2>تسجيل دخول</h2>
         <?php if ($error): ?>
-            <p class="error"><?= $error ?></p>
+            <p class="error"><?= e($error) ?></p>
         <?php endif; ?>
         <form method="POST">
             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">

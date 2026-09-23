@@ -88,11 +88,29 @@ function render_nav($base = '') {
                                     item.style.opacity = '0.7';
                                 }
                                 if (match) {
-                                    let actionText = `${action} <span style='color:#2980b9'>'${task}'</span>`;
-                                    if (action === 'غيّر حالة المهمة') {
-                                        actionText += ` إلى ${status}`;
+                                    const actorEl = document.createElement('div');
+                                    actorEl.style.cssText = 'font-size:0.97em;color:#1abc9c;font-weight:bold;';
+                                    actorEl.textContent = actor;
+
+                                    const actionEl = document.createElement('div');
+                                    actionEl.style.fontSize = '0.97em';
+                                    actionEl.textContent = action + " '" + task + "'";
+                                    if (action === 'غيّر حالة المهمة' && status) {
+                                        actionEl.textContent += ' إلى ' + status;
                                     }
-                                    item.innerHTML = `<div style='font-size:0.97em;color:#1abc9c;font-weight:bold;'>${actor}</div><div style='font-size:0.97em;'>${actionText}</div><div style='font-size:0.95em;color:#888;'>${project}</div><div style='font-size:0.92em;color:#aaa;'>${time}</div>`;
+
+                                    const projectEl = document.createElement('div');
+                                    projectEl.style.cssText = 'font-size:0.95em;color:#888;';
+                                    projectEl.textContent = project;
+
+                                    const timeEl = document.createElement('div');
+                                    timeEl.style.cssText = 'font-size:0.92em;color:#aaa;';
+                                    timeEl.textContent = time;
+
+                                    item.appendChild(actorEl);
+                                    item.appendChild(actionEl);
+                                    item.appendChild(projectEl);
+                                    item.appendChild(timeEl);
                                 } else {
                                     item.textContent = msg;
                                 }

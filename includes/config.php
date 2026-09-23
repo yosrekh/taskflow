@@ -73,3 +73,10 @@ if (APP_ENV === 'production') {
     ini_set('log_errors', '1');
     error_reporting(E_ALL);
 }
+
+// Global HTML escaping helper
+if (!function_exists('e')) {
+    function e($str) {
+        return htmlspecialchars((string)($str ?? ''), ENT_QUOTES, 'UTF-8');
+    }
+}

@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>تعديل المشروع - <?= htmlspecialchars($project['title']) ?></title>
+    <title>تعديل المشروع - <?= e($project['title']) ?></title>
     <link rel="stylesheet" href="../../css/styles.css">
     <style>
         body {
@@ -175,18 +175,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <a href="../dashboard.php" class="back-btn">&larr; العودة إلى لوحة التحكم</a>
     <h2>تعديل المشروع</h2>
     <?php if ($error): ?>
-        <p class="error"><?= $error ?></p>
+        <p class="error"><?= e($error) ?></p>
     <?php elseif ($success): ?>
-        <p class="success"><?= $success ?></p>
+        <p class="success"><?= e($success) ?></p>
     <?php endif; ?>
 
     <form method="POST">
         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
         <label>عنوان المشروع:</label>
-        <input type="text" name="title" value="<?= htmlspecialchars($project['title']) ?>" required>
+        <input type="text" name="title" value="<?= e($project['title']) ?>" required>
 
         <label>وصف المشروع:</label>
-        <textarea name="description" rows="5"><?= htmlspecialchars($project['description']) ?></textarea>
+        <textarea name="description" rows="5"><?= e($project['description']) ?></textarea>
 
         <button type="submit">تحديث المشروع</button>
     </form>

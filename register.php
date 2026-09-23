@@ -175,9 +175,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div id="pro-loader" class="loader" style="display:none;"></div>
         <h2>إنشاء حساب جديد</h2>
         <?php if ($error): ?>
-            <p class="error"><?= $error ?></p>
+            <p class="error"><?= e($error) ?></p>
         <?php elseif ($success): ?>
-            <p class="success"><?= $success ?></p>
+            <p class="success"><?= e($success) ?></p>
         <?php endif; ?>
         <form method="POST">
             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">

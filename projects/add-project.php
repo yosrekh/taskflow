@@ -155,9 +155,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     <h2>إنشاء مشروع جديد</h2>
     <?php if ($error): ?>
-        <p class="error"><?= $error ?></p>
+        <p class="error"><?= e($error) ?></p>
     <?php elseif ($success): ?>
-        <p class="success"><?= $success ?></p>
+        <p class="success"><?= e($success) ?></p>
     <?php endif; ?>
 
     <form method="POST">

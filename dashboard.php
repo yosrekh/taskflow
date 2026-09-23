@@ -291,7 +291,7 @@ $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <div class="pro-dashboard-container">
         <div class="pro-dashboard-header">
-            <h1>مرحبًا، <?= htmlspecialchars($user['name']) ?> 👋</h1>
+            <h1>مرحبًا، <?= e($user['name']) ?> 👋</h1>
             <div>
                 <a href="projects/add-project.php" class="btn">+ مشروع جديد</a>
             </div>
@@ -303,11 +303,11 @@ $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <ul>
                         <?php foreach ($projects as $project): ?>
                             <li>
-                                <strong><?= htmlspecialchars($project['title']) ?></strong><br>
-                                <small><?= htmlspecialchars($project['description']) ?></small><br>
-                                <span style="color:#b2dfdb;font-size:0.95em;">مالك المشروع: <?= htmlspecialchars($project['owner_name']) ?></span>
+                                <strong><?= e($project['title']) ?></strong><br>
+                                <small><?= e($project['description']) ?></small><br>
+                                <span style="color:#b2dfdb;font-size:0.95em;">مالك المشروع: <?= e($project['owner_name']) ?></span>
                                 <div class="project-actions">
-                                    <a href="tasks/view-tasks.php?project_id=<?= $project['id'] ?>" title="عرض المهام" class="list-btn">
+                                    <a href="tasks/view-tasks.php?project_id=<?= (int)$project['id'] ?>" title="عرض المهام" class="list-btn">
                                         <svg width="20" height="20" style="vertical-align:middle; margin-left:4px;"><use href="#icon-tasks-alt"/></svg>
                                         <span>عرض المهام</span>
                                     </a>

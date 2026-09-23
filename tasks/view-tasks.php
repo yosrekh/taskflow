@@ -174,7 +174,7 @@ if (isset($_GET['edit_task_id'])) {
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>مهام المشروع - <?= htmlspecialchars($project['title']) ?></title>
+    <title>مهام المشروع - <?= e($project['title']) ?></title>
     <link rel="stylesheet" href="../css/styles.css">
     <style>
         .pro-form-container {
@@ -434,6 +434,15 @@ if (isset($_GET['edit_task_id'])) {
     <script>
     const csrfToken = '<?= csrf_token() ?>';
     let lastTasksJson = '';
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
     function renderKanban(tasks) {
         const statuses = {
             'Pending': document.querySelector('.kanban-column.todo'),
@@ -445,11 +454,11 @@ if (isset($_GET['edit_task_id'])) {
             if (!col) return;
                 const cards = tasks.filter(t => t.status === status).map(task => `
                     <div class=\"kanban-card\">
-                        <div class=\"kanban-card-title\"><strong>${task.title}</strong></div>
-                        <div class=\"kanban-card-assignee\">Assignee: ${task.assignee_name || 'No one'}</div>
-                        <div class=\"kanban-card-desc\">${task.description}</div>
+                        <div class=\"kanban-card-title\"><strong>${escapeHtml(task.title)}</strong></div>
+                        <div class=\"kanban-card-assignee\">Assignee: ${escapeHtml(task.assignee_name || 'No one')}</div>
+                        <div class=\"kanban-card-desc\">${escapeHtml(task.description)}</div>
                         <div class=\"kanban-card-status\">
-                            <select class=\"task-status\" data-task-id=\"${task.id}\">
+                            <select class=\"task-status\" data-task-id=\"${escapeHtml(task.id)}\">
                                 <option value=\"Pending\" ${task.status === 'Pending' ? 'selected' : ''}>To Do</option>
                                 <option value=\"In Progress\" ${task.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
                                 <option value=\"Completed\" ${task.status === 'Completed' ? 'selected' : ''}>Done</option>
@@ -458,8 +467,8 @@ if (isset($_GET['edit_task_id'])) {
                         <div class=\"kanban-card-footer\">
                             <span>Created: ${task.created_at ? new Date(task.created_at).toLocaleDateString() : (task.due_date ? new Date(task.due_date).toLocaleDateString() : '')}</span>
                             <div class=\"kanban-card-actions\">
-                                ${task.can_edit ? `<a href=\"view-tasks.php?project_id=${task.project_id}&edit_task_id=${task.id}\" title=\"Edit\"><svg width=\"18\" height=\"18\" fill=\"#888\"><use href=\"#icon-edit\"/></svg></a>` : ''}
-                                ${task.can_delete ? `<form method=\"POST\" style=\"display:inline;\"><input type=\"hidden\" name=\"csrf_token\" value=\"${csrfToken}\"><input type=\"hidden\" name=\"task_id\" value=\"${task.id}\"><button type=\"submit\" name=\"delete_task\" class=\"kanban-delete\" title=\"Delete\" onclick=\"return confirm('Delete this task?')\"><svg width=\"18\" height=\"18\" fill=\"#e74c3c\"><use href=\"#icon-trash\"/></svg></button></form>` : ''}
+                                ${task.can_edit ? `<a href=\"view-tasks.php?project_id=${encodeURIComponent(task.project_id)}&edit_task_id=${encodeURIComponent(task.id)}\" title=\"Edit\"><svg width=\"18\" height=\"18\" fill=\"#888\"><use href=\"#icon-edit\"/></svg></a>` : ''}
+                                ${task.can_delete ? `<form method=\"POST\" style=\"display:inline;\"><input type=\"hidden\" name=\"csrf_token\" value=\"${escapeHtml(csrfToken)}\"><input type=\"hidden\" name=\"task_id\" value=\"${escapeHtml(task.id)}\"><button type=\"submit\" name=\"delete_task\" class=\"kanban-delete\" title=\"Delete\" onclick=\"return confirm('Delete this task?')\"><svg width=\"18\" height=\"18\" fill=\"#e74c3c\"><use href=\"#icon-trash\"/></svg></button></form>` : ''}
                             </div>
                         </div>
                     </div>
@@ -590,7 +599,7 @@ if (isset($_GET['edit_task_id'])) {
 </svg>
 
 <header>
-    <h1>مشروع: <?= htmlspecialchars($project['title']) ?></h1>
+    <h1>مشروع: <?= e($project['title']) ?></h1>
     <div class="header-actions">
         <button class="add-task-btn" id="openAddTask">+ إضافة مهمة</button>
         <a href="../dashboard.php" class="btn btn-back">← العودة للوحة التحكم</a>
@@ -601,9 +610,9 @@ if (isset($_GET['edit_task_id'])) {
     <section class="tasks">
         <h2>قائمة المهام</h2>
         <?php if ($error): ?>
-            <p class="error"><?= $error ?></p>
+            <p class="error"><?= e($error) ?></p>
         <?php elseif ($success): ?>
-            <p class="success"><?= $success ?></p>
+            <p class="success"><?= e($success) ?></p>
         <?php endif; ?>
 
         <!-- Add/Edit Task Popup -->
@@ -615,12 +624,12 @@ if (isset($_GET['edit_task_id'])) {
                     <form method="POST" id="taskForm">
                         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                         <?php if ($edit_task): ?>
-                            <input type="hidden" name="task_id" value="<?= $edit_task['id'] ?>">
+                            <input type="hidden" name="task_id" value="<?= (int)$edit_task['id'] ?>">
                         <?php endif; ?>
                         <label>عنوان المهمة:</label>
-                        <input type="text" name="title" value="<?= $edit_task['title'] ?? '' ?>" required>
+                        <input type="text" name="title" value="<?= e($edit_task['title'] ?? '') ?>" required>
                         <label>الوصف:</label>
-                        <textarea name="description" rows="4"><?= $edit_task['description'] ?? '' ?></textarea>
+                        <textarea name="description" rows="4"><?= e($edit_task['description'] ?? '') ?></textarea>
                         <label>الأولوية:</label>
                         <select name="priority" required>
                             <option value="Low" <?= (isset($edit_task) && $edit_task['priority']=='Low') ? 'selected' : '' ?>>منخفضة</option>
@@ -628,11 +637,11 @@ if (isset($_GET['edit_task_id'])) {
                             <option value="High" <?= (isset($edit_task) && $edit_task['priority']=='High') ? 'selected' : '' ?>>عالية</option>
                         </select>
                         <label>تاريخ الاستحقاق:</label>
-                        <input type="date" name="due_date" value="<?= $edit_task['due_date'] ?? '' ?>" required>
+                        <input type="date" name="due_date" value="<?= e($edit_task['due_date'] ?? '') ?>" required>
                         <label>تعيين إلى:</label>
                         <select name="assigned_to" required>
                             <?php foreach ($users as $user_option): ?>
-                                <option value="<?= $user_option['id'] ?>" <?= (isset($edit_task) && $edit_task['assigned_to']==$user_option['id']) ? 'selected' : '' ?>><?= htmlspecialchars($user_option['name']) ?></option>
+                                <option value="<?= (int)$user_option['id'] ?>" <?= (isset($edit_task) && $edit_task['assigned_to']==$user_option['id']) ? 'selected' : '' ?>><?= e($user_option['name']) ?></option>
                             <?php endforeach; ?>
                         </select>
                         <button type="submit" name="<?= $edit_task ? 'edit_task' : 'add_task' ?>">
@@ -700,8 +709,8 @@ if (isset($_GET['edit_task_id'])) {
                     <?php foreach ($tasks as $task): if ($task['status'] !== 'Pending') continue; ?>
                     <div class="kanban-card">
                         <div class="kanban-card-title">
-                            <strong><?= htmlspecialchars($task['title']) ?></strong>
-                            <span class="priority-sign <?= strtolower($task['priority']) ?>" title="الأولوية: <?= htmlspecialchars($task['priority']) ?>">
+                            <strong><?= e($task['title']) ?></strong>
+                            <span class="priority-sign <?= strtolower(e($task['priority'])) ?>" title="الأولوية: <?= e($task['priority']) ?>">
                                 <?php if ($task['priority'] == 'High'): ?>
                                     &#9888;
                                 <?php elseif ($task['priority'] == 'Medium'): ?>
@@ -711,30 +720,28 @@ if (isset($_GET['edit_task_id'])) {
                                 <?php endif; ?>
                             </span>
                         </div>
-                        <div class="kanban-card-assignee">Assignee: <?= htmlspecialchars($task['assignee_name'] ?? 'No one') ?></div>
-                        <div class="kanban-card-desc"><?= htmlspecialchars($task['description']) ?></div>
+                        <div class="kanban-card-assignee">Assignee: <?= e($task['assignee_name'] ?? 'No one') ?></div>
+                        <div class="kanban-card-desc"><?= e($task['description']) ?></div>
                         <div class="kanban-card-status">
-                            <select class="task-status" data-task-id="<?= $task['id'] ?>">
+                            <select class="task-status" data-task-id="<?= (int)$task['id'] ?>">
                                 <option value="Pending" <?= $task['status'] == 'Pending' ? 'selected' : '' ?>>To Do</option>
                                 <option value="In Progress" <?= $task['status'] == 'In Progress' ? 'selected' : '' ?>>In Progress</option>
                                 <option value="Completed" <?= $task['status'] == 'Completed' ? 'selected' : '' ?>>Done</option>
                             </select>
                         </div>
-                            <?php if ($user_id == $project_owner_id): ?>
-                        <?php if ($user_id == $project_owner_id): ?>
+                        <?php if ($is_project_owner): ?>
                         <div class="kanban-card-footer">
                             <span>Created: <?= date('n/j/Y', strtotime($task['created_at'] ?? $task['due_date'])) ?></span>
                             <div class="kanban-card-actions">
-                                <a href="view-tasks.php?project_id=<?= $project_id ?>&edit_task_id=<?= $task['id'] ?>" title="Edit"><svg width="18" height="18" fill="#888"><use href="#icon-edit"/></svg></a>
+                                <a href="view-tasks.php?project_id=<?= (int)$project_id ?>&edit_task_id=<?= (int)$task['id'] ?>" title="Edit"><svg width="18" height="18" fill="#888"><use href="#icon-edit"/></svg></a>
                                 <form method="POST" style="display:inline;">
                                     <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                                    <input type="hidden" name="task_id" value="<?= $task['id'] ?>">
+                                    <input type="hidden" name="task_id" value="<?= (int)$task['id'] ?>">
                                     <button type="submit" name="delete_task" class="kanban-delete" title="Delete" onclick="return confirm('Delete this task?')"><svg width="18" height="18" fill="#e74c3c"><use href="#icon-trash"/></svg></button>
                                 </form>
                             </div>
                         </div>
                         <?php endif; ?>
-                            <?php endif; ?>
                     </div>
                     <?php endforeach; ?>
                 </div>
@@ -746,8 +753,8 @@ if (isset($_GET['edit_task_id'])) {
                     <?php foreach ($tasks as $task): if ($task['status'] !== 'In Progress') continue; ?>
                     <div class="kanban-card">
                         <div class="kanban-card-title">
-                            <strong><?= htmlspecialchars($task['title']) ?></strong>
-                            <span class="priority-sign <?= strtolower($task['priority']) ?>" title="الأولوية: <?= htmlspecialchars($task['priority']) ?>">
+                            <strong><?= e($task['title']) ?></strong>
+                            <span class="priority-sign <?= strtolower(e($task['priority'])) ?>" title="الأولوية: <?= e($task['priority']) ?>">
                                 <?php if ($task['priority'] == 'High'): ?>
                                     &#9888;
                                 <?php elseif ($task['priority'] == 'Medium'): ?>
@@ -757,23 +764,23 @@ if (isset($_GET['edit_task_id'])) {
                                 <?php endif; ?>
                             </span>
                         </div>
-                        <div class="kanban-card-assignee">Assignee: <?= htmlspecialchars($task['assignee_name'] ?? 'No one') ?></div>
-                        <div class="kanban-card-desc"><?= htmlspecialchars($task['description']) ?></div>
+                        <div class="kanban-card-assignee">Assignee: <?= e($task['assignee_name'] ?? 'No one') ?></div>
+                        <div class="kanban-card-desc"><?= e($task['description']) ?></div>
                         <div class="kanban-card-status">
-                            <select class="task-status" data-task-id="<?= $task['id'] ?>">
+                            <select class="task-status" data-task-id="<?= (int)$task['id'] ?>">
                                 <option value="Pending" <?= $task['status'] == 'Pending' ? 'selected' : '' ?>>To Do</option>
                                 <option value="In Progress" <?= $task['status'] == 'In Progress' ? 'selected' : '' ?>>In Progress</option>
                                 <option value="Completed" <?= $task['status'] == 'Completed' ? 'selected' : '' ?>>Done</option>
                             </select>
                         </div>
-                        <?php if ($user_id == $project_owner_id): ?>
+                        <?php if ($is_project_owner): ?>
                         <div class="kanban-card-footer">
                             <span>Created: <?= date('n/j/Y', strtotime($task['created_at'] ?? $task['due_date'])) ?></span>
                             <div class="kanban-card-actions">
-                                <a href="view-tasks.php?project_id=<?= $project_id ?>&edit_task_id=<?= $task['id'] ?>" title="Edit"><svg width="18" height="18" fill="#888"><use href="#icon-edit"/></svg></a>
+                                <a href="view-tasks.php?project_id=<?= (int)$project_id ?>&edit_task_id=<?= (int)$task['id'] ?>" title="Edit"><svg width="18" height="18" fill="#888"><use href="#icon-edit"/></svg></a>
                                 <form method="POST" style="display:inline;">
                                     <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                                    <input type="hidden" name="task_id" value="<?= $task['id'] ?>">
+                                    <input type="hidden" name="task_id" value="<?= (int)$task['id'] ?>">
                                     <button type="submit" name="delete_task" class="kanban-delete" title="Delete" onclick="return confirm('Delete this task?')"><svg width="18" height="18" fill="#e74c3c"><use href="#icon-trash"/></svg></button>
                                 </form>
                             </div>
@@ -790,8 +797,8 @@ if (isset($_GET['edit_task_id'])) {
                     <?php foreach ($tasks as $task): if ($task['status'] !== 'Completed') continue; ?>
                     <div class="kanban-card">
                         <div class="kanban-card-title">
-                            <strong><?= htmlspecialchars($task['title']) ?></strong>
-                            <span class="priority-sign <?= strtolower($task['priority']) ?>" title="الأولوية: <?= htmlspecialchars($task['priority']) ?>">
+                            <strong><?= e($task['title']) ?></strong>
+                            <span class="priority-sign <?= strtolower(e($task['priority'])) ?>" title="الأولوية: <?= e($task['priority']) ?>">
                                 <?php if ($task['priority'] == 'High'): ?>
                                     &#9888;
                                 <?php elseif ($task['priority'] == 'Medium'): ?>
@@ -801,10 +808,10 @@ if (isset($_GET['edit_task_id'])) {
                                 <?php endif; ?>
                             </span>
                         </div>
-                        <div class="kanban-card-assignee">Assignee: <?= htmlspecialchars($task['assignee_name'] ?? 'No one') ?></div>
-                        <div class="kanban-card-desc"><?= htmlspecialchars($task['description']) ?></div>
+                        <div class="kanban-card-assignee">Assignee: <?= e($task['assignee_name'] ?? 'No one') ?></div>
+                        <div class="kanban-card-desc"><?= e($task['description']) ?></div>
                         <div class="kanban-card-status">
-                            <select class="task-status" data-task-id="<?= $task['id'] ?>">
+                            <select class="task-status" data-task-id="<?= (int)$task['id'] ?>">
                                 <option value="Pending" <?= $task['status'] == 'Pending' ? 'selected' : '' ?>>To Do</option>
                                 <option value="In Progress" <?= $task['status'] == 'In Progress' ? 'selected' : '' ?>>In Progress</option>
                                 <option value="Completed" <?= $task['status'] == 'Completed' ? 'selected' : '' ?>>Done</option>
@@ -814,10 +821,10 @@ if (isset($_GET['edit_task_id'])) {
                         <div class="kanban-card-footer">
                             <span>Created: <?= date('n/j/Y', strtotime($task['created_at'] ?? $task['due_date'])) ?></span>
                             <div class="kanban-card-actions">
-                                <a href="view-tasks.php?project_id=<?= $project_id ?>&edit_task_id=<?= $task['id'] ?>" title="Edit"><svg width="18" height="18" fill="#888"><use href="#icon-edit"/></svg></a>
+                                <a href="view-tasks.php?project_id=<?= (int)$project_id ?>&edit_task_id=<?= (int)$task['id'] ?>" title="Edit"><svg width="18" height="18" fill="#888"><use href="#icon-edit"/></svg></a>
                                 <form method="POST" style="display:inline;">
                                     <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                                    <input type="hidden" name="task_id" value="<?= $task['id'] ?>">
+                                    <input type="hidden" name="task_id" value="<?= (int)$task['id'] ?>">
                                     <button type="submit" name="delete_task" class="kanban-delete" title="Delete" onclick="return confirm('Delete this task?')"><svg width="18" height="18" fill="#e74c3c"><use href="#icon-trash"/></svg></button>
                                 </form>
                             </div>
