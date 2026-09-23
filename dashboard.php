@@ -308,6 +308,11 @@ $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <a href="projects/add-project.php" class="btn">+ مشروع جديد</a>
             </div>
         </div>
+        <?php if (isset($_GET['msg']) && $_GET['msg'] === 'password_changed'): ?>
+            <div style="background:rgba(46,204,113,0.15);border:1px solid #2ecc71;color:#2ecc71;padding:12px 18px;border-radius:10px;margin-top:16px;font-size:1.05rem;">
+                تم تغيير كلمة المرور بنجاح.
+            </div>
+        <?php endif; ?>
         <main>
             <section class="projects">
                 <h2>مشاريعك</h2>

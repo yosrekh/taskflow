@@ -7,6 +7,7 @@ function render_nav($base = '') {
             <a href="<?= $base ?>dashboard.php" style="color:#1abc9c;font-weight:bold;font-size:1.2rem;text-decoration:none;letter-spacing:1px;">TaskFlow</a>
             <a href="<?= $base ?>projects/add-project.php" style="color:#fff;font-size:1rem;text-decoration:none;opacity:0.85;">+ مشروع جديد</a>
             <a href="<?= $base ?>dashboard.php" style="color:#fff;font-size:1rem;text-decoration:none;opacity:0.85;">لوحة التحكم</a>
+            <a href="<?= $base ?>change-password.php" style="color:#fff;font-size:1rem;text-decoration:none;opacity:0.85;">تغيير كلمة المرور</a>
         </div>
         <div style="display:flex;align-items:center;gap:24px;position:relative;">
             <div id="notif-bell-container" style="position:relative;">
