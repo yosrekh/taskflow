@@ -334,10 +334,33 @@ function render_nav($base = '') {
             navLinksMenu.classList.remove('nav-open');
         }
     });
-    setInterval(function() {
+    let notifInterval = null;
+    function pollNotifications() {
         fetchNotifications(true);
         if (notifOpen) fetchNotifications(false);
-    }, 10000);
+    }
+    function startNotifPolling() {
+        if (!notifInterval) {
+            notifInterval = setInterval(pollNotifications, 30000); // Poll every 30 seconds
+        }
+    }
+    function stopNotifPolling() {
+        if (notifInterval) {
+            clearInterval(notifInterval);
+            notifInterval = null;
+        }
+    }
+
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            stopNotifPolling();
+        } else {
+            pollNotifications();
+            startNotifPolling();
+        }
+    });
+
+    startNotifPolling();
     fetchNotifications(true);
     </script>
     <?php

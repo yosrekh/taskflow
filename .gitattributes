@@ -1,0 +1,7 @@
+# Release archive export exclusions
+.gitattributes export-ignore
+.gitignore export-ignore
+TODO.md export-ignore
+File_Structure.txt export-ignore
+scratch/ export-ignore
+db/migrations/ export-ignore

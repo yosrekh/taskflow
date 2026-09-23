@@ -1,6 +1,12 @@
 <?php
 // includes/config.php
 
+// Minimum required PHP version: 8.0.0 (TaskFlow utilizes PHP 8.0+ features)
+define('MIN_PHP_VERSION', '8.0.0');
+if (PHP_VERSION_ID < 80000) {
+    die("TaskFlow requires PHP 8.0.0 or higher. Current version: " . PHP_VERSION);
+}
+
 // Minimal .env file parser as fallback
 function load_env_file($filePath) {
     if (!file_exists($filePath)) {
@@ -33,8 +39,9 @@ function load_env_file($filePath) {
     }
 }
 
-// Load .env from project root if it exists
-load_env_file(__DIR__ . '/../.env');
+// Load .env from ONE LEVEL ABOVE the project root first (outside public_html), falling back to project root
+load_env_file(dirname(__DIR__, 2) . '/.env');
+load_env_file(dirname(__DIR__) . '/.env');
 
 // Helper to retrieve configuration value
 function env($key, $default = null) {
@@ -53,6 +60,19 @@ define('DB_PASS', env('DB_PASS', ''));
 
 // Environment configuration
 define('APP_ENV', env('APP_ENV', 'development'));
+
+// Timezone configuration (default Africa/Cairo)
+define('APP_TIMEZONE', env('APP_TIMEZONE', 'Africa/Cairo'));
+date_default_timezone_set(APP_TIMEZONE);
+
+// Session configuration
+define('SESSION_NAME', env('SESSION_NAME', 'TASKFLOW_SESSID'));
+
+// Optional custom log file
+$logFile = env('LOG_FILE', null);
+if (!empty($logFile)) {
+    ini_set('error_log', $logFile);
+}
 
 // Error reporting and display based on environment
 if (APP_ENV === 'production') {
