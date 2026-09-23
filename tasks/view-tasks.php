@@ -165,7 +165,7 @@ if ($is_project_owner) {
 }
 
 // Get all users for assignment
-$users_stmt = $pdo->query("SELECT id, name FROM users");
+$users_stmt = $pdo->query("SELECT id, name FROM users WHERE is_active = 1");
 $users = $users_stmt->fetchAll();
 
 // For edit form

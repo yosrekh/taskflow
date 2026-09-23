@@ -8,6 +8,9 @@ function render_nav($base = '') {
             <a href="<?= $base ?>projects/add-project.php" style="color:#fff;font-size:1rem;text-decoration:none;opacity:0.85;">+ مشروع جديد</a>
             <a href="<?= $base ?>dashboard.php" style="color:#fff;font-size:1rem;text-decoration:none;opacity:0.85;">لوحة التحكم</a>
             <a href="<?= $base ?>change-password.php" style="color:#fff;font-size:1rem;text-decoration:none;opacity:0.85;">تغيير كلمة المرور</a>
+            <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                <a href="<?= $base ?>admin/users.php" style="color:#fff;font-size:1rem;text-decoration:none;opacity:0.85;">المستخدمين</a>
+            <?php endif; ?>
         </div>
         <div style="display:flex;align-items:center;gap:24px;position:relative;">
             <div id="notif-bell-container" style="position:relative;">
