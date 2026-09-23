@@ -17,7 +17,7 @@ $stmt = $pdo->prepare("SELECT * FROM projects WHERE id = ?");
 $stmt->execute([$project_id]);
 $project = $stmt->fetch();
 
-if (!$project) {
+if (!$project || !can_view_project($pdo, $user_id, $project_id)) {
     http_response_code(404);
     die("المشروع غير موجود.");
 }
@@ -74,6 +74,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $due_date = $_POST['due_date'] ?? null;
         $assigned_to = !empty($_POST['assigned_to']) ? (int)$_POST['assigned_to'] : null;
         try {
+            $old_stmt = $pdo->prepare("SELECT assigned_to, title FROM tasks WHERE id = ? AND project_id = ?");
+            $old_stmt->execute([$task_id, $project_id]);
+            $old_task = $old_stmt->fetch();
+            $old_assigned_to = $old_task ? $old_task['assigned_to'] : null;
+
             $stmt = $pdo->prepare("UPDATE tasks SET title=?, description=?, priority=?, due_date=?, assigned_to=? WHERE id=? AND project_id=?");
             $stmt->execute([$title, $description, $priority, $due_date, $assigned_to, $task_id, $project_id]);
             $success = "تم تحديث المهمة بنجاح.";
@@ -89,6 +94,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($uid != $actor_id) {
                     $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$uid, $msg]);
                 }
+            }
+
+            // If assignee changed, notify the previous assignee
+            if ($old_assigned_to && $old_assigned_to != $assigned_to && $old_assigned_to != $actor_id) {
+                $unassign_msg = "[{$action_time}] {$actor_name} ألغى إسناد المهمة '{$title}' لك في مشروع '{$project_title}'";
+                $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$old_assigned_to, $unassign_msg]);
             }
         } catch (PDOException $e) {
             error_log("Edit task error: " . $e->getMessage());
@@ -483,57 +494,43 @@ if (isset($_GET['edit_task_id'])) {
         statuses['Completed'].querySelector('.kanban-count').textContent = tasks.filter(t => t.status === 'Completed').length;
         lastTasksJson = JSON.stringify(tasks);
     }
+    let pollTimer = null;
     function pollTasks() {
         const projectId = new URLSearchParams(window.location.search).get('project_id');
+        if (!projectId) return;
+
         fetch(`../get-tasks.php?project_id=${projectId}`)
-            .then(res => res.json())
+            .then(res => {
+                if (res.status === 401) {
+                    if (pollTimer) clearInterval(pollTimer);
+                    window.location.href = '../login.php';
+                    return null;
+                }
+                if (res.status === 404) {
+                    if (pollTimer) clearInterval(pollTimer);
+                    window.location.href = '../dashboard.php';
+                    return null;
+                }
+                if (!res.ok) {
+                    return null;
+                }
+                return res.json();
+            })
             .then(data => {
-                if (data.success) {
+                if (!data) return;
+                if (data.success && data.tasks) {
                     const newTasksJson = JSON.stringify(data.tasks);
                     if (newTasksJson !== lastTasksJson) {
                         renderKanban(data.tasks);
+                        lastTasksJson = newTasksJson;
                     }
-                } else {
-                    console.error('Failed to fetch tasks:', data.message);
-                    // Show user notification for error
-                    const notif = document.createElement('div');
-                    notif.textContent = 'فشل في تحديث المهام، تحقق من الاتصال.';
-                    notif.style.position = 'fixed';
-                    notif.style.top = '32px';
-                    notif.style.left = '50%';
-                    notif.style.transform = 'translateX(-50%)';
-                    notif.style.background = '#e74c3c';
-                    notif.style.color = '#fff';
-                    notif.style.padding = '12px 32px';
-                    notif.style.borderRadius = '8px';
-                    notif.style.fontSize = '1.1rem';
-                    notif.style.boxShadow = '0 2px 12px rgba(231,76,60,0.13)';
-                    notif.style.zIndex = 9999;
-                    document.body.appendChild(notif);
-                    setTimeout(() => notif.remove(), 3000);
                 }
             })
             .catch(error => {
                 console.error('Error polling tasks:', error);
-                // Show user notification for network error
-                const notif = document.createElement('div');
-                notif.textContent = 'خطأ في الاتصال، فشل في تحديث المهام.';
-                notif.style.position = 'fixed';
-                notif.style.top = '32px';
-                notif.style.left = '50%';
-                notif.style.transform = 'translateX(-50%)';
-                notif.style.background = '#e74c3c';
-                notif.style.color = '#fff';
-                notif.style.padding = '12px 32px';
-                notif.style.borderRadius = '8px';
-                notif.style.fontSize = '1.1rem';
-                notif.style.boxShadow = '0 2px 12px rgba(231,76,60,0.13)';
-                notif.style.zIndex = 9999;
-                document.body.appendChild(notif);
-                setTimeout(() => notif.remove(), 3000);
             });
     }
-    setInterval(pollTasks, 5000); // Poll every 5 seconds
+    pollTimer = setInterval(pollTasks, 5000); // Poll every 5 seconds
     pollTasks(); // Initial fetch
     </script>
     <?php include '../includes/nav.php'; render_nav($base); ?>

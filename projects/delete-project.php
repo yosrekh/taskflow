@@ -26,7 +26,7 @@ try {
     $project_stmt->execute([$project_id]);
     $project = $project_stmt->fetch();
 
-    if (!$project) {
+    if (!$project || !can_view_project($pdo, $user_id, $project_id)) {
         http_response_code(404);
         die("المشروع غير موجود.");
     }

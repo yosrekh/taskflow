@@ -15,7 +15,7 @@ $stmt = $pdo->prepare("SELECT * FROM projects WHERE id = ?");
 $stmt->execute([$project_id]);
 $project = $stmt->fetch();
 
-if (!$project) {
+if (!$project || !can_view_project($pdo, $user_id, $project_id)) {
     http_response_code(404);
     die("المشروع غير موجود.");
 }
