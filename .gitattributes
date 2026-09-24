@@ -1,7 +1,10 @@
 # Release archive export exclusions
 .gitattributes export-ignore
 .gitignore export-ignore
+.env* export-ignore
 TODO.md export-ignore
 File_Structure.txt export-ignore
 scratch/ export-ignore
-
+tests/ export-ignore
+backups/ export-ignore
+*.log export-ignore
