@@ -241,11 +241,14 @@ function render_nav($base = '') {
             }
             listEl.innerHTML = items.map(n => {
                 const unreadClass = (n.is_read == 0) ? 'is-unread' : '';
+                const hasLink = (n.link && typeof n.link === 'string' && n.link.startsWith('tasks/'));
+                const tag = hasLink ? 'a' : 'div';
+                const hrefAttr = hasLink ? ` href="${escapeHtml('<?= $base ?>' + n.link)}"` : '';
                 return `
-                    <div class="notif-item ${unreadClass}">
+                    <${tag}${hrefAttr} class="notif-item ${unreadClass}">
                         <div class="notif-item-msg">${escapeHtml(n.message)}</div>
                         <div class="notif-item-time">${escapeHtml(n.created_at)}</div>
-                    </div>
+                    </${tag}>
                 `;
             }).join('');
         }

@@ -140,7 +140,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Get all tasks in this project
 if ($is_project_owner) {
     $stmt = $pdo->prepare("
-        SELECT t.*, u.name AS assignee_name 
+        SELECT t.*, u.name AS assignee_name,
+               (SELECT COUNT(*) FROM task_comments tc WHERE tc.task_id = t.id) AS comments_count
         FROM tasks t
         LEFT JOIN users u ON t.assigned_to = u.id
         WHERE t.project_id = ?
@@ -150,7 +151,8 @@ if ($is_project_owner) {
     $tasks = $stmt->fetchAll();
 } else {
     $stmt = $pdo->prepare("
-        SELECT t.*, u.name AS assignee_name 
+        SELECT t.*, u.name AS assignee_name,
+               (SELECT COUNT(*) FROM task_comments tc WHERE tc.task_id = t.id) AS comments_count
         FROM tasks t
         LEFT JOIN users u ON t.assigned_to = u.id
         WHERE t.project_id = ? AND t.assigned_to = ?
@@ -180,6 +182,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
     $isOverdue = (!empty($task['due_date']) && $task['status'] !== 'Completed' && strtotime($task['due_date']) < strtotime(date('Y-m-d')));
     $assigneeName = $task['assignee_name'] ?? '';
     $assigneeInitials = get_user_initials($assigneeName);
+    $commentsCount = (int)($task['comments_count'] ?? 0);
     
     $priorityClass = 'badge-medium';
     $priorityLabel = 'متوسطة';
@@ -191,7 +194,19 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
         $priorityLabel = 'منخفضة';
     }
     ?>
-    <div class="kanban-card" data-task-id="<?= (int)$task['id'] ?>">
+    <div class="kanban-card"
+         data-task-id="<?= (int)$task['id'] ?>"
+         data-title="<?= htmlspecialchars($task['title'], ENT_QUOTES) ?>"
+         data-desc="<?= htmlspecialchars($task['description'] ?? '', ENT_QUOTES) ?>"
+         data-priority="<?= htmlspecialchars($task['priority'], ENT_QUOTES) ?>"
+         data-status="<?= htmlspecialchars($task['status'], ENT_QUOTES) ?>"
+         data-due-date="<?= htmlspecialchars($task['due_date'] ?? '', ENT_QUOTES) ?>"
+         data-assignee="<?= htmlspecialchars($assigneeName, ENT_QUOTES) ?>"
+         data-comments-count="<?= $commentsCount ?>"
+         tabindex="0"
+         role="button"
+         aria-haspopup="dialog"
+         aria-label="عرض تفاصيل المهمة: <?= htmlspecialchars($task['title']) ?>">
         <div class="kanban-card-title"><?= htmlspecialchars($task['title']) ?></div>
         <?php if (!empty($task['description'])): ?>
             <div class="kanban-card-desc"><?= htmlspecialchars($task['description']) ?></div>
@@ -205,6 +220,13 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                     <?= htmlspecialchars($task['due_date']) ?>
                     <?= $isOverdue ? '(متأخرة)' : '' ?>
+                </span>
+            <?php endif; ?>
+
+            <?php if ($commentsCount > 0): ?>
+                <span class="kanban-comment-badge" title="<?= $commentsCount ?> تعليق">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    <span class="comment-count-val"><?= $commentsCount ?></span>
                 </span>
             <?php endif; ?>
         </div>
@@ -496,6 +518,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
             const priorityLabel = task.priority === 'High' ? 'عالية' : (task.priority === 'Low' ? 'منخفضة' : 'متوسطة');
             const assigneeName = task.assignee_name || '';
             const assigneeInitials = getInitials(assigneeName);
+            const commentsCount = parseInt(task.comments_count || 0, 10);
 
             let dueDateHtml = '';
             if (task.due_date) {
@@ -505,6 +528,16 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                     <span class="kanban-due-date ${overdueClass}">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                         ${escapeHtml(task.due_date)} ${overdueNote}
+                    </span>
+                `;
+            }
+
+            let commentsBadgeHtml = '';
+            if (commentsCount > 0) {
+                commentsBadgeHtml = `
+                    <span class="kanban-comment-badge" title="${commentsCount} تعليق">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                        <span class="comment-count-val">${commentsCount}</span>
                     </span>
                 `;
             }
@@ -534,12 +567,25 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
             ` : `<span class="assignee-unassigned-label">غير مسندة</span>`;
 
             return `
-                <div class="kanban-card" data-task-id="${escapeHtml(task.id)}">
+                <div class="kanban-card"
+                     data-task-id="${escapeHtml(task.id)}"
+                     data-title="${escapeHtml(task.title)}"
+                     data-desc="${escapeHtml(task.description || '')}"
+                     data-priority="${escapeHtml(task.priority)}"
+                     data-status="${escapeHtml(task.status)}"
+                     data-due-date="${escapeHtml(task.due_date || '')}"
+                     data-assignee="${escapeHtml(assigneeName)}"
+                     data-comments-count="${commentsCount}"
+                     tabindex="0"
+                     role="button"
+                     aria-haspopup="dialog"
+                     aria-label="عرض تفاصيل المهمة: ${escapeHtml(task.title)}">
                     <div class="kanban-card-title">${escapeHtml(task.title)}</div>
                     ${descHtml}
                     <div class="kanban-card-meta">
                         <span class="badge ${priorityClass}">${priorityLabel}</span>
                         ${dueDateHtml}
+                        ${commentsBadgeHtml}
                     </div>
                     <div class="form-group kanban-card-status-wrap">
                         <select class="form-select task-status-select" data-task-id="${escapeHtml(task.id)}" aria-label="تغيير حالة المهمة">
@@ -665,6 +711,787 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
             openModal('deleteTaskModal');
         }
     });
+    </script>
+
+    <!-- Task Details & Comments Side Drawer -->
+    <div class="task-drawer-backdrop" id="taskDrawerBackdrop" aria-hidden="true"></div>
+    <aside class="task-drawer" id="taskDrawer" role="dialog" aria-modal="true" aria-labelledby="drawerTaskTitle" hidden>
+        <div class="task-drawer-header">
+            <div class="task-drawer-header-info">
+                <span class="badge" id="drawerTaskPriority">متوسطة</span>
+                <span class="badge" id="drawerTaskStatus">للتنفيذ</span>
+            </div>
+            <button type="button" class="btn-icon drawer-close-btn" id="drawerCloseBtn" aria-label="إغلاق اللوحة" title="إغلاق">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+
+        <div class="task-drawer-body">
+            <h2 class="task-drawer-title" id="drawerTaskTitle"></h2>
+            
+            <div class="task-drawer-section">
+                <h3 class="task-drawer-section-title">الوصف</h3>
+                <div class="task-drawer-desc" id="drawerTaskDesc"></div>
+            </div>
+
+            <div class="task-drawer-meta-grid">
+                <div class="task-drawer-meta-item">
+                    <span class="meta-label">تاريخ الاستحقاق</span>
+                    <span class="meta-value" id="drawerTaskDueDate">--</span>
+                </div>
+                <div class="task-drawer-meta-item">
+                    <span class="meta-label">المسؤول عن المهمة</span>
+                    <span class="meta-value" id="drawerTaskAssignee">--</span>
+                </div>
+            </div>
+
+            <hr class="task-drawer-divider">
+
+            <!-- Comments Section -->
+            <section class="task-drawer-comments-section" aria-labelledby="drawerCommentsHeading">
+                <div class="comments-section-header">
+                    <h3 class="task-drawer-section-title" id="drawerCommentsHeading">
+                        <span>التعليقات</span>
+                        <span class="comments-count-pill" id="drawerCommentsCount">0</span>
+                    </h3>
+                </div>
+
+                <div class="comments-thread" id="drawerCommentsThread" role="feed" aria-busy="false">
+                    <!-- Comments loaded via AJAX -->
+                </div>
+
+                <!-- Add Comment Form -->
+                <form id="drawerAddCommentForm" class="comment-add-form" autocomplete="off">
+                    <div class="form-group">
+                        <label for="newCommentBody" class="visually-hidden">إضافة تعليق</label>
+                        <textarea id="newCommentBody" class="form-textarea comment-input" rows="3" maxlength="2000" placeholder="أضف تعليقاً... (Ctrl+Enter للإرسال)"></textarea>
+                        <div class="comment-form-footer">
+                            <span class="char-counter" id="commentCharCount">0/2000</span>
+                            <button type="submit" class="btn btn-primary btn-sm" id="submitCommentBtn" disabled>
+                                إرسال
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </section>
+        </div>
+    </aside>
+
+    <!-- Delete Comment Confirmation Modal -->
+    <div class="modal" id="deleteCommentModal" role="dialog" aria-modal="true" aria-labelledby="deleteCommentTitle">
+        <div class="modal-backdrop" data-dismiss="modal"></div>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="deleteCommentTitle">حذف التعليق</h2>
+                    <button type="button" class="modal-close" data-dismiss="modal" aria-label="إغلاق">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p class="modal-alert-text">هل أنت متأكد من رغبتك في حذف هذا التعليق؟ لا يمكن التراجع عن هذا الإجراء.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">إلغاء</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteCommentBtn">تأكيد الحذف</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Drawer & Comments Controller -->
+    <script>
+    (function () {
+        const csrfToken = '<?= csrf_token() ?>';
+        const projectId = '<?= (int)$project_id ?>';
+        const drawer = document.getElementById('taskDrawer');
+        const drawerBackdrop = document.getElementById('taskDrawerBackdrop');
+        const drawerCloseBtn = document.getElementById('drawerCloseBtn');
+        const commentsThread = document.getElementById('drawerCommentsThread');
+        const drawerCommentsCount = document.getElementById('drawerCommentsCount');
+        const addCommentForm = document.getElementById('drawerAddCommentForm');
+        const newCommentBody = document.getElementById('newCommentBody');
+        const commentCharCount = document.getElementById('commentCharCount');
+        const submitCommentBtn = document.getElementById('submitCommentBtn');
+        const confirmDeleteCommentBtn = document.getElementById('confirmDeleteCommentBtn');
+
+        let currentDrawerTaskId = null;
+        let lastActiveElement = null;
+        let drawerPollTimer = null;
+        let pendingDeleteCommentId = null;
+
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function formatArabicRelativeTime(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split(/[- :]/);
+            let date;
+            if (parts.length >= 6) {
+                date = new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5]);
+            } else {
+                date = new Date(dateStr);
+            }
+            const now = new Date();
+            const diffSec = Math.max(0, Math.floor((now - date) / 1000));
+
+            if (diffSec < 60) return 'دلوقتي';
+            const diffMin = Math.floor(diffSec / 60);
+            if (diffMin < 60) {
+                if (diffMin === 1) return 'من دقيقة';
+                if (diffMin === 2) return 'من دقيقتين';
+                if (diffMin >= 3 && diffMin <= 10) return `من ${diffMin} دقايق`;
+                return `من ${diffMin} دقيقة`;
+            }
+            const diffHours = Math.floor(diffMin / 60);
+            if (diffHours < 24) {
+                if (diffHours === 1) return 'من ساعة';
+                if (diffHours === 2) return 'من ساعتين';
+                if (diffHours >= 3 && diffHours <= 10) return `من ${diffHours} ساعات`;
+                return `من ${diffHours} ساعة`;
+            }
+            const diffDays = Math.floor(diffHours / 24);
+            if (diffDays === 1) return 'امبارح';
+            if (diffDays === 2) return 'من يومين';
+            if (diffDays >= 3 && diffDays <= 10) return `من ${diffDays} أيام`;
+            return dateStr.substring(0, 10);
+        }
+
+        function updateCardCommentCountBadge(taskId, count) {
+            const card = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
+            if (!card) return;
+            card.dataset.commentsCount = count;
+            const meta = card.querySelector('.kanban-card-meta');
+            if (!meta) return;
+            let badge = meta.querySelector('.kanban-comment-badge');
+            if (count > 0) {
+                if (badge) {
+                    const countSpan = badge.querySelector('.comment-count-val');
+                    if (countSpan) countSpan.textContent = count;
+                    badge.title = `${count} تعليق`;
+                } else {
+                    const badgeHtml = `
+                        <span class="kanban-comment-badge" title="${count} تعليق">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                            <span class="comment-count-val">${count}</span>
+                        </span>
+                    `;
+                    meta.insertAdjacentHTML('beforeend', badgeHtml);
+                }
+            } else if (badge) {
+                badge.remove();
+            }
+        }
+
+        function openTaskDrawer(taskId, triggerEl) {
+            currentDrawerTaskId = taskId;
+            lastActiveElement = triggerEl || document.activeElement;
+
+            const card = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
+            const titleEl = document.getElementById('drawerTaskTitle');
+            const descEl = document.getElementById('drawerTaskDesc');
+            const priorityEl = document.getElementById('drawerTaskPriority');
+            const statusEl = document.getElementById('drawerTaskStatus');
+            const dueDateEl = document.getElementById('drawerTaskDueDate');
+            const assigneeEl = document.getElementById('drawerTaskAssignee');
+
+            if (card) {
+                titleEl.textContent = card.dataset.title || '';
+                const desc = (card.dataset.desc || '').trim();
+                if (desc) {
+                    descEl.textContent = desc;
+                    descEl.classList.remove('is-empty');
+                } else {
+                    descEl.textContent = 'لا يوجد وصف للمهمة.';
+                    descEl.classList.add('is-empty');
+                }
+
+                // Priority
+                const priority = card.dataset.priority || 'Medium';
+                priorityEl.className = 'badge';
+                if (priority === 'High') {
+                    priorityEl.classList.add('badge-high');
+                    priorityEl.textContent = 'عالية';
+                } else if (priority === 'Low') {
+                    priorityEl.classList.add('badge-low');
+                    priorityEl.textContent = 'منخفضة';
+                } else {
+                    priorityEl.classList.add('badge-medium');
+                    priorityEl.textContent = 'متوسطة';
+                }
+
+                // Status
+                const status = card.dataset.status || 'Pending';
+                statusEl.className = 'badge';
+                if (status === 'Completed') {
+                    statusEl.classList.add('badge-done');
+                    statusEl.textContent = 'مكتملة';
+                } else if (status === 'In Progress') {
+                    statusEl.classList.add('badge-progress');
+                    statusEl.textContent = 'قيد التنفيذ';
+                } else {
+                    statusEl.classList.add('badge-todo');
+                    statusEl.textContent = 'للتنفيذ';
+                }
+
+                dueDateEl.textContent = card.dataset.dueDate || 'غير محدد';
+                assigneeEl.textContent = card.dataset.assignee || 'غير مسندة';
+            } else {
+                titleEl.textContent = `مهمة #${taskId}`;
+                descEl.textContent = 'جارٍ تحميل البيانات...';
+                descEl.classList.remove('is-empty');
+            }
+
+            // Open drawer
+            drawer.hidden = false;
+            drawerBackdrop.classList.add('is-open');
+            drawer.classList.add('is-open');
+            document.body.classList.add('drawer-open');
+
+            // Reset input
+            newCommentBody.value = '';
+            commentCharCount.textContent = '0/2000';
+            commentCharCount.classList.remove('is-over-limit');
+            submitCommentBtn.disabled = true;
+
+            // Deep link update in URL
+            const url = new URL(window.location);
+            url.searchParams.set('task', taskId);
+            window.history.replaceState({}, '', url);
+
+            // Fetch comments
+            fetchComments(taskId);
+            startDrawerPolling();
+
+            // Set focus
+            drawerCloseBtn.focus();
+        }
+
+        function closeTaskDrawer() {
+            if (!drawer.classList.contains('is-open')) return;
+
+            drawer.classList.remove('is-open');
+            drawerBackdrop.classList.remove('is-open');
+            drawer.hidden = true;
+            document.body.classList.remove('drawer-open');
+
+            stopDrawerPolling();
+            currentDrawerTaskId = null;
+
+            // Clean task from URL
+            const url = new URL(window.location);
+            url.searchParams.delete('task');
+            window.history.replaceState({}, '', url);
+
+            // Return focus to triggering card or element
+            if (lastActiveElement && typeof lastActiveElement.focus === 'function') {
+                lastActiveElement.focus();
+            }
+        }
+
+        function fetchComments(taskId, isBackground = false) {
+            if (!taskId) return;
+            if (!isBackground) {
+                commentsThread.setAttribute('aria-busy', 'true');
+            }
+
+            fetch(`../tasks/comments.php?task_id=${encodeURIComponent(taskId)}`)
+                .then(res => {
+                    if (res.status === 401) {
+                        window.location.href = '../login.php';
+                        return null;
+                    }
+                    if (res.status === 404) {
+                        if (!isBackground) {
+                            if (typeof showToast === 'function') {
+                                showToast('المهمة غير موجودة أو غير مصرح لك بعرضها.', 'error');
+                            }
+                            closeTaskDrawer();
+                        }
+                        return null;
+                    }
+                    if (!res.ok) return null;
+                    return res.json();
+                })
+                .then(data => {
+                    commentsThread.setAttribute('aria-busy', 'false');
+                    if (data && data.success && Array.isArray(data.comments)) {
+                        renderCommentsList(data.comments);
+                        drawerCommentsCount.textContent = data.comments.length;
+                        updateCardCommentCountBadge(taskId, data.comments.length);
+                    }
+                })
+                .catch(() => {
+                    commentsThread.setAttribute('aria-busy', 'false');
+                });
+        }
+
+        function renderCommentsList(comments) {
+            commentsThread.innerHTML = '';
+            if (comments.length === 0) {
+                commentsThread.innerHTML = '<div class="comments-empty-placeholder">لا توجد تعليقات بعد. كن أول من يعلّق!</div>';
+                return;
+            }
+
+            comments.forEach(comment => {
+                const card = document.createElement('div');
+                card.className = 'comment-card';
+                card.dataset.commentId = comment.id;
+
+                const header = document.createElement('div');
+                header.className = 'comment-card-header';
+
+                const authorInfo = document.createElement('div');
+                authorInfo.className = 'comment-card-author-info';
+
+                const avatar = document.createElement('span');
+                avatar.className = 'avatar avatar-sm';
+                avatar.textContent = comment.initials || 'TF';
+                authorInfo.appendChild(avatar);
+
+                const nameWrap = document.createElement('div');
+                const authorName = document.createElement('span');
+                authorName.className = 'comment-card-author-name';
+                authorName.textContent = comment.author_name;
+                nameWrap.appendChild(authorName);
+
+                if (comment.edited) {
+                    const editedTag = document.createElement('span');
+                    editedTag.className = 'comment-edited-tag';
+                    editedTag.textContent = ' (معدّل)';
+                    nameWrap.appendChild(editedTag);
+                }
+
+                const timeEl = document.createElement('div');
+                timeEl.className = 'comment-card-time';
+                timeEl.title = comment.created_at;
+                timeEl.textContent = formatArabicRelativeTime(comment.created_at);
+                nameWrap.appendChild(timeEl);
+
+                authorInfo.appendChild(nameWrap);
+                header.appendChild(authorInfo);
+
+                // Actions (Edit / Delete)
+                if (comment.can_edit || comment.can_delete) {
+                    const actions = document.createElement('div');
+                    actions.className = 'comment-card-actions';
+
+                    if (comment.can_edit) {
+                        const editBtn = document.createElement('button');
+                        editBtn.type = 'button';
+                        editBtn.className = 'btn-icon btn-sm edit-comment-btn';
+                        editBtn.title = 'تعديل';
+                        editBtn.setAttribute('aria-label', 'تعديل التعليق');
+                        editBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
+                        editBtn.addEventListener('click', () => startEditComment(card, comment));
+                        actions.appendChild(editBtn);
+                    }
+
+                    if (comment.can_delete) {
+                        const delBtn = document.createElement('button');
+                        delBtn.type = 'button';
+                        delBtn.className = 'btn-icon btn-icon-danger btn-sm delete-comment-btn';
+                        delBtn.title = 'حذف';
+                        delBtn.setAttribute('aria-label', 'حذف التعليق');
+                        delBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
+                        delBtn.addEventListener('click', () => {
+                            pendingDeleteCommentId = comment.id;
+                            if (typeof openModal === 'function') {
+                                openModal('deleteCommentModal');
+                            }
+                        });
+                        actions.appendChild(delBtn);
+                    }
+
+                    header.appendChild(actions);
+                }
+
+                card.appendChild(header);
+
+                // Body: MUST use textContent only (XSS protection)
+                const bodyEl = document.createElement('div');
+                bodyEl.className = 'comment-body-text';
+                bodyEl.textContent = comment.body;
+                card.appendChild(bodyEl);
+
+                commentsThread.appendChild(card);
+            });
+        }
+
+        function startEditComment(card, comment) {
+            const bodyEl = card.querySelector('.comment-body-text');
+            if (!bodyEl || card.querySelector('.comment-inline-edit')) return;
+
+            bodyEl.hidden = true;
+
+            const editBox = document.createElement('div');
+            editBox.className = 'comment-inline-edit';
+
+            const textarea = document.createElement('textarea');
+            textarea.className = 'form-textarea';
+            textarea.rows = 3;
+            textarea.maxLength = 2000;
+            textarea.value = comment.body;
+
+            const footer = document.createElement('div');
+            footer.className = 'comment-inline-edit-actions';
+
+            const counter = document.createElement('span');
+            counter.className = 'char-counter';
+            counter.textContent = `${textarea.value.length}/2000`;
+            footer.appendChild(counter);
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.className = 'btn btn-secondary btn-sm';
+            cancelBtn.textContent = 'إلغاء';
+            cancelBtn.addEventListener('click', () => {
+                editBox.remove();
+                bodyEl.hidden = false;
+            });
+            footer.appendChild(cancelBtn);
+
+            const saveBtn = document.createElement('button');
+            saveBtn.type = 'button';
+            saveBtn.className = 'btn btn-primary btn-sm';
+            saveBtn.textContent = 'حفظ';
+            footer.appendChild(saveBtn);
+
+            textarea.addEventListener('input', () => {
+                const len = textarea.value.length;
+                counter.textContent = `${len}/2000`;
+                if (len > 2000) {
+                    counter.classList.add('is-over-limit');
+                    saveBtn.disabled = true;
+                } else {
+                    counter.classList.remove('is-over-limit');
+                    saveBtn.disabled = (len < 1);
+                }
+            });
+
+            textarea.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    if (!saveBtn.disabled) saveBtn.click();
+                }
+            });
+
+            saveBtn.addEventListener('click', () => {
+                const newText = textarea.value.trim();
+                if (!newText || newText.length > 2000) return;
+
+                saveBtn.disabled = true;
+                cancelBtn.disabled = true;
+
+                const formData = new FormData();
+                formData.append('action', 'edit');
+                formData.append('comment_id', comment.id);
+                formData.append('body', newText);
+                formData.append('csrf_token', csrfToken);
+
+                fetch('../tasks/comments.php', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-Token': csrfToken },
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.success) {
+                        comment.body = newText;
+                        comment.edited = true;
+                        bodyEl.textContent = newText;
+                        bodyEl.hidden = false;
+                        editBox.remove();
+
+                        // Add edited tag if not present
+                        const nameWrap = card.querySelector('.comment-card-author-info > div');
+                        if (nameWrap && !nameWrap.querySelector('.comment-edited-tag')) {
+                            const editedTag = document.createElement('span');
+                            editedTag.className = 'comment-edited-tag';
+                            editedTag.textContent = ' (معدّل)';
+                            nameWrap.insertBefore(editedTag, nameWrap.querySelector('.comment-card-time'));
+                        }
+
+                        if (typeof showToast === 'function') {
+                            showToast('تم تحديث التعليق بنجاح.', 'success');
+                        }
+                    } else {
+                        saveBtn.disabled = false;
+                        cancelBtn.disabled = false;
+                        if (typeof showToast === 'function') {
+                            showToast(data.message || 'فشل في تحديث التعليق.', 'error');
+                        }
+                    }
+                })
+                .catch(() => {
+                    saveBtn.disabled = false;
+                    cancelBtn.disabled = false;
+                    if (typeof showToast === 'function') {
+                        showToast('فشل في الاتصال بالخادم.', 'error');
+                    }
+                });
+            });
+
+            editBox.appendChild(textarea);
+            editBox.appendChild(footer);
+            card.appendChild(editBox);
+            textarea.focus();
+        }
+
+        // Delete comment confirmation handler
+        if (confirmDeleteCommentBtn) {
+            confirmDeleteCommentBtn.addEventListener('click', function () {
+                if (!pendingDeleteCommentId) return;
+
+                confirmDeleteCommentBtn.disabled = true;
+                const formData = new FormData();
+                formData.append('action', 'delete');
+                formData.append('comment_id', pendingDeleteCommentId);
+                formData.append('csrf_token', csrfToken);
+
+                fetch('../tasks/comments.php', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-Token': csrfToken },
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    confirmDeleteCommentBtn.disabled = false;
+                    if (data && data.success) {
+                        if (typeof closeModal === 'function') {
+                            closeModal('deleteCommentModal');
+                        }
+                        const card = commentsThread.querySelector(`.comment-card[data-comment-id="${pendingDeleteCommentId}"]`);
+                        if (card) card.remove();
+
+                        const count = Math.max(0, parseInt(drawerCommentsCount.textContent || 0, 10) - 1);
+                        drawerCommentsCount.textContent = count;
+                        if (currentDrawerTaskId) {
+                            updateCardCommentCountBadge(currentDrawerTaskId, count);
+                        }
+
+                        if (commentsThread.children.length === 0) {
+                            commentsThread.innerHTML = '<div class="comments-empty-placeholder">لا توجد تعليقات بعد. كن أول من يعلّق!</div>';
+                        }
+
+                        if (typeof showToast === 'function') {
+                            showToast('تم حذف التعليق بنجاح.', 'success');
+                        }
+                    } else {
+                        if (typeof showToast === 'function') {
+                            showToast(data.message || 'فشل في حذف التعليق.', 'error');
+                        }
+                    }
+                    pendingDeleteCommentId = null;
+                })
+                .catch(() => {
+                    confirmDeleteCommentBtn.disabled = false;
+                    pendingDeleteCommentId = null;
+                    if (typeof showToast === 'function') {
+                        showToast('فشل في الاتصال بالخادم.', 'error');
+                    }
+                });
+            });
+        }
+
+        // Add Comment form submission
+        function handleAddComment() {
+            const body = newCommentBody.value.trim();
+            if (!body || body.length > 2000 || !currentDrawerTaskId) return;
+
+            submitCommentBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('action', 'add');
+            formData.append('task_id', currentDrawerTaskId);
+            formData.append('body', body);
+            formData.append('csrf_token', csrfToken);
+
+            fetch('../tasks/comments.php', {
+                method: 'POST',
+                headers: { 'X-CSRF-Token': csrfToken },
+                body: formData
+            })
+            .then(res => {
+                if (res.status === 429) {
+                    if (typeof showToast === 'function') {
+                        showToast('تجاوزت الحد الأقصى للتعليقات (10 تعليقات في الدقيقة). يرجى الانتظار قليلاً.', 'error');
+                    }
+                    submitCommentBtn.disabled = false;
+                    return null;
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (!data) return;
+                submitCommentBtn.disabled = false;
+                if (data.success) {
+                    newCommentBody.value = '';
+                    commentCharCount.textContent = '0/2000';
+                    submitCommentBtn.disabled = true;
+
+                    if (typeof showToast === 'function') {
+                        showToast('تمت إضافة التعليق بنجاح!', 'success');
+                    }
+
+                    fetchComments(currentDrawerTaskId);
+                    // Scroll thread to bottom
+                    setTimeout(() => {
+                        const drawerBody = document.querySelector('.task-drawer-body');
+                        if (drawerBody) drawerBody.scrollTop = drawerBody.scrollHeight;
+                    }, 100);
+                } else {
+                    if (typeof showToast === 'function') {
+                        showToast(data.message || 'فشل في إضافة التعليق.', 'error');
+                    }
+                }
+            })
+            .catch(() => {
+                submitCommentBtn.disabled = false;
+                if (typeof showToast === 'function') {
+                    showToast('فشل في الاتصال بالخادم.', 'error');
+                }
+            });
+        }
+
+        if (addCommentForm) {
+            addCommentForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                handleAddComment();
+            });
+        }
+
+        if (newCommentBody) {
+            newCommentBody.addEventListener('input', function () {
+                const len = newCommentBody.value.length;
+                commentCharCount.textContent = `${len}/2000`;
+                if (len > 2000) {
+                    commentCharCount.classList.add('is-over-limit');
+                    submitCommentBtn.disabled = true;
+                } else {
+                    commentCharCount.classList.remove('is-over-limit');
+                    submitCommentBtn.disabled = (len < 1);
+                }
+            });
+
+            newCommentBody.addEventListener('keydown', function (e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    if (!submitCommentBtn.disabled) {
+                        handleAddComment();
+                    }
+                }
+            });
+        }
+
+        // 15s Polling for Drawer Comments
+        function startDrawerPolling() {
+            stopDrawerPolling();
+            drawerPollTimer = setInterval(() => {
+                if (!document.hidden && currentDrawerTaskId && drawer.classList.contains('is-open')) {
+                    fetchComments(currentDrawerTaskId, true);
+                }
+            }, 15000);
+        }
+
+        function stopDrawerPolling() {
+            if (drawerPollTimer) {
+                clearInterval(drawerPollTimer);
+                drawerPollTimer = null;
+            }
+        }
+
+        // Card Click Listener (delegated)
+        document.addEventListener('click', function (e) {
+            // Ignore if inside a modal
+            if (e.target.closest('#taskModal, #deleteTaskModal, #deleteCommentModal')) return;
+
+            const card = e.target.closest('.kanban-card');
+            if (!card) return;
+
+            // Ignore interactive elements inside card
+            if (e.target.closest('button, select, a, input, .btn-icon, .form-select')) {
+                return;
+            }
+
+            const taskId = card.dataset.taskId;
+            if (taskId) {
+                openTaskDrawer(taskId, card);
+            }
+        });
+
+        // Keyboard navigation on cards (Enter or Space)
+        document.addEventListener('keydown', function (e) {
+            if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('kanban-card')) {
+                e.preventDefault();
+                const taskId = e.target.dataset.taskId;
+                if (taskId) {
+                    openTaskDrawer(taskId, e.target);
+                }
+            }
+        });
+
+        // Close Drawer Listeners
+        if (drawerCloseBtn) {
+            drawerCloseBtn.addEventListener('click', closeTaskDrawer);
+        }
+        if (drawerBackdrop) {
+            drawerBackdrop.addEventListener('click', closeTaskDrawer);
+        }
+
+        // Drawer Keydown (Esc close + Focus Trap)
+        if (drawer) {
+            drawer.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeTaskDrawer();
+                    return;
+                }
+
+                if (e.key === 'Tab') {
+                    const focusables = drawer.querySelectorAll(
+                        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                    );
+                    if (focusables.length === 0) return;
+                    const first = focusables[0];
+                    const last = focusables[focusables.length - 1];
+
+                    if (e.shiftKey && document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    } else if (!e.shiftKey && document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
+                }
+            });
+        }
+
+        // Visibility change
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden) {
+                stopDrawerPolling();
+            } else if (currentDrawerTaskId && drawer.classList.contains('is-open')) {
+                fetchComments(currentDrawerTaskId, true);
+                startDrawerPolling();
+            }
+        });
+
+        // Deep linking: auto-open drawer on page load if ?task=Y is present
+        window.addEventListener('DOMContentLoaded', function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const deepTaskId = urlParams.get('task');
+            if (deepTaskId) {
+                const card = document.querySelector(`.kanban-card[data-task-id="${deepTaskId}"]`);
+                openTaskDrawer(deepTaskId, card);
+            }
+        });
+    })();
     </script>
 </body>
 </html>
