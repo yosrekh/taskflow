@@ -208,7 +208,7 @@ function render_error(int $code, ?string $message = null): void {
 
         <div class="error-actions">
             <button type="button" class="btn btn-secondary" onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.href = '<?= htmlspecialchars($homeUrl, ENT_QUOTES) ?>'; }">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 رجوع
             </button>
             <a href="<?= htmlspecialchars($homeUrl) ?>" class="btn btn-primary">

@@ -1610,14 +1610,20 @@ main {
     text-align: center;
 }
 
+.error-card .auth-brand {
+    display: inline-flex;
+    margin-block-end: var(--space-2);
+}
+
 .error-code-badge {
-    display: inline-block;
-    font-size: var(--font-size-3xl);
+    display: block;
+    font-size: 3.75rem;
+    line-height: 1.1;
     font-weight: var(--font-weight-extrabold);
     color: var(--teal-700);
     letter-spacing: 2px;
-    margin-block-start: var(--space-2);
-    margin-block-end: var(--space-2);
+    margin-block-start: var(--space-3);
+    margin-block-end: var(--space-3);
 }
 
 [data-theme="dark"] .error-code-badge {
