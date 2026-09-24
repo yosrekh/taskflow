@@ -51,10 +51,10 @@ TaskFlow is a modern, responsive, and secure project and task management platfor
 
 ## Technical Stack & Requirements
 
-- **PHP**: `8.0` or higher (`8.1` / `8.2` recommended).
+- **PHP**: `8.0` or higher (`8.1`, `8.2`, or `8.3` recommended; fully compatible with PHP 8.3 and 8.4).
 - **Database**: MySQL `5.7+` or MariaDB `10.3+`.
-- **Required PHP Extensions**: `pdo_mysql`, `mbstring`, `openssl`, `json`.
-- **Optional PHP Extensions**: `gd` (recommended for favicon luminescence checks in branding).
+- **Required PHP Extensions**: `pdo_mysql`, `mbstring`, `fileinfo`, `dom`, `libxml`, `json`, `openssl`, `zlib`.
+- **Optional PHP Extensions**: `zip` (for backing up uploaded branding files in daily cron), `gd` (for favicon luminescence checks in branding).
 - **Web Server**: Apache or LiteSpeed with `mod_rewrite` and `mod_headers` enabled.
 
 ---

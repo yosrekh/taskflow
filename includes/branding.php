@@ -152,7 +152,7 @@ function sanitize_svg(string $rawSvg): ?string {
 
     // 2. Load into DOMDocument with LIBXML_NONET
     $dom = new DOMDocument();
-    if (function_exists('libxml_disable_entity_loader')) {
+    if (\PHP_VERSION_ID < 80000 && function_exists('libxml_disable_entity_loader')) {
         @libxml_disable_entity_loader(true);
     }
     libxml_use_internal_errors(true);

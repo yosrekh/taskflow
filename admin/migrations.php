@@ -37,6 +37,50 @@ foreach ($migrations as $m) {
         $pendingCount++;
     }
 }
+
+// System Environment & Extension Check
+$requiredExtensions = [
+    'pdo_mysql' => 'الاتصال بقاعدة بيانات MySQL (PDO)',
+    'mbstring'  => 'معالجة النصوص العربية وUTF-8',
+    'fileinfo'  => 'التحقق الآمن من أنواع الملفات المرفوعة',
+    'dom'       => 'فحص وتطهير ملفات SVG البرمجية',
+    'libxml'    => 'محرك معالجة مستندات XML',
+    'json'      => 'تبادل بيانات JSON للواجهات التفاعلية',
+    'openssl'   => 'التشفير وتوليد الرموز الأمنية العشوائية',
+    'zlib'      => 'ضغط النسخ الاحتياطية بصيغة gzip',
+    'zip'       => 'أرشفة المرفقات والهوية البصرية (ZipArchive)',
+    'gd'        => 'تحليل ألوان وتبويب الأيقونات والشعارات',
+];
+
+$projectRoot = dirname(__DIR__);
+
+// Backup Dir Check
+$backupDir = env('BACKUP_DIR');
+if (empty($backupDir)) {
+    $folderName = basename($projectRoot);
+    $backupDir = dirname($projectRoot) . '/taskflow-backups/' . $folderName;
+}
+$backupDirExists = is_dir($backupDir);
+if ($backupDirExists) {
+    $backupDirWritable = is_writable($backupDir);
+} else {
+    $checkDir = $backupDir;
+    while (!file_exists($checkDir) && dirname($checkDir) !== $checkDir) {
+        $checkDir = dirname($checkDir);
+    }
+    $backupDirWritable = is_dir($checkDir) && is_writable($checkDir);
+}
+
+// Log File Check
+$logFile = env('LOG_FILE');
+if (empty($logFile)) {
+    $logFile = $projectRoot . '/bin/cron-daily.log';
+}
+if (file_exists($logFile)) {
+    $logFileWritable = is_writable($logFile);
+} else {
+    $logFileWritable = is_dir(dirname($logFile)) && is_writable(dirname($logFile));
+}
 ?>
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -165,6 +209,89 @@ foreach ($migrations as $m) {
                     </form>
                 </div>
             <?php endif; ?>
+        </div>
+
+        <!-- System Status Section (حالة النظام) -->
+        <div class="settings-card" style="margin-top: var(--space-6);">
+            <div class="card-header">
+                <div>
+                    <h2 class="card-title">حالة النظام والبيئة التشغيلية</h2>
+                    <p class="card-desc">فحص توافق إصدار PHP والامتدادات المطلوبة وصلاحيات مسارات التخزين والنسخ الاحتياطي</p>
+                </div>
+                <span class="badge <?= version_compare(PHP_VERSION, '8.0.0', '>=') ? 'badge-active' : 'badge-inactive' ?>" style="font-family: var(--font-mono, monospace);">
+                    PHP <bdi dir="ltr" class="tabular-nums"><?= PHP_VERSION ?></bdi>
+                </span>
+            </div>
+
+            <div style="padding: var(--space-5);">
+                <!-- Extensions Grid -->
+                <h3 style="font-size: var(--font-size-sm); color: var(--text-muted); margin-block-end: var(--space-3); font-weight: 600;">
+                    الامتدادات البرمجية (PHP Extensions)
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: var(--space-3); margin-block-end: var(--space-6);">
+                    <?php foreach ($requiredExtensions as $ext => $desc):
+                        $isLoaded = extension_loaded($ext);
+                    ?>
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-3); background-color: var(--bg-surface-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                            <div>
+                                <div style="font-family: var(--font-mono, monospace); font-weight: 600; font-size: 0.9rem;">
+                                    <bdi dir="ltr"><?= htmlspecialchars($ext) ?></bdi>
+                                </div>
+                                <div class="text-muted" style="font-size: 0.75rem; margin-top: 2px;">
+                                    <?= htmlspecialchars($desc) ?>
+                                </div>
+                            </div>
+                            <?php if ($isLoaded): ?>
+                                <span class="badge badge-active" style="display: inline-flex; align-items: center; gap: 4px;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    مفعّل
+                                </span>
+                            <?php else: ?>
+                                <span class="badge badge-inactive" style="display: inline-flex; align-items: center; gap: 4px;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                    غير متوفر
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+
+                <!-- Storage & Log Write Permissions -->
+                <h3 style="font-size: var(--font-size-sm); color: var(--text-muted); margin-block-end: var(--space-3); font-weight: 600;">
+                    صلاحيات مسارات التخزين والمهام اليومية (Write Permissions)
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: var(--space-3);">
+                    <!-- Backup Dir -->
+                    <div style="padding: var(--space-3); background-color: var(--bg-surface-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-block-end: var(--space-2);">
+                            <span style="font-weight: 600; font-size: 0.9rem;">مجلد النسخ الاحتياطي (BACKUP_DIR)</span>
+                            <?php if ($backupDirWritable): ?>
+                                <span class="badge badge-active">قابل للكتابة</span>
+                            <?php else: ?>
+                                <span class="badge badge-inactive">غير متاح للكتابة</span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="text-muted" style="font-size: 0.75rem; font-family: var(--font-mono, monospace); word-break: break-all;">
+                            <bdi dir="ltr"><?= htmlspecialchars($backupDir) ?></bdi>
+                        </div>
+                    </div>
+
+                    <!-- Log File -->
+                    <div style="padding: var(--space-3); background-color: var(--bg-surface-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-block-end: var(--space-2);">
+                            <span style="font-weight: 600; font-size: 0.9rem;">ملف سجل Cron اليومي (LOG_FILE)</span>
+                            <?php if ($logFileWritable): ?>
+                                <span class="badge badge-active">قابل للكتابة</span>
+                            <?php else: ?>
+                                <span class="badge badge-inactive">غير متاح للكتابة</span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="text-muted" style="font-size: 0.75rem; font-family: var(--font-mono, monospace); word-break: break-all;">
+                            <bdi dir="ltr"><?= htmlspecialchars($logFile) ?></bdi>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
 </body>

@@ -91,4 +91,18 @@ CREATE TABLE IF NOT EXISTS task_comments (
     FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_task_comments_task_created (task_id, created_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- جدول تتبع سجل تحديثات قاعدة البيانات
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    filename VARCHAR(255) PRIMARY KEY,
+    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- تسجيل التحديثات الأساسية المضمنة في هذا المخطط
+INSERT INTO schema_migrations (filename, applied_at) VALUES
+('002_user_admin.sql', NOW()),
+('003_settings.sql', NOW()),
+('004_task_reminders.sql', NOW()),
+('005_task_comments.sql', NOW())
+ON DUPLICATE KEY UPDATE filename = filename;

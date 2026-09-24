@@ -5,9 +5,10 @@
 ---
 
 ## المتطلبات الأساسية
-- خادم يدعم **PHP 8.0** أو أحدث (يوصى بـ **PHP 8.1 / 8.2**).
+- خادم يدعم **PHP 8.0** أو أحدث (يوصى بـ **PHP 8.1 / 8.2 / 8.3**؛ متوافق بالكامل مع PHP 8.3 و 8.4).
 - قاعدة بيانات **MySQL 5.7+** أو **MariaDB 10.3+**.
-- ملحقات PHP: `pdo_mysql`, `mbstring`, `openssl`, `json`.
+- ملحقات PHP الأساسية: `pdo_mysql`, `mbstring`, `fileinfo`, `dom`, `libxml`, `json`, `openssl`, `zlib`.
+- ملحقات إضافية مستحسنة: `zip` (لأرشفة ملفات الهوية المرفوعة في الـ cron), `gd` (لفحص تباين ألوان الأيقونات والشعارات).
 - تفعيل موديول `mod_rewrite` و `mod_headers` في Apache/LiteSpeed (مفعل افتراضياً في معظم استضافات cPanel).
 
 ---
@@ -25,8 +26,8 @@
 ## 2. تحديد إصدار PHP
 1. من لوحة cPanel، ابحث عن **MultiPHP Manager** أو **Select PHP Version**.
 2. اختر النطاق الفرعي الذي أنشأته (`tasks.example.com`).
-3. عيّن إصدار PHP إلى **PHP 8.1** أو **PHP 8.2**.
-4. تأكد من تفعيل ملحقات `pdo_mysql` و `mbstring` و `openssl`.
+3. عيّن إصدار PHP إلى **PHP 8.1** أو **PHP 8.2** أو **PHP 8.3**.
+4. تأكد من تفعيل ملحقات `pdo_mysql`, `mbstring`, `fileinfo`, `dom`, `libxml`, `json`, `openssl`, `zlib`.
 
 ---
 
