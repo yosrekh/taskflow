@@ -2125,3 +2125,93 @@ main {
     border-radius: var(--radius-md);
     cursor: pointer;
 }
+
+/* Delete User Action & Modal Components */
+.btn-delete {
+    background-color: transparent;
+    color: var(--red-600);
+    border: 1px solid var(--red-600);
+    font-weight: var(--font-weight-semibold);
+}
+
+.btn-delete:hover {
+    background-color: var(--red-600);
+    border-color: var(--red-600);
+    color: #ffffff;
+}
+
+[data-theme="dark"] .btn-delete,
+:root:not([data-theme="light"]) .btn-delete {
+    color: #f87171;
+    border-color: #ef4444;
+}
+
+[data-theme="dark"] .btn-delete:hover,
+:root:not([data-theme="light"]) .btn-delete:hover {
+    background-color: var(--red-600);
+    border-color: var(--red-600);
+    color: #ffffff;
+}
+
+.transfer-group.is-hidden {
+    display: none !important;
+}
+
+.delete-user-card {
+    background-color: var(--bg-surface-subtle);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    margin-block-end: var(--space-4);
+}
+
+.delete-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    margin-block-end: var(--space-3);
+}
+
+.delete-user-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+.delete-user-name {
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
+}
+
+.delete-user-email {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.delete-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+    margin-block-start: var(--space-2);
+}
+
+.delete-stat-box {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+    text-align: center;
+}
+
+.delete-stat-num {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-primary);
+    line-height: 1.1;
+    margin-block-end: var(--space-1);
+}
+
+.delete-stat-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+}
+
