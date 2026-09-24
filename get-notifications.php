@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/includes/auth.php';
 require_login_json();
+header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/includes/db.php';
 
 $user_id = $_SESSION['user_id'];

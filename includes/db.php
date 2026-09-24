@@ -17,5 +17,5 @@ try {
     }
 } catch (PDOException $e) {
     error_log("Database connection error: " . $e->getMessage());
-    die("خطأ في الاتصال بقاعدة البيانات. يرجى المحاولة لاحقاً.");
+    render_error(500, "خطأ في الاتصال بقاعدة البيانات. يرجى المحاولة لاحقاً.");
 }

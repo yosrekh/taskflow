@@ -2,6 +2,7 @@
 // includes/auth.php
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/branding.php';
 
 // Secure Session Initialization
 function start_secure_session() {
@@ -119,6 +120,7 @@ function require_login($base = '') {
 }
 
 function require_login_json() {
+    header('Content-Type: application/json; charset=utf-8');
     $status = check_current_user();
     if ($status === null) {
         return;
@@ -149,8 +151,7 @@ function is_admin(): bool {
 function require_admin($base = '') {
     require_login($base);
     if (!is_admin()) {
-        http_response_code(403);
-        die("غير مصرح لك بالوصول لهذه الصفحة.");
+        render_error(403, "غير مصرح لك بالوصول لهذه الصفحة.");
     }
 }
 

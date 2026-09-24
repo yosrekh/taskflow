@@ -1,1 +1,4 @@
-Require all denied
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^ ../error.php?code=403 [L]
+</IfModule>

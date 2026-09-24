@@ -87,14 +87,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <?php
     $page_title = 'تسجيل الدخول';
     include __DIR__ . '/includes/header-meta.php';
+    $branding = get_branding($base);
     ?>
 </head>
 <body class="auth-wrapper">
     <div class="auth-card">
         <div class="auth-header">
-            <a href="login.php" class="auth-brand" aria-label="TaskFlow">
-                <img src="<?= $base ?>assets/logo-horizontal-light.svg" alt="TaskFlow" class="brand-logo brand-logo-light">
-                <img src="<?= $base ?>assets/logo-horizontal-dark.svg" alt="TaskFlow" class="brand-logo brand-logo-dark">
+            <a href="login.php" class="auth-brand" aria-label="<?= htmlspecialchars($branding['app_name']) ?>">
+                <img src="<?= htmlspecialchars($branding['logo_light_url']) ?>" alt="<?= htmlspecialchars($branding['app_name']) ?>" class="brand-logo brand-logo-light">
+                <img src="<?= htmlspecialchars($branding['logo_dark_url']) ?>" alt="<?= htmlspecialchars($branding['app_name']) ?>" class="brand-logo brand-logo-dark">
             </a>
             <h1 class="auth-title">تسجيل الدخول</h1>
             <p class="auth-subtitle">أدخل بيانات حسابك للوصول إلى مشاريعك</p>

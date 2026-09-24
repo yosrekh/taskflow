@@ -70,6 +70,7 @@ $base = '';
     <?php
     $page_title = 'تغيير كلمة المرور';
     include __DIR__ . '/includes/header-meta.php';
+    $branding = get_branding($base);
     ?>
 </head>
 <body class="auth-wrapper">
@@ -80,9 +81,9 @@ $base = '';
 
     <div class="auth-card">
         <div class="auth-header">
-            <a href="dashboard.php" class="auth-brand" aria-label="TaskFlow">
-                <img src="<?= $base ?>assets/logo-horizontal-light.svg" alt="TaskFlow" class="brand-logo brand-logo-light">
-                <img src="<?= $base ?>assets/logo-horizontal-dark.svg" alt="TaskFlow" class="brand-logo brand-logo-dark">
+            <a href="dashboard.php" class="auth-brand" aria-label="<?= htmlspecialchars($branding['app_name']) ?>">
+                <img src="<?= htmlspecialchars($branding['logo_light_url']) ?>" alt="<?= htmlspecialchars($branding['app_name']) ?>" class="brand-logo brand-logo-light">
+                <img src="<?= htmlspecialchars($branding['logo_dark_url']) ?>" alt="<?= htmlspecialchars($branding['app_name']) ?>" class="brand-logo brand-logo-dark">
             </a>
             <h1 class="auth-title">تغيير كلمة المرور</h1>
             <p class="auth-subtitle">
