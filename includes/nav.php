@@ -8,12 +8,14 @@ function render_nav($base = '') {
     $userName = $_SESSION['user_name'] ?? 'مستخدم';
     $userInitials = function_exists('get_user_initials') ? get_user_initials($userName) : 'TF';
     $isAdminUser = function_exists('is_admin') && is_admin();
+    $isBranding = ($currentScript === 'branding.php');
+    $branding = get_branding($base);
     ?>
     <nav class="app-nav" aria-label="التنقل الرئيسي">
         <div class="nav-container">
             <div class="nav-start">
-                <a href="<?= $base ?>dashboard.php" class="nav-brand" aria-label="TaskFlow الرئيسية">
-                    <img src="<?= $base ?>assets/logo-horizontal-dark.svg" alt="TaskFlow" class="brand-logo">
+                <a href="<?= $base ?>dashboard.php" class="nav-brand" aria-label="<?= htmlspecialchars($branding['app_name']) ?> الرئيسية">
+                    <img src="<?= htmlspecialchars($branding['logo_dark_url']) ?>" alt="<?= htmlspecialchars($branding['app_name']) ?>" class="brand-logo">
                 </a>
                 <ul class="nav-links" id="nav-links-menu">
                     <li>
@@ -22,6 +24,9 @@ function render_nav($base = '') {
                     <?php if ($isAdminUser): ?>
                     <li>
                         <a href="<?= $base ?>admin/users.php" class="nav-link <?= $isUsers ? 'is-active' : '' ?>">المستخدمين</a>
+                    </li>
+                    <li>
+                        <a href="<?= $base ?>admin/branding.php" class="nav-link <?= $isBranding ? 'is-active' : '' ?>">الهوية البصرية</a>
                     </li>
                     <?php endif; ?>
                 </ul>

@@ -1,2 +1,7 @@
 .env
 scratch/
+uploads/*
+!uploads/branding/
+uploads/branding/*
+!uploads/branding/.htaccess
+!uploads/branding/.gitkeep

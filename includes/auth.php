@@ -2,6 +2,7 @@
 // includes/auth.php
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/branding.php';
 
 // Secure Session Initialization
 function start_secure_session() {

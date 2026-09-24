@@ -2215,3 +2215,131 @@ main {
     color: var(--text-secondary);
 }
 
+/* Branding Settings Page */
+.branding-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: var(--space-5);
+    margin-block-end: var(--space-6);
+}
+
+@media (max-width: 640px) {
+    .branding-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.branding-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.branding-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.branding-card-title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.branding-dual-preview {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+    margin-block-end: var(--space-4);
+}
+
+@media (max-width: 480px) {
+    .branding-dual-preview {
+        grid-template-columns: 1fr;
+    }
+}
+
+.preview-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-height: 100px;
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+}
+
+.preview-box-label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+}
+
+.preview-navy {
+    background-color: var(--navy-600);
+    border: 1px solid var(--navy-500);
+}
+
+.preview-navy .preview-box-label {
+    color: var(--navy-100);
+}
+
+.preview-white {
+    background-color: #ffffff;
+    border: 1px solid var(--border-subtle);
+}
+
+.preview-white .preview-box-label {
+    color: #5e7a88;
+}
+
+.preview-img {
+    max-height: 48px;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.preview-img-fav {
+    width: 40px;
+    height: 40px;
+}
+
+.badge-custom {
+    background-color: var(--teal-100);
+    color: var(--teal-800);
+    border: 1px solid var(--teal-300);
+}
+
+[data-theme="dark"] .badge-custom,
+:root:not([data-theme="light"]) .badge-custom {
+    background-color: var(--teal-900);
+    color: var(--teal-200);
+    border-color: var(--teal-700);
+}
+
+.badge-default {
+    background-color: var(--bg-surface-subtle);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+}
+
+.branding-card-footer {
+    display: flex;
+    justify-content: flex-end;
+    background-color: var(--bg-surface-subtle);
+    border-top: 1px solid var(--border-subtle);
+    padding: var(--space-3) var(--space-5);
+    margin-top: auto;
+}
+
+.branding-actions-bar {
+    display: flex;
+    justify-content: flex-start;
+    padding: var(--space-4) 0;
+    margin-block-start: var(--space-4);
+    border-top: 1px solid var(--border-subtle);
+}
+
+
