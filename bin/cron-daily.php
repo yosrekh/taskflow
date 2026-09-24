@@ -310,6 +310,98 @@ function cron_job_cleanup(PDO $pdo, bool $isDryRun): bool {
 }
 
 // -----------------------------------------------------------------------------
+// JOB 3: Due-Date Reminders (Idempotent via task_reminders table)
+// -----------------------------------------------------------------------------
+function cron_job_reminders(PDO $pdo, bool $isDryRun): bool {
+    $tzName = defined('APP_TIMEZONE') ? APP_TIMEZONE : 'Africa/Cairo';
+    $tz = new DateTimeZone($tzName);
+    $tomorrow = (new DateTime('+1 day', $tz))->format('Y-m-d');
+
+    cron_log("Starting Job 3: Due-Date Reminders" . ($isDryRun ? " (dry-run)" : "") . " for due_date={$tomorrow} (timezone: {$tzName})...");
+
+    $query = "
+        SELECT 
+            t.id AS task_id,
+            t.title AS task_title,
+            t.due_date,
+            t.assigned_to,
+            u.name AS assignee_name,
+            u.is_active AS assignee_is_active,
+            p.id AS project_id,
+            p.title AS project_title,
+            p.user_id AS project_owner_id,
+            po.is_active AS project_owner_is_active
+        FROM tasks t
+        JOIN projects p ON t.project_id = p.id
+        LEFT JOIN users u ON t.assigned_to = u.id
+        LEFT JOIN users po ON p.user_id = po.id
+        WHERE t.due_date = ?
+          AND t.status != 'Completed'
+        ORDER BY t.id ASC
+    ";
+
+    $stmt = $pdo->prepare($query);
+    $stmt->execute([$tomorrow]);
+    $tasks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $remindersSent = 0;
+    $skippedInactive = 0;
+
+    foreach ($tasks as $task) {
+        $taskId = (int)$task['task_id'];
+        $taskTitle = $task['task_title'];
+        $projectTitle = $task['project_title'];
+        $dueDate = $task['due_date'];
+
+        $recipientId = null;
+        $msg = '';
+
+        if ($task['assigned_to'] !== null) {
+            // Task is assigned to a member
+            if ((int)$task['assignee_is_active'] === 1) {
+                $recipientId = (int)$task['assigned_to'];
+                $msg = "تذكير: المهمة '{$taskTitle}' في مشروع '{$projectTitle}' موعدها بكرة";
+            } else {
+                // Inactive assignee: do not notify
+                $skippedInactive++;
+                continue;
+            }
+        } else {
+            // Unassigned task -> notify project owner
+            if ((int)$task['project_owner_is_active'] === 1) {
+                $recipientId = (int)$task['project_owner_id'];
+                $msg = "تذكير: المهمة '{$taskTitle}' في مشروع '{$projectTitle}' موعدها بكرة ومفيش حد مسؤول عنها";
+            } else {
+                $skippedInactive++;
+                continue;
+            }
+        }
+
+        if ($isDryRun) {
+            $checkStmt = $pdo->prepare("SELECT 1 FROM task_reminders WHERE task_id = ? AND reminder_type = 'due_tomorrow' AND due_date = ?");
+            $checkStmt->execute([$taskId, $dueDate]);
+            if (!$checkStmt->fetch()) {
+                $remindersSent++;
+                cron_log("Reminders (dry-run): Would notify user #{$recipientId} for task #{$taskId} ('{$taskTitle}')");
+            }
+        } else {
+            // INSERT IGNORE ensures idempotent notification per task, reminder type, and due date
+            $insStmt = $pdo->prepare("INSERT IGNORE INTO task_reminders (task_id, reminder_type, due_date, sent_at) VALUES (?, 'due_tomorrow', ?, NOW())");
+            $insStmt->execute([$taskId, $dueDate]);
+
+            if ($insStmt->rowCount() > 0) {
+                $notifStmt = $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)");
+                $notifStmt->execute([$recipientId, $msg]);
+                $remindersSent++;
+            }
+        }
+    }
+
+    cron_log("Job 3 [Reminders] completed: {$remindersSent} reminders " . ($isDryRun ? "would be sent" : "sent") . ($skippedInactive > 0 ? " ({$skippedInactive} skipped due to inactive user)" : "") . ".");
+    return true;
+}
+
+// -----------------------------------------------------------------------------
 // Runner Dispatch
 // -----------------------------------------------------------------------------
 $jobsToRun = [
@@ -349,6 +441,16 @@ if ($jobsToRun['cleanup']) {
     } catch (Throwable $e) {
         $hadFailure = true;
         cron_log("Job 2 [Cleanup] FAILED: " . $e->getMessage());
+    }
+}
+
+// JOB 3: Reminders
+if ($jobsToRun['reminders']) {
+    try {
+        cron_job_reminders($pdo, $isDryRun);
+    } catch (Throwable $e) {
+        $hadFailure = true;
+        cron_log("Job 3 [Reminders] FAILED: " . $e->getMessage());
     }
 }
 
