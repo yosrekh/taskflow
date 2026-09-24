@@ -447,11 +447,17 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
 
         function getInitials(name) {
             if (!name) return 'TF';
-            const parts = name.trim().split(/\s+/);
+            const parts = name.trim().split(/\s+/).filter(Boolean);
             if (parts.length >= 2) {
-                return parts[0].charAt(0) + parts[1].charAt(0);
+                const c1 = Array.from(parts[0])[0] || '';
+                const c2 = Array.from(parts[1])[0] || '';
+                return (c1 + c2).toUpperCase();
             }
-            return parts[0].slice(0, 2);
+            if (parts.length === 1) {
+                const chars = Array.from(parts[0]);
+                return chars.slice(0, 2).join('').toUpperCase();
+            }
+            return 'TF';
         }
 
         // Status change listener (AJAX update + Toast)

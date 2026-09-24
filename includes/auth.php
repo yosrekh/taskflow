@@ -214,12 +214,17 @@ function can_update_task_status($pdo, $userId, $taskId) {
 }
 
 function get_user_initials(?string $name): string {
-    if (empty($name)) return 'TF';
-    $parts = preg_split('/\s+/u', trim($name));
+    if ($name === null) return 'TF';
+    $clean = trim($name);
+    if ($clean === '') return 'TF';
+    $parts = preg_split('/\s+/u', $clean, -1, PREG_SPLIT_NO_EMPTY);
+    if (empty($parts)) return 'TF';
     if (count($parts) >= 2) {
-        return mb_substr($parts[0], 0, 1) . mb_substr($parts[1], 0, 1);
+        $initials = mb_substr($parts[0], 0, 1, 'UTF-8') . mb_substr($parts[1], 0, 1, 'UTF-8');
+    } else {
+        $initials = mb_substr($parts[0], 0, 2, 'UTF-8');
     }
-    return mb_substr($parts[0], 0, 2);
+    return mb_strtoupper($initials, 'UTF-8');
 }
 
 

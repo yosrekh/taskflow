@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+    .mark {
+      fill: #0d4e65;
+    }
+    @media (prefers-color-scheme: dark) {
+      .mark {
+        fill: #ffffff;
+      }
+    }
+  </style>
+  <g transform="translate(36.2, 136.45) scale(0.9)">
+    <polygon class="mark" points="6.11 265.67 156.76 265.67 307.41 0 0 0 81.43 132.84 6.11 265.67"/>
+    <polygon class="mark" points="488.45 265.67 407.17 132.84 482.34 0 331.69 0 181.05 265.67 488.45 265.67"/>
+  </g>
+</svg>

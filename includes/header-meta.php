@@ -15,9 +15,8 @@ $title_text = !empty($page_title) ? htmlspecialchars($page_title) . ' - TaskFlow
 <!-- PWA Manifest -->
 <link rel="manifest" href="<?= $meta_base ?>site.webmanifest">
 
-<!-- Favicon SVGs (Light & Dark Variants) -->
-<link rel="icon" type="image/svg+xml" href="<?= $meta_base ?>assets/icon-light.svg" media="(prefers-color-scheme: light)">
-<link rel="icon" type="image/svg+xml" href="<?= $meta_base ?>assets/icon-dark.svg" media="(prefers-color-scheme: dark)">
+<!-- Adaptive Favicon SVG (Light & Dark Browser Tabs) -->
+<link rel="icon" type="image/svg+xml" href="<?= $meta_base ?>assets/favicon.svg">
 
 <!-- Application Stylesheet -->
 <link rel="stylesheet" href="<?= $meta_base ?>css/styles.css">

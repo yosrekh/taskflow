@@ -1814,15 +1814,36 @@ main {
 }
 
 .kanban-column.col-todo .kanban-column-header {
-    border-block-end-color: var(--navy-300);
+    border-block-end-color: var(--navy-600);
 }
 
 .kanban-column.col-progress .kanban-column-header {
-    border-block-end-color: var(--teal-500);
+    border-block-end-color: var(--teal-600);
 }
 
 .kanban-column.col-done .kanban-column-header {
-    border-block-end-color: var(--green-500);
+    border-block-end-color: var(--green-700);
+}
+
+[data-theme="dark"] .kanban-column.col-todo .kanban-column-header,
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .kanban-column.col-todo .kanban-column-header {
+        border-block-end-color: var(--navy-300);
+    }
+}
+
+[data-theme="dark"] .kanban-column.col-progress .kanban-column-header,
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .kanban-column.col-progress .kanban-column-header {
+        border-block-end-color: var(--teal-400);
+    }
+}
+
+[data-theme="dark"] .kanban-column.col-done .kanban-column-header,
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .kanban-column.col-done .kanban-column-header {
+        border-block-end-color: #4ade80;
+    }
 }
 
 .kanban-column-title {
@@ -2021,8 +2042,29 @@ main {
 .count-done { color: var(--green-600); }
 
 .dot-todo { color: var(--navy-600); font-size: 1.2rem; }
-.dot-progress { color: var(--teal-600); font-size: 1.2rem; }
-.dot-done { color: var(--green-600); font-size: 1.2rem; }
+.dot-progress { color: var(--teal-700); font-size: 1.2rem; }
+.dot-done { color: var(--green-700); font-size: 1.2rem; }
+
+[data-theme="dark"] .dot-todo,
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .dot-todo {
+        color: var(--navy-300);
+    }
+}
+
+[data-theme="dark"] .dot-progress,
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .dot-progress {
+        color: var(--teal-300);
+    }
+}
+
+[data-theme="dark"] .dot-done,
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .dot-done {
+        color: #4ade80;
+    }
+}
 
 .btn-icon-danger { color: var(--red-600); }
 .btn-icon-danger:hover { color: var(--red-700); background-color: var(--red-50); }
@@ -2071,3 +2113,15 @@ main {
 .assignee-name-label { font-size: var(--font-size-xs); color: var(--text-secondary); }
 .assignee-unassigned-label { font-size: var(--font-size-xs); color: var(--text-muted); }
 .kanban-card-status-wrap { margin-block-end: var(--space-3); }
+.task-status-select {
+    width: 100%;
+    height: 32px;
+    min-height: 32px;
+    padding-block: 4px;
+    padding-inline: 8px;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.2;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+}

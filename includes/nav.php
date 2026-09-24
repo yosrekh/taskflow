@@ -13,8 +13,7 @@ function render_nav($base = '') {
         <div class="nav-container">
             <div class="nav-start">
                 <a href="<?= $base ?>dashboard.php" class="nav-brand" aria-label="TaskFlow الرئيسية">
-                    <img src="<?= $base ?>assets/logo-horizontal-light.svg" alt="TaskFlow" class="brand-logo brand-logo-light">
-                    <img src="<?= $base ?>assets/logo-horizontal-dark.svg" alt="TaskFlow" class="brand-logo brand-logo-dark">
+                    <img src="<?= $base ?>assets/logo-horizontal-dark.svg" alt="TaskFlow" class="brand-logo">
                 </a>
                 <ul class="nav-links" id="nav-links-menu">
                     <li>
