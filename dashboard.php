@@ -75,12 +75,12 @@ function render_project_card($p, $pdo, $user_id, $base = '') {
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                         </svg>
                     </a>
-                    <a href="<?= $base ?>projects/delete-project.php?id=<?= $p['id'] ?>" class="btn-icon btn-icon-danger" aria-label="حذف المشروع '<?= htmlspecialchars($p['title']) ?>'" title="حذف" onclick="return confirm('هل أنت متأكد من حذف هذا المشروع؟ سيتم حذف جميع المهام التابعة له.');">
+                    <button type="button" class="btn-icon btn-icon-danger open-delete-project-modal-btn" data-project-id="<?= (int)$p['id'] ?>" data-project-title="<?= htmlspecialchars($p['title'], ENT_QUOTES) ?>" aria-label="حذف المشروع '<?= htmlspecialchars($p['title']) ?>'" title="حذف">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <polyline points="3 6 5 6 21 6"></polyline>
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                         </svg>
-                    </a>
+                    </button>
                 <?php endif; ?>
             </div>
         </div>
@@ -219,5 +219,50 @@ function render_project_card($p, $pdo, $user_id, $base = '') {
             <?php endif; ?>
         <?php endif; ?>
     </main>
+
+    <!-- Delete Project Modal -->
+    <div class="modal" id="deleteProjectModal" role="dialog" aria-modal="true" aria-labelledby="deleteProjectTitle">
+        <div class="modal-backdrop" data-dismiss="modal"></div>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="deleteProjectTitle">حذف المشروع</h2>
+                    <button type="button" class="modal-close" data-dismiss="modal" aria-label="إغلاق">&times;</button>
+                </div>
+                <form method="POST" action="<?= $base ?>projects/delete-project.php" id="deleteProjectForm">
+                    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                    <input type="hidden" name="id" id="delete_modal_project_id" value="">
+                    <div class="modal-body">
+                        <p class="modal-alert-text">
+                            هل أنت متأكد من رغبتك في حذف المشروع:
+                            <strong id="delete_modal_project_title"></strong>؟
+                        </p>
+                        <div class="alert alert-warning" role="alert" style="margin-top: 1rem;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            <span>تنبيه: سيؤدي حذف هذا المشروع إلى حذف كافة المهام التابعة له نهائياً.</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-danger">تأكيد الحذف</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.open-delete-project-modal-btn');
+        if (!btn) return;
+        const pid = btn.dataset.projectId;
+        const title = btn.dataset.projectTitle;
+        document.getElementById('delete_modal_project_id').value = pid;
+        document.getElementById('delete_modal_project_title').textContent = title;
+        if (typeof openModal === 'function') {
+            openModal('deleteProjectModal');
+        }
+    });
+    </script>
 </body>
 </html>

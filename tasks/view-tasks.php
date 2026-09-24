@@ -6,8 +6,7 @@ require_once __DIR__ . '/../includes/db.php';
 $base = '../';
 $project_id = $_GET['project_id'] ?? null;
 if (!$project_id) {
-    http_response_code(400);
-    die("رقم المشروع غير موجود.");
+    render_error(400, "رقم المشروع غير موجود.");
 }
 
 $user_id = (int)$_SESSION['user_id'];
@@ -18,8 +17,7 @@ $stmt->execute([$project_id]);
 $project = $stmt->fetch();
 
 if (!$project || !can_view_project($pdo, $user_id, $project_id)) {
-    http_response_code(404);
-    die("المشروع غير موجود.");
+    render_error(404, "المشروع غير موجود.");
 }
 
 $project_owner_id = (int)$project['user_id'];
@@ -33,8 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "رمز التحقق غير صالح. يرجى إعادة المحاولة.";
     } elseif (isset($_POST['add_task'])) {
         if (!$is_project_owner) {
-            http_response_code(403);
-            die("غير مصرح لك بإضافة مهام في هذا المشروع.");
+            render_error(403, "غير مصرح لك بإضافة مهام في هذا المشروع.");
         }
         $title = trim($_POST['title'] ?? '');
         $description = trim($_POST['description'] ?? '');
@@ -65,8 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif (isset($_POST['edit_task'])) {
         if (!$is_project_owner) {
-            http_response_code(403);
-            die("غير مصرح لك بتعديل هذه المهمة.");
+            render_error(403, "غير مصرح لك بتعديل هذه المهمة.");
         }
         $task_id = $_POST['task_id'] ?? null;
         $title = trim($_POST['title'] ?? '');
@@ -109,8 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif (isset($_POST['delete_task'])) {
         if (!$is_project_owner) {
-            http_response_code(403);
-            die("غير مصرح لك بحذف هذه المهمة.");
+            render_error(403, "غير مصرح لك بحذف هذه المهمة.");
         }
         $task_id = $_POST['task_id'] ?? null;
         try {
@@ -173,8 +168,7 @@ $users = $users_stmt->fetchAll();
 $edit_task = null;
 if (isset($_GET['edit_task_id'])) {
     if (!$is_project_owner) {
-        http_response_code(403);
-        die("غير مصرح لك بتعديل هذه المهمة.");
+        render_error(403, "غير مصرح لك بتعديل هذه المهمة.");
     }
     $edit_id = (int)$_GET['edit_task_id'];
     $stmt = $pdo->prepare("SELECT * FROM tasks WHERE id = ? AND project_id = ?");
@@ -238,13 +232,9 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                     <a href="view-tasks.php?project_id=<?= (int)$project_id ?>&edit_task_id=<?= (int)$task['id'] ?>" class="btn-icon" aria-label="تعديل المهمة '<?= htmlspecialchars($task['title']) ?>'" title="تعديل">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                     </a>
-                    <form method="POST" class="inline-form">
-                        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                        <input type="hidden" name="task_id" value="<?= (int)$task['id'] ?>">
-                        <button type="submit" name="delete_task" class="btn-icon btn-icon-danger" aria-label="حذف المهمة '<?= htmlspecialchars($task['title']) ?>'" title="حذف" onclick="return confirm('هل أنت متأكد من حذف هذه المهمة؟');">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                        </button>
-                    </form>
+                    <button type="button" class="btn-icon btn-icon-danger open-delete-task-modal-btn" data-task-id="<?= (int)$task['id'] ?>" data-task-title="<?= htmlspecialchars($task['title'], ENT_QUOTES) ?>" aria-label="حذف المهمة '<?= htmlspecialchars($task['title']) ?>'" title="حذف">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
                 </div>
             <?php endif; ?>
         </div>
@@ -531,13 +521,9 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                         <a href="view-tasks.php?project_id=${projectId}&edit_task_id=${encodeURIComponent(task.id)}" class="btn-icon" aria-label="تعديل المهمة" title="تعديل">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                         </a>
-                        <form method="POST" class="inline-form">
-                            <input type="hidden" name="csrf_token" value="${escapeHtml(csrfToken)}">
-                            <input type="hidden" name="task_id" value="${escapeHtml(task.id)}">
-                            <button type="submit" name="delete_task" class="btn-icon btn-icon-danger" aria-label="حذف المهمة" title="حذف" onclick="return confirm('هل أنت متأكد من حذف هذه المهمة؟');">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                            </button>
-                        </form>
+                        <button type="button" class="btn-icon btn-icon-danger open-delete-task-modal-btn" data-task-id="${escapeHtml(task.id)}" data-task-title="${escapeHtml(task.title)}" aria-label="حذف المهمة" title="حذف">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
                     </div>
                 `;
             }
@@ -637,6 +623,48 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
 
         start();
     })();
+    </script>
+
+    <!-- Delete Task Modal -->
+    <div class="modal" id="deleteTaskModal" role="dialog" aria-modal="true" aria-labelledby="deleteTaskTitle">
+        <div class="modal-backdrop" data-dismiss="modal"></div>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="deleteTaskTitle">حذف المهمة</h2>
+                    <button type="button" class="modal-close" data-dismiss="modal" aria-label="إغلاق">&times;</button>
+                </div>
+                <form method="POST" id="deleteTaskForm">
+                    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                    <input type="hidden" name="task_id" id="delete_modal_task_id" value="">
+                    <input type="hidden" name="delete_task" value="1">
+                    <div class="modal-body">
+                        <p class="modal-alert-text">
+                            هل أنت متأكد من رغبتك في حذف المهمة:
+                            <strong id="delete_modal_task_title"></strong>؟
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-danger">تأكيد الحذف</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.open-delete-task-modal-btn');
+        if (!btn) return;
+        const tid = btn.dataset.taskId;
+        const title = btn.dataset.taskTitle;
+        document.getElementById('delete_modal_task_id').value = tid;
+        document.getElementById('delete_modal_task_title').textContent = title;
+        if (typeof openModal === 'function') {
+            openModal('deleteTaskModal');
+        }
+    });
     </script>
 </body>
 </html>

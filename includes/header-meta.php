@@ -2,8 +2,19 @@
 // includes/header-meta.php
 // Single source of truth for <head> tags across all TaskFlow pages
 $meta_base = $base ?? '';
-$branding = get_branding($meta_base);
-$appName = $branding['app_name'];
+if (!isset($branding)) {
+    if (!function_exists('get_branding')) {
+        @include_once __DIR__ . '/branding.php';
+    }
+    $branding = function_exists('get_branding') ? get_branding($meta_base) : [
+        'app_name' => 'TaskFlow',
+        'logo_dark_url' => $meta_base . 'assets/logo-horizontal-dark.svg',
+        'logo_light_url' => $meta_base . 'assets/logo-horizontal-light.svg',
+        'favicon_url' => $meta_base . 'assets/favicon.svg',
+        'favicon_dark_url' => null,
+    ];
+}
+$appName = $branding['app_name'] ?? 'TaskFlow';
 $title_text = !empty($page_title) ? htmlspecialchars($page_title) . ' - ' . htmlspecialchars($appName) : htmlspecialchars($appName);
 ?>
 <meta charset="UTF-8">

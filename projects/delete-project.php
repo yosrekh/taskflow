@@ -4,20 +4,17 @@ require_login('../');
 require_once __DIR__ . '/../includes/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    die("طريقة الطلب غير مسموح بها. يجب استخدام POST.");
+    render_error(405, "طريقة الطلب غير مسموح بها. يجب استخدام POST.");
 }
 
 if (!verify_csrf($_POST['csrf_token'] ?? '')) {
-    http_response_code(403);
-    die("رمز التحقق غير صالح أو انتهت صلاحية الجلسة.");
+    render_error(419, "رمز التحقق غير صالح أو انتهت صلاحية الجلسة.");
 }
 
 $project_id = $_POST['id'] ?? null;
 
 if (!$project_id) {
-    http_response_code(400);
-    die("رقم المشروع غير موجود.");
+    render_error(400, "رقم المشروع غير موجود.");
 }
 
 try {
@@ -29,13 +26,11 @@ try {
     $user_id = $_SESSION['user_id'];
 
     if (!$project || !can_view_project($pdo, $user_id, $project_id)) {
-        http_response_code(404);
-        die("المشروع غير موجود.");
+        render_error(404, "المشروع غير موجود.");
     }
 
     if (!can_manage_project($pdo, $user_id, $project_id)) {
-        http_response_code(403);
-        die("غير مصرح لك بحذف هذا المشروع.");
+        render_error(403, "غير مصرح لك بحذف هذا المشروع.");
     }
 
     $pdo->beginTransaction();
@@ -65,5 +60,5 @@ try {
         $pdo->rollBack();
     }
     error_log("Delete project error: " . $e->getMessage());
-    die("فشل في حذف المشروع.");
+    render_error(500, "فشل في حذف المشروع.");
 }

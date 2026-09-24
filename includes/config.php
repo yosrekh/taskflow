@@ -7,6 +7,8 @@ if (PHP_VERSION_ID < 80000) {
     die("TaskFlow requires PHP 8.0.0 or higher. Current version: " . PHP_VERSION);
 }
 
+require_once __DIR__ . '/errors.php';
+
 // Minimal .env file parser as fallback
 function load_env_file($filePath) {
     if (!file_exists($filePath) || !is_file($filePath)) {

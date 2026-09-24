@@ -7,7 +7,7 @@ $base = '../';
 $project_id = $_GET['id'] ?? null;
 
 if (!$project_id) {
-    die("رقم المشروع غير موجود.");
+    render_error(400, "رقم المشروع غير موجود.");
 }
 
 $user_id = (int)$_SESSION['user_id'];
@@ -18,13 +18,11 @@ $stmt->execute([$project_id]);
 $project = $stmt->fetch();
 
 if (!$project || !can_view_project($pdo, $user_id, $project_id)) {
-    http_response_code(404);
-    die("المشروع غير موجود.");
+    render_error(404, "المشروع غير موجود.");
 }
 
 if (!can_manage_project($pdo, $user_id, $project_id)) {
-    http_response_code(403);
-    die("غير مصرح لك بتعديل هذا المشروع.");
+    render_error(403, "غير مصرح لك بتعديل هذا المشروع.");
 }
 
 $error = '';

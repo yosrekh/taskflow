@@ -1605,6 +1605,33 @@ main {
     margin: 0;
 }
 
+/* Branded Error Pages */
+.error-card {
+    text-align: center;
+}
+
+.error-code-badge {
+    display: inline-block;
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-extrabold);
+    color: var(--teal-700);
+    letter-spacing: 2px;
+    margin-block-start: var(--space-2);
+    margin-block-end: var(--space-2);
+}
+
+[data-theme="dark"] .error-code-badge {
+    color: var(--teal-300);
+}
+
+.error-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    margin-block-start: var(--space-6);
+}
+
 /* 2. Dashboard Page (dashboard.php) */
 .page-header {
     display: flex;

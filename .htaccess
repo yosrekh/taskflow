@@ -13,16 +13,26 @@ DirectoryIndex index.php
     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
     # Block access to dotfiles and dotfolders (except .well-known/ for SSL verification)
-    RewriteRule (^|/)\.(?!well-known/) - [F,L]
+    RewriteRule (^|/)\.(?!well-known/) error.php?code=403 [L]
 
     # Deny access to protected directories
-    RewriteRule ^(\.git|includes|bin|db|scratch)(/|$) - [F,L]
+    RewriteRule ^(\.git|includes|bin|db|scratch)(/.*)?$ error.php?code=403 [L]
+
+    # Deny access to sensitive file types
+    RewriteRule \.(md|sql|txt|log|ps1|sh)$ error.php?code=403 [L]
+
+    # Route non-existent files to branded 404 error page
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ error.php?code=404 [L]
 </IfModule>
 
-# Deny access to sensitive file types
-<FilesMatch "\.(md|sql|txt|log|ps1|sh)$">
-    Require all denied
-</FilesMatch>
+<IfModule !mod_rewrite.c>
+    # Sensitive files fallback protection when mod_rewrite is disabled
+    <FilesMatch "\.(md|sql|txt|log|ps1|sh)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
 
 # Security Headers
 <IfModule mod_headers.c>

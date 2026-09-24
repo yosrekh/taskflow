@@ -1,9 +1,12 @@
 <?php
 require_once __DIR__ . '/includes/auth.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !verify_csrf($_POST['csrf_token'] ?? '')) {
-    http_response_code(403);
-    die("طلب غير صالح أو انتهت صلاحية الجلسة.");
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    render_error(405, "طريقة الطلب غير مسموح بها. يجب استخدام POST.");
+}
+
+if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+    render_error(419, "انتهت صلاحية الجلسة أو رمز التحقق. يرجى إعادة المحاولة.");
 }
 
 $_SESSION = [];
