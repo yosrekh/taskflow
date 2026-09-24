@@ -179,13 +179,8 @@ $branding = get_branding($base);
     include __DIR__ . '/../includes/header-meta.php';
 
     // Helpers for rendering favicon preview element
-    function render_tab_icon_markup(string $url, string $scheme = 'light'): string {
-        $cleanUrl = strtok($url, '?');
-        $isSvg = str_ends_with(strtolower($cleanUrl), '.svg');
-        if ($isSvg) {
-            return '<iframe src="' . htmlspecialchars($url) . '" style="color-scheme: ' . $scheme . ';" title="معاينة أيقونة المتصفح" aria-hidden="true" class="mock-iframe-icon"></iframe>';
-        }
-        return '<img src="' . htmlspecialchars($url) . '" alt="معاينة أيقونة المتصفح" class="mock-img-icon">';
+    function render_tab_icon_markup(string $url): string {
+        return '<img src="' . htmlspecialchars($url) . '" alt="" class="mock-img-icon">';
     }
 
     $darkFaviconUrl = !empty($branding['favicon_dark_url']) ? $branding['favicon_dark_url'] : $branding['favicon_url'];
@@ -202,7 +197,7 @@ $branding = get_branding($base);
         <header class="page-header">
             <div class="page-title-wrap">
                 <h1 class="page-title">الهوية البصرية</h1>
-                <p class="page-subtitle">تخصيص اسم النظام وشعاراته وأيقونة الموقع لتلائم هوية شركتك</p>
+                <p class="page-subtitle">تخصيص اسم التطبيق وشعاراته وأيقونة الموقع لتلائم هوية شركتك</p>
             </div>
         </header>
 
@@ -229,22 +224,18 @@ $branding = get_branding($base);
             <!-- SECTION 1: APP NAME -->
             <section class="branding-section">
                 <div class="branding-section-header">
-                    <h2 class="branding-section-title">اسم التطبيق</h2>
-                    <p class="branding-section-desc">يظهر في عنوان جميع الصفحات، شريط التنقل، وملف PWA Manifest.</p>
-                </div>
-                <div class="card branding-card">
-                    <div class="card-header branding-card-header">
-                        <div class="branding-card-title-wrap">
-                            <h3 class="card-title">اسم النظام</h3>
-                            <span class="card-desc">الاسم الرسمي الذي يظهر للمستخدمين في النظام</span>
-                        </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap;">
+                        <h2 class="branding-section-title">اسم التطبيق</h2>
                         <span class="badge <?= $branding['app_name'] !== 'TaskFlow' ? 'badge-custom' : 'badge-default' ?>">
                             <?= $branding['app_name'] !== 'TaskFlow' ? 'مخصص' : 'افتراضي' ?>
                         </span>
                     </div>
+                    <p class="branding-section-desc">يظهر في شريط التنقل وعناوين الصفحات وعند تثبيت التطبيق على الأجهزة.</p>
+                </div>
+                <div class="card branding-card">
                     <div class="card-body">
-                        <div class="form-group">
-                            <label for="app_name_input" class="form-label">الاسم الكامل <span class="required">*</span></label>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="app_name_input" class="form-label">اسم التطبيق <span class="required">*</span></label>
                             <input type="text" id="app_name_input" name="app_name" class="form-control" value="<?= htmlspecialchars($branding['app_name']) ?>" required placeholder="TaskFlow">
                         </div>
                     </div>
@@ -296,7 +287,7 @@ $branding = get_branding($base);
                                         <span class="drop-zone-hint">SVG أو PNG أو WebP — الحد الأقصى: 1 ميجابايت</span>
                                     </div>
 
-                                    <div class="drop-zone-staged hidden" id="staged_logo_dark">
+                                    <div class="drop-zone-staged hidden" id="staged_logo_dark" style="display: none;">
                                         <div class="staged-preview-wrap">
                                             <img src="" alt="" class="staged-thumb" id="thumb_logo_dark">
                                         </div>
@@ -310,7 +301,7 @@ $branding = get_branding($base);
                                         </button>
                                     </div>
                                 </div>
-                                <div class="drop-zone-error hidden" id="error_logo_dark"></div>
+                                <div class="drop-zone-error hidden" id="error_logo_dark" style="display: none;"></div>
                             </div>
                         </div>
                         <?php if ($branding['is_custom_logo_dark']): ?>
@@ -352,7 +343,7 @@ $branding = get_branding($base);
                                         <span class="drop-zone-hint">SVG أو PNG أو WebP — الحد الأقصى: 1 ميجابايت</span>
                                     </div>
 
-                                    <div class="drop-zone-staged hidden" id="staged_logo_light">
+                                    <div class="drop-zone-staged hidden" id="staged_logo_light" style="display: none;">
                                         <div class="staged-preview-wrap">
                                             <img src="" alt="" class="staged-thumb" id="thumb_logo_light">
                                         </div>
@@ -366,7 +357,7 @@ $branding = get_branding($base);
                                         </button>
                                     </div>
                                 </div>
-                                <div class="drop-zone-error hidden" id="error_logo_light"></div>
+                                <div class="drop-zone-error hidden" id="error_logo_light" style="display: none;"></div>
                             </div>
                         </div>
                         <?php if ($branding['is_custom_logo_light']): ?>
@@ -400,7 +391,7 @@ $branding = get_branding($base);
                                 <div class="mock-tab-chrome">
                                     <div class="mock-tab-pill">
                                         <span class="mock-tab-icon size-16" id="mockLightTabIcon">
-                                            <?= render_tab_icon_markup($branding['favicon_url'], 'light') ?>
+                                            <?= render_tab_icon_markup($branding['favicon_url']) ?>
                                         </span>
                                         <span class="mock-tab-title" id="mockLightTabTitle"><?= htmlspecialchars($branding['app_name']) ?></span>
                                         <span class="mock-tab-close" aria-hidden="true">&times;</span>
@@ -412,13 +403,13 @@ $branding = get_branding($base);
                                         <div class="mock-size-badge">
                                             <span>16 بكسل</span>
                                             <div class="mock-icon-box size-16" id="mockLightBox16">
-                                                <?= render_tab_icon_markup($branding['favicon_url'], 'light') ?>
+                                                <?= render_tab_icon_markup($branding['favicon_url']) ?>
                                             </div>
                                         </div>
                                         <div class="mock-size-badge">
                                             <span>32 بكسل</span>
                                             <div class="mock-icon-box size-32" id="mockLightBox32">
-                                                <?= render_tab_icon_markup($branding['favicon_url'], 'light') ?>
+                                                <?= render_tab_icon_markup($branding['favicon_url']) ?>
                                             </div>
                                         </div>
                                     </div>
@@ -430,7 +421,7 @@ $branding = get_branding($base);
                                 <div class="mock-tab-chrome">
                                     <div class="mock-tab-pill">
                                         <span class="mock-tab-icon size-16" id="mockDarkTabIcon">
-                                            <?= render_tab_icon_markup($darkFaviconUrl, 'dark') ?>
+                                            <?= render_tab_icon_markup($darkFaviconUrl) ?>
                                         </span>
                                         <span class="mock-tab-title" id="mockDarkTabTitle"><?= htmlspecialchars($branding['app_name']) ?></span>
                                         <span class="mock-tab-close" aria-hidden="true">&times;</span>
@@ -442,13 +433,13 @@ $branding = get_branding($base);
                                         <div class="mock-size-badge">
                                             <span>16 بكسل</span>
                                             <div class="mock-icon-box size-16" id="mockDarkBox16">
-                                                <?= render_tab_icon_markup($darkFaviconUrl, 'dark') ?>
+                                                <?= render_tab_icon_markup($darkFaviconUrl) ?>
                                             </div>
                                         </div>
                                         <div class="mock-size-badge">
                                             <span>32 بكسل</span>
                                             <div class="mock-icon-box size-32" id="mockDarkBox32">
-                                                <?= render_tab_icon_markup($darkFaviconUrl, 'dark') ?>
+                                                <?= render_tab_icon_markup($darkFaviconUrl) ?>
                                             </div>
                                         </div>
                                     </div>
@@ -484,7 +475,7 @@ $branding = get_branding($base);
                                         <span class="drop-zone-hint">SVG أو PNG مربعة — الحد الأقصى: 256 كيلوبايت</span>
                                     </div>
 
-                                    <div class="drop-zone-staged hidden" id="staged_favicon">
+                                    <div class="drop-zone-staged hidden" id="staged_favicon" style="display: none;">
                                         <div class="staged-preview-wrap">
                                             <img src="" alt="" class="staged-thumb" id="thumb_favicon">
                                         </div>
@@ -498,7 +489,7 @@ $branding = get_branding($base);
                                         </button>
                                     </div>
                                 </div>
-                                <div class="drop-zone-error hidden" id="error_favicon"></div>
+                                <div class="drop-zone-error hidden" id="error_favicon" style="display: none;"></div>
                                 <span class="form-hint" style="margin-top: var(--space-2); display: block;">إذا تم رفع ملف SVG غير مربع، سيتم ضبط إحداثياته تلقائياً ليتوسط مساحة مربعة.</span>
                             </div>
                         </div>
@@ -534,7 +525,7 @@ $branding = get_branding($base);
                                         <span class="drop-zone-hint">SVG أو PNG مربعة — الحد الأقصى: 256 كيلوبايت</span>
                                     </div>
 
-                                    <div class="drop-zone-staged hidden" id="staged_favicon_dark">
+                                    <div class="drop-zone-staged hidden" id="staged_favicon_dark" style="display: none;">
                                         <div class="staged-preview-wrap">
                                             <img src="" alt="" class="staged-thumb" id="thumb_favicon_dark">
                                         </div>
@@ -548,7 +539,7 @@ $branding = get_branding($base);
                                         </button>
                                     </div>
                                 </div>
-                                <div class="drop-zone-error hidden" id="error_favicon_dark"></div>
+                                <div class="drop-zone-error hidden" id="error_favicon_dark" style="display: none;"></div>
                                 <span class="form-hint" style="margin-top: var(--space-2); display: block;">إذا لم يتم رفع هذه النسخة، ستُستخدم الأيقونة الأساسية في التبويبات الداكنة أيضاً.</span>
                             </div>
                         </div>
@@ -560,14 +551,6 @@ $branding = get_branding($base);
                     </div>
                 </div>
             </section>
-
-            <!-- Bottom Actions Bar -->
-            <div class="branding-actions-bar">
-                <button type="submit" class="btn btn-primary btn-lg">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-                    حفظ كافة التغييرات
-                </button>
-            </div>
         </form>
 
         <!-- Hidden Reset Forms -->
@@ -671,38 +654,28 @@ $branding = get_branding($base);
             });
         }
 
-        // Update mock tab icons (light/dark)
-        function renderMockIcon(containerId, url, isSvg, scheme) {
+        // Update mock tab icons
+        function renderMockIcon(containerId, url) {
             const el = document.getElementById(containerId);
             if (!el) return;
             el.innerHTML = '';
-            if (isSvg) {
-                const iframe = document.createElement('iframe');
-                iframe.src = url;
-                iframe.style.colorScheme = scheme;
-                iframe.setAttribute('title', 'معاينة أيقونة المتصفح');
-                iframe.setAttribute('aria-hidden', 'true');
-                iframe.className = 'mock-iframe-icon';
-                el.appendChild(iframe);
-            } else {
-                const img = document.createElement('img');
-                img.src = url;
-                img.alt = 'معاينة أيقونة المتصفح';
-                img.className = 'mock-img-icon';
-                el.appendChild(img);
-            }
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = 'معاينة أيقونة المتصفح';
+            img.className = 'mock-img-icon';
+            el.appendChild(img);
         }
 
-        function updateLightMockTabs(url, isSvg) {
-            renderMockIcon('mockLightTabIcon', url, isSvg, 'light');
-            renderMockIcon('mockLightBox16', url, isSvg, 'light');
-            renderMockIcon('mockLightBox32', url, isSvg, 'light');
+        function updateLightMockTabs(url) {
+            renderMockIcon('mockLightTabIcon', url);
+            renderMockIcon('mockLightBox16', url);
+            renderMockIcon('mockLightBox32', url);
         }
 
-        function updateDarkMockTabs(url, isSvg) {
-            renderMockIcon('mockDarkTabIcon', url, isSvg, 'dark');
-            renderMockIcon('mockDarkBox16', url, isSvg, 'dark');
-            renderMockIcon('mockDarkBox32', url, isSvg, 'dark');
+        function updateDarkMockTabs(url) {
+            renderMockIcon('mockDarkTabIcon', url);
+            renderMockIcon('mockDarkBox16', url);
+            renderMockIcon('mockDarkBox32', url);
         }
 
         // Drop Zone Handler setup
@@ -726,6 +699,7 @@ $branding = get_branding($base);
                 if (errorEl) {
                     errorEl.textContent = msg;
                     errorEl.classList.remove('hidden');
+                    errorEl.style.display = 'block';
                 }
             }
 
@@ -733,14 +707,21 @@ $branding = get_branding($base);
                 if (errorEl) {
                     errorEl.textContent = '';
                     errorEl.classList.add('hidden');
+                    errorEl.style.display = 'none';
                 }
             }
 
             function resetStaged() {
                 input.value = '';
                 clearError();
-                if (stagedBox) stagedBox.classList.add('hidden');
-                if (promptBox) promptBox.classList.remove('hidden');
+                if (stagedBox) {
+                    stagedBox.classList.add('hidden');
+                    stagedBox.style.display = 'none';
+                }
+                if (promptBox) {
+                    promptBox.classList.remove('hidden');
+                    promptBox.style.display = 'flex';
+                }
                 if (thumbImg) thumbImg.src = '';
                 if (nameEl) nameEl.textContent = '';
                 if (sizeEl) sizeEl.textContent = '';
@@ -753,18 +734,15 @@ $branding = get_branding($base);
                     const img = document.getElementById('preview_logo_light');
                     if (img) img.src = initialPreviews.logo_light;
                 } else if (fieldKey === 'favicon') {
-                    const isSvg = initialPreviews.favicon.toLowerCase().includes('.svg');
-                    updateLightMockTabs(initialPreviews.favicon, isSvg);
+                    updateLightMockTabs(initialPreviews.favicon);
                     // If no custom dark variant staged, also revert dark tab
                     const darkInput = document.getElementById('file_favicon_dark');
                     if (!darkInput || !darkInput.files || darkInput.files.length === 0) {
-                        const isDarkSvg = initialPreviews.favicon_dark.toLowerCase().includes('.svg');
-                        updateDarkMockTabs(initialPreviews.favicon_dark, isDarkSvg);
+                        updateDarkMockTabs(initialPreviews.favicon_dark);
                     }
                 } else if (fieldKey === 'favicon_dark') {
                     const fallback = initialPreviews.favicon_dark || initialPreviews.favicon;
-                    const isSvg = fallback.toLowerCase().includes('.svg');
-                    updateDarkMockTabs(fallback, isSvg);
+                    updateDarkMockTabs(fallback);
                 }
 
                 checkUnsavedChanges();
@@ -815,14 +793,19 @@ $branding = get_branding($base);
 
             function applyStaging(file, ext) {
                 const objectUrl = URL.createObjectURL(file);
-                const isSvg = (ext === 'svg');
 
                 if (nameEl) nameEl.textContent = file.name;
                 if (sizeEl) sizeEl.textContent = formatSize(file.size);
                 if (thumbImg) thumbImg.src = objectUrl;
 
-                if (promptBox) promptBox.classList.add('hidden');
-                if (stagedBox) stagedBox.classList.remove('hidden');
+                if (promptBox) {
+                    promptBox.classList.add('hidden');
+                    promptBox.style.display = 'none';
+                }
+                if (stagedBox) {
+                    stagedBox.classList.remove('hidden');
+                    stagedBox.style.display = 'flex';
+                }
 
                 // Live Preview Updates
                 if (fieldKey === 'logo_dark') {
@@ -832,14 +815,14 @@ $branding = get_branding($base);
                     const preview = document.getElementById('preview_logo_light');
                     if (preview) preview.src = objectUrl;
                 } else if (fieldKey === 'favicon') {
-                    updateLightMockTabs(objectUrl, isSvg);
+                    updateLightMockTabs(objectUrl);
                     // Also update dark tab if dark variant is not explicitly staged
                     const darkInput = document.getElementById('file_favicon_dark');
                     if (!darkInput || !darkInput.files || darkInput.files.length === 0) {
-                        updateDarkMockTabs(objectUrl, isSvg);
+                        updateDarkMockTabs(objectUrl);
                     }
                 } else if (fieldKey === 'favicon_dark') {
-                    updateDarkMockTabs(objectUrl, isSvg);
+                    updateDarkMockTabs(objectUrl);
                 }
 
                 checkUnsavedChanges();

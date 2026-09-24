@@ -82,15 +82,17 @@ if (env('APP_ENV') === 'development' && $loadedEnvFile) {
 define('APP_ENV', env('APP_ENV', 'development'));
 
 // Test database override for automated test suites:
-// Strictly honored ONLY when APP_ENV === 'development' AND request originates from loopback (127.0.0.1 or ::1)
+// Strictly opt-in: honored ONLY when APP_ENV === 'development', request is loopback/CLI,
+// TEST_DB_NAME is defined in .env, ends with '_test', and incoming header matches TEST_DB_NAME exactly.
 if (APP_ENV === 'development') {
     $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '';
-    $isLoopback = in_array($remoteAddr, ['127.0.0.1', '::1'], true) || PHP_SAPI === 'cli';
+    $isLoopback = in_array($remoteAddr, ['127.0.0.1', '::1'], true) || (PHP_SAPI === 'cli' && $remoteAddr === '');
+    $testDbName = env('TEST_DB_NAME');
     $headerTestDb = $_SERVER['HTTP_X_TASKFLOW_TEST_DB'] ?? '';
-    if ($isLoopback && $headerTestDb === '1') {
-        putenv('DB_NAME=taskflow_test');
-        $_ENV['DB_NAME'] = 'taskflow_test';
-        $_SERVER['DB_NAME'] = 'taskflow_test';
+    if ($isLoopback && !empty($testDbName) && str_ends_with($testDbName, '_test') && $headerTestDb === $testDbName) {
+        putenv("DB_NAME={$testDbName}");
+        $_ENV['DB_NAME'] = $testDbName;
+        $_SERVER['DB_NAME'] = $testDbName;
     }
 }
 
