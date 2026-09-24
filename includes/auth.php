@@ -214,6 +214,87 @@ function can_update_task_status($pdo, $userId, $taskId) {
            ($row['assigned_to'] !== null && (int)$row['assigned_to'] === (int)$userId);
 }
 
+function can_view_task($pdo, $userId, $taskId): bool {
+    if (!$userId || !$taskId) {
+        return false;
+    }
+    if (is_admin()) {
+        $stmt = $pdo->prepare("SELECT 1 FROM tasks WHERE id = ?");
+        $stmt->execute([$taskId]);
+        return (bool)$stmt->fetchColumn();
+    }
+    // DB role check fallback if session is not active
+    $uStmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
+    $uStmt->execute([$userId]);
+    if ($uStmt->fetchColumn() === 'admin') {
+        $stmt = $pdo->prepare("SELECT 1 FROM tasks WHERE id = ?");
+        $stmt->execute([$taskId]);
+        return (bool)$stmt->fetchColumn();
+    }
+
+    $stmt = $pdo->prepare("
+        SELECT t.id, t.assigned_to, p.user_id AS owner_id
+        FROM tasks t
+        JOIN projects p ON t.project_id = p.id
+        WHERE t.id = ?
+    ");
+    $stmt->execute([$taskId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$row) {
+        return false;
+    }
+    return ((int)$row['owner_id'] === (int)$userId) ||
+           ($row['assigned_to'] !== null && (int)$row['assigned_to'] === (int)$userId);
+}
+
+function can_comment_task($pdo, $userId, $taskId): bool {
+    return can_view_task($pdo, $userId, $taskId);
+}
+
+function can_edit_comment($pdo, $userId, $commentId): bool {
+    if (!$userId || !$commentId) {
+        return false;
+    }
+    $stmt = $pdo->prepare("SELECT user_id FROM task_comments WHERE id = ?");
+    $stmt->execute([$commentId]);
+    $authorId = $stmt->fetchColumn();
+    return ($authorId !== false && $authorId !== null && (int)$authorId === (int)$userId);
+}
+
+function can_delete_comment($pdo, $userId, $commentId): bool {
+    if (!$userId || !$commentId) {
+        return false;
+    }
+    if (is_admin()) {
+        $stmt = $pdo->prepare("SELECT 1 FROM task_comments WHERE id = ?");
+        $stmt->execute([$commentId]);
+        return (bool)$stmt->fetchColumn();
+    }
+    // DB role check fallback if session is not active
+    $uStmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
+    $uStmt->execute([$userId]);
+    if ($uStmt->fetchColumn() === 'admin') {
+        $stmt = $pdo->prepare("SELECT 1 FROM task_comments WHERE id = ?");
+        $stmt->execute([$commentId]);
+        return (bool)$stmt->fetchColumn();
+    }
+
+    $stmt = $pdo->prepare("
+        SELECT c.user_id AS author_id, p.user_id AS project_owner_id
+        FROM task_comments c
+        JOIN tasks t ON c.task_id = t.id
+        JOIN projects p ON t.project_id = p.id
+        WHERE c.id = ?
+    ");
+    $stmt->execute([$commentId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$row) {
+        return false;
+    }
+    return ($row['author_id'] !== null && (int)$row['author_id'] === (int)$userId) ||
+           ((int)$row['project_owner_id'] === (int)$userId);
+}
+
 function get_user_initials(?string $name): string {
     if ($name === null) return 'TF';
     $clean = trim($name);

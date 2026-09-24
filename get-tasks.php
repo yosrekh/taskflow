@@ -3,8 +3,10 @@ require_once __DIR__ . '/includes/auth.php';
 require_login_json();
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/includes/db.php';
+global $pdo;
 
 $project_id = $_GET['project_id'] ?? null;
+
 $user_id = $_SESSION['user_id'];
 
 if (!$project_id) {
@@ -25,7 +27,8 @@ try {
     $canManage = can_manage_project($pdo, $user_id, $project_id);
     if ($canManage) {
         $stmt = $pdo->prepare("
-            SELECT t.*, u.name AS assignee_name
+            SELECT t.*, u.name AS assignee_name,
+                   (SELECT COUNT(*) FROM task_comments tc WHERE tc.task_id = t.id) AS comments_count
             FROM tasks t
             LEFT JOIN users u ON t.assigned_to = u.id
             WHERE t.project_id = ?
@@ -34,7 +37,8 @@ try {
         $tasks = $stmt->fetchAll();
     } else {
         $stmt = $pdo->prepare("
-            SELECT t.*, u.name AS assignee_name
+            SELECT t.*, u.name AS assignee_name,
+                   (SELECT COUNT(*) FROM task_comments tc WHERE tc.task_id = t.id) AS comments_count
             FROM tasks t
             LEFT JOIN users u ON t.assigned_to = u.id
             WHERE t.project_id = ? AND t.assigned_to = ?
@@ -47,6 +51,7 @@ try {
     foreach ($tasks as &$task) {
         $task['can_edit'] = $canManage;
         $task['can_delete'] = $canManage;
+        $task['comments_count'] = (int)($task['comments_count'] ?? 0);
     }
 
     echo json_encode(['success' => true, 'tasks' => $tasks]);
