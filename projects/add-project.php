@@ -13,166 +13,88 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } else {
         $title = trim($_POST['title'] ?? '');
         $description = trim($_POST['description'] ?? '');
-        $user_id = $_SESSION['user_id'];
+        $user_id = (int)$_SESSION['user_id'];
 
-        try {
-            $stmt = $pdo->prepare("INSERT INTO projects (user_id, title, description) VALUES (?, ?, ?)");
-            $stmt->execute([$user_id, $title, $description]);
-            $success = "تم إنشاء المشروع بنجاح.";
-            // Notify owner
-            $msg = "تم إنشاء مشروع جديد '{$title}'";
-            $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$user_id, $msg]);
-        } catch (PDOException $e) {
-            error_log("Add project error: " . $e->getMessage());
-            $error = "فشل في إنشاء المشروع.";
+        if (empty($title)) {
+            $error = "يرجى إدخال عنوان للمشروع.";
+        } else {
+            try {
+                $stmt = $pdo->prepare("INSERT INTO projects (user_id, title, description) VALUES (?, ?, ?)");
+                $stmt->execute([$user_id, $title, $description]);
+                $new_proj_id = $pdo->lastInsertId();
+                $success = "تم إنشاء المشروع بنجاح.";
+                
+                // Notify owner
+                $msg = "تم إنشاء مشروع جديد '{$title}'";
+                $pdo->prepare("INSERT INTO notifications (user_id, message) VALUES (?, ?)")->execute([$user_id, $msg]);
+
+                header("Location: ../dashboard.php?msg=project_created");
+                exit;
+            } catch (PDOException $e) {
+                error_log("Add project error: " . $e->getMessage());
+                $error = "فشل في إنشاء المشروع.";
+            }
         }
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <title>إنشاء مشروع - TaskFlow</title>
-    <link rel="stylesheet" href="<?= $base ?>css/styles.css">
-    <style>
-        body {
-            background: linear-gradient(135deg, #232526 0%, #414345 100%);
-            min-height: 100vh;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .pro-form-container {
-            background: rgba(255,255,255,0.07);
-            border-radius: 24px;
-            box-shadow: 0 8px 32px 0 rgba(31,38,135,0.37);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 1px solid rgba(255,255,255,0.18);
-            padding: 48px 32px 32px 32px;
-            text-align: center;
-            max-width: 420px;
-            width: 100%;
-            animation: fadeInUp 1s cubic-bezier(.39,.575,.565,1.000) both;
-        }
-        .pro-form-container h2 {
-            color: #1abc9c;
-            margin-bottom: 18px;
-            font-size: 1.5rem;
-            text-shadow: 0 2px 8px rgba(26,188,156,0.15);
-        }
-        .pro-form-container label {
-            color: #fff;
-            display: block;
-            text-align: right;
-            margin-bottom: 6px;
-            font-size: 1rem;
-            opacity: 0.85;
-        }
-        .pro-form-container input,
-        .pro-form-container textarea {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 18px;
-            border: none;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.15);
-            color: #FFF;
-            font-size: 1rem;
-            transition: box-shadow 0.2s;
-        }
-        .pro-form-container input:focus,
-        .pro-form-container textarea:focus {
-            outline: none;
-            box-shadow: 0 0 0 2px #1abc9c;
-        }
-        .pro-form-container button {
-            width: 100%;
-            background: linear-gradient(90deg, #1abc9c 0%, #16a085 100%);
-            color: #fff;
-            padding: 12px 0;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 16px rgba(26,188,156,0.15);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-         .btn {
-            background: linear-gradient(90deg, #1abc9c 0%, #16a085 100%);
-            color: #fff;
-            padding: 10px 22px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            text-decoration: none;
-            margin-left: 8px;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 4px 16px rgba(26,188,156,0.15);
-        }
-        .pro-dashboard-header .btn:hover {
-            transform: translateY(-2px) scale(1.03);
-            box-shadow: 0 8px 24px rgba(26,188,156,0.25);
-        }
-
-
-
-        .pro-form-container button:hover {
-            transform: translateY(-2px) scale(1.03);
-            box-shadow: 0 8px 24px rgba(26,188,156,0.25);
-        }
-        .pro-form-container .error {
-            color: #e74c3c;
-            background: rgba(231,76,60,0.08);
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 18px;
-            font-size: 1rem;
-        }
-        .pro-form-container .success {
-            color: #27ae60;
-            background: rgba(39,174,96,0.08);
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 18px;
-            font-size: 1rem;
-        }
-        @keyframes fadeInUp {
-            0% { opacity: 0; transform: translateY(40px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-    </style>
+    <?php
+    $page_title = 'إنشاء مشروع جديد';
+    include __DIR__ . '/../includes/header-meta.php';
+    ?>
 </head>
 <body>
-    <?php include '../includes/nav.php'; render_nav($base); ?>
-<div class="pro-form-container">
-<a href="../dashboard.php" class="btn"> الرجوع إلى قائمة المشاريع </a>
+    <?php
+    include __DIR__ . '/../includes/nav.php';
+    render_nav($base);
+    ?>
 
-    <h2>إنشاء مشروع جديد</h2>
-    <?php if ($error): ?>
-        <p class="error"><?= e($error) ?></p>
-    <?php elseif ($success): ?>
-        <p class="success"><?= e($success) ?></p>
-    <?php endif; ?>
+    <main>
+        <div class="form-page-container">
+            <header class="page-header">
+                <div class="page-title-wrap">
+                    <a href="../dashboard.php" class="btn-ghost btn-sm" style="display:inline-flex;margin-block-end:var(--space-2);width:fit-content;">
+                        ← العودة إلى لوحة التحكم
+                    </a>
+                    <h1 class="page-title">إنشاء مشروع جديد</h1>
+                    <p class="page-subtitle">أدخل تفاصيل المشروع لتنظيم المهام وتعيين المسؤوليات</p>
+                </div>
+            </header>
 
-    <form method="POST">
-        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-        <label>عنوان المشروع:</label>
-        <input type="text" name="title" required>
+            <?php if ($error): ?>
+                <div class="alert alert-error" role="alert">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    <span><?= htmlspecialchars($error) ?></span>
+                </div>
+            <?php endif; ?>
 
-        <label>وصف المشروع:</label>
-        <textarea name="description" rows="5"></textarea>
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" action="add-project.php">
+                        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
 
-        <button type="submit">حفظ المشروع</button>
-    </form>
-</div>
+                        <div class="form-group">
+                            <label for="title" class="form-label">عنوان المشروع <span class="required">*</span></label>
+                            <input type="text" id="title" name="title" class="form-control" required autofocus placeholder="مثال: تطوير المنصة الرقمية" value="<?= htmlspecialchars($_POST['title'] ?? '') ?>">
+                        </div>
 
-<script src="<?= $base ?>js/main.js"></script>
+                        <div class="form-group">
+                            <label for="description" class="form-label">وصف المشروع</label>
+                            <textarea id="description" name="description" class="form-textarea" rows="4" placeholder="أهداف المشروع ومتطلباته العامة..."><?= htmlspecialchars($_POST['description'] ?? '') ?></textarea>
+                            <span class="form-hint">اختياري، يساعد فريق العمل على فهم سياق المشروع.</span>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">حفظ وإنشاء المشروع</button>
+                            <a href="../dashboard.php" class="btn btn-secondary">إلغاء</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
 </body>
 </html>
