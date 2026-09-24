@@ -44,17 +44,19 @@ if (!$lockFp || !flock($lockFp, LOCK_EX | LOCK_NB)) {
 }
 
 // 5. Logging Helper
-function cron_log(string $message): void {
+function cron_log(string $message, bool $isError = false): void {
     $timestamp = date('Y-m-d H:i:s');
     $line = "[$timestamp] [CRON] $message\n";
     $logFile = env('LOG_FILE');
 
     if (!empty($logFile)) {
         @file_put_contents($logFile, $line, FILE_APPEND);
+        if ($isError) {
+            fwrite(STDERR, $line);
+        }
     } else {
-        fwrite(STDERR, $line);
+        echo $line;
     }
-    echo $line;
 }
 
 // -----------------------------------------------------------------------------
@@ -234,7 +236,8 @@ function cron_job_backup(PDO $pdo, string $projectRoot, bool $isDryRun): bool {
         set_setting('backup_last_success', date('Y-m-d H:i:s'));
         set_setting('backup_last_file', $filename);
 
-        cron_log("Job 1 [Backup] completed successfully: {$filename}");
+        $absPath = realpath($filePath) ?: $filePath;
+        cron_log("Job 1 [Backup] completed successfully: {$absPath}");
         return true;
 
     } catch (Exception $e) {
@@ -314,6 +317,12 @@ function cron_job_cleanup(PDO $pdo, bool $isDryRun): bool {
 // JOB 3: Due-Date Reminders (Idempotent via task_reminders table)
 // -----------------------------------------------------------------------------
 function cron_job_reminders(PDO $pdo, bool $isDryRun): bool {
+    $tableExists = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'task_reminders'")->fetchColumn() > 0;
+    if (!$tableExists) {
+        cron_log("Job 3 [Reminders] SKIPPED: Required table 'task_reminders' does not exist. Apply pending migration 004_task_reminders.sql first.", true);
+        return false;
+    }
+
     $tzName = defined('APP_TIMEZONE') ? APP_TIMEZONE : 'Africa/Cairo';
     $tz = new DateTimeZone($tzName);
     $tomorrow = (new DateTime('+1 day', $tz))->format('Y-m-d');
@@ -425,13 +434,20 @@ $startTime = date('Y-m-d H:i:s');
 
 cron_log("Daily cron started at {$startTime}");
 
+// Pre-check: Pending migrations
+require_once $projectRoot . '/includes/migrations.php';
+$pendingMigrations = get_pending_migrations($pdo);
+if (!empty($pendingMigrations)) {
+    cron_log("Notice: Pending database migration(s) detected: " . implode(', ', $pendingMigrations) . ". Run 'php bin/migrate.php --apply' or visit admin/migrations.php.", true);
+}
+
 // JOB 1: Backup
 if ($jobsToRun['backup']) {
     try {
         cron_job_backup($pdo, $projectRoot, $isDryRun);
     } catch (Throwable $e) {
         $hadFailure = true;
-        cron_log("Job 1 [Backup] FAILED: " . $e->getMessage());
+        cron_log("Job 1 [Backup] FAILED: " . $e->getMessage(), true);
     }
 }
 
@@ -441,17 +457,19 @@ if ($jobsToRun['cleanup']) {
         cron_job_cleanup($pdo, $isDryRun);
     } catch (Throwable $e) {
         $hadFailure = true;
-        cron_log("Job 2 [Cleanup] FAILED: " . $e->getMessage());
+        cron_log("Job 2 [Cleanup] FAILED: " . $e->getMessage(), true);
     }
 }
 
 // JOB 3: Reminders
 if ($jobsToRun['reminders']) {
     try {
-        cron_job_reminders($pdo, $isDryRun);
+        if (!cron_job_reminders($pdo, $isDryRun)) {
+            $hadFailure = true;
+        }
     } catch (Throwable $e) {
         $hadFailure = true;
-        cron_log("Job 3 [Reminders] FAILED: " . $e->getMessage());
+        cron_log("Job 3 [Reminders] FAILED: " . $e->getMessage(), true);
     }
 }
 

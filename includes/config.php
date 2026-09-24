@@ -73,9 +73,16 @@ function env($key, $default = null) {
     return $val;
 }
 
-// Log (not display) which file was loaded when APP_ENV=development
+// Log (not display) which file was loaded when APP_ENV=development (in CLI only if --verbose is passed)
 if (env('APP_ENV') === 'development' && $loadedEnvFile) {
-    error_log("[TaskFlow Config] Loaded environment file: " . $loadedEnvFile);
+    $shouldLog = true;
+    if (PHP_SAPI === 'cli') {
+        $argv = $_SERVER['argv'] ?? [];
+        $shouldLog = in_array('--verbose', $argv, true);
+    }
+    if ($shouldLog) {
+        error_log("[TaskFlow Config] Loaded environment file: " . $loadedEnvFile);
+    }
 }
 
 // Environment configuration
