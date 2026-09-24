@@ -9,7 +9,17 @@ function render_nav($base = '') {
     $userInitials = function_exists('get_user_initials') ? get_user_initials($userName) : 'TF';
     $isAdminUser = function_exists('is_admin') && is_admin();
     $isBranding = ($currentScript === 'branding.php');
+    $isMigrations = ($currentScript === 'migrations.php');
     $branding = get_branding($base);
+
+    $pendingMigrationsCount = 0;
+    if ($isAdminUser) {
+        require_once dirname(__DIR__) . '/includes/migrations.php';
+        global $pdo;
+        if ($pdo) {
+            $pendingMigrationsCount = count(get_pending_migrations($pdo));
+        }
+    }
     ?>
     <nav class="app-nav" aria-label="التنقل الرئيسي">
         <div class="nav-container">
@@ -27,6 +37,14 @@ function render_nav($base = '') {
                     </li>
                     <li>
                         <a href="<?= $base ?>admin/branding.php" class="nav-link <?= $isBranding ? 'is-active' : '' ?>">الهوية البصرية</a>
+                    </li>
+                    <li>
+                        <a href="<?= $base ?>admin/migrations.php" class="nav-link <?= $isMigrations ? 'is-active' : '' ?>">
+                            تحديثات قاعدة البيانات
+                            <?php if ($pendingMigrationsCount > 0): ?>
+                                <span class="badge" style="background-color: var(--orange-500); color: #fff; padding: 2px 6px; font-size: 0.75rem; margin-inline-start: 4px; border-radius: var(--radius-full);"><?= $pendingMigrationsCount ?></span>
+                            <?php endif; ?>
+                        </a>
                     </li>
                     <?php endif; ?>
                 </ul>
@@ -105,6 +123,20 @@ function render_nav($base = '') {
         </div>
     </nav>
     <div class="app-nav-spacer"></div>
+
+    <?php if ($isAdminUser && $pendingMigrationsCount > 0 && $currentScript !== 'migrations.php'): ?>
+    <aside class="alert alert-warning" role="alert" style="margin: 0; border-radius: 0; border-inline: none; display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) var(--space-5);">
+        <div style="display: flex; align-items: center; gap: var(--space-3);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0" aria-hidden="true">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span style="font-weight: 500;">فيه تحديثات لقاعدة البيانات مستنية التطبيق (<?= $pendingMigrationsCount ?>)</span>
+        </div>
+        <a href="<?= $base ?>admin/migrations.php" class="btn btn-secondary btn-sm" style="white-space: nowrap;">تطبيق التحديثات</a>
+    </aside>
+    <?php endif; ?>
 
     <script>
     (function () {

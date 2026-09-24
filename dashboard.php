@@ -7,8 +7,36 @@ $base = '';
 $user_id = (int)$_SESSION['user_id'];
 $userName = $_SESSION['user_name'] ?? 'مستخدم';
 
+$showBackupWarning = false;
+$backupWarningMessage = '';
+
 // Single aggregated query to fetch projects with task counts and progress (No N+1)
 if (is_admin()) {
+    require_once __DIR__ . '/includes/branding.php';
+    $backupLastSuccess = get_setting('backup_last_success');
+    if (empty($backupLastSuccess)) {
+        $showBackupWarning = true;
+        $backupWarningMessage = 'مفيش أي نسخة احتياطية لحد دلوقتي. اتأكد إن الـ cron شغال.';
+    } else {
+        $lastSuccessTs = strtotime($backupLastSuccess);
+        if ($lastSuccessTs === false || (time() - $lastSuccessTs) > 172800) {
+            $showBackupWarning = true;
+            $diff = max(0, time() - ($lastSuccessTs ?: time()));
+            $hours = (int)floor($diff / 3600);
+            $days = (int)floor($hours / 24);
+            if ($days === 2) {
+                $relativeTime = 'يومين';
+            } elseif ($days >= 3 && $days <= 10) {
+                $relativeTime = "{$days} أيام";
+            } elseif ($days > 10) {
+                $relativeTime = "{$days} يوم";
+            } else {
+                $relativeTime = "{$hours} ساعة";
+            }
+            $backupWarningMessage = "آخر نسخة احتياطية ناجحة كانت من {$relativeTime}. اتأكد إن الـ cron شغال.";
+        }
+    }
+
     $stmt = $pdo->query("
         SELECT 
             projects.*, 
@@ -143,6 +171,37 @@ function render_project_card($p, $pdo, $user_id, $base = '') {
     ?>
 
     <main>
+        <?php if ($showBackupWarning): ?>
+            <div class="alert alert-warning" id="backupStaleBanner" role="alert" style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: var(--space-3);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0" aria-hidden="true">
+                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                    <span><?= htmlspecialchars($backupWarningMessage) ?></span>
+                </div>
+                <button type="button" class="btn-icon" id="dismissBackupWarningBtn" aria-label="إغلاق التنبيه" title="إغلاق" style="border: none; background: transparent; cursor: pointer; color: inherit; font-size: 1.25rem; line-height: 1; padding: var(--space-1);">
+                    &times;
+                </button>
+            </div>
+            <script>
+            (function() {
+                var banner = document.getElementById('backupStaleBanner');
+                var btn = document.getElementById('dismissBackupWarningBtn');
+                if (sessionStorage.getItem('taskflow_dismiss_backup_warning') === '1') {
+                    if (banner) banner.setAttribute('hidden', '');
+                }
+                if (btn && banner) {
+                    btn.addEventListener('click', function() {
+                        banner.setAttribute('hidden', '');
+                        sessionStorage.setItem('taskflow_dismiss_backup_warning', '1');
+                    });
+                }
+            })();
+            </script>
+        <?php endif; ?>
+
         <?php if (isset($_GET['msg']) && $_GET['msg'] === 'password_changed'): ?>
             <div class="alert alert-success" role="alert">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><polyline points="20 6 9 17 4 12"></polyline></svg>
