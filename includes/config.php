@@ -78,14 +78,27 @@ if (env('APP_ENV') === 'development' && $loadedEnvFile) {
     error_log("[TaskFlow Config] Loaded environment file: " . $loadedEnvFile);
 }
 
+// Environment configuration
+define('APP_ENV', env('APP_ENV', 'development'));
+
+// Test database override for automated test suites:
+// Strictly honored ONLY when APP_ENV === 'development' AND request originates from loopback (127.0.0.1 or ::1)
+if (APP_ENV === 'development') {
+    $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '';
+    $isLoopback = in_array($remoteAddr, ['127.0.0.1', '::1'], true) || PHP_SAPI === 'cli';
+    $headerTestDb = $_SERVER['HTTP_X_TASKFLOW_TEST_DB'] ?? '';
+    if ($isLoopback && $headerTestDb === '1') {
+        putenv('DB_NAME=taskflow_test');
+        $_ENV['DB_NAME'] = 'taskflow_test';
+        $_SERVER['DB_NAME'] = 'taskflow_test';
+    }
+}
+
 // Database configuration
 define('DB_HOST', env('DB_HOST', 'localhost'));
 define('DB_NAME', env('DB_NAME', 'taskflow_db'));
 define('DB_USER', env('DB_USER', 'root'));
 define('DB_PASS', env('DB_PASS', ''));
-
-// Environment configuration
-define('APP_ENV', env('APP_ENV', 'development'));
 
 // Timezone configuration (default Africa/Cairo)
 define('APP_TIMEZONE', env('APP_TIMEZONE', 'Africa/Cairo'));
