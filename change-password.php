@@ -67,121 +67,89 @@ $base = '';
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <title>تغيير كلمة المرور - TaskFlow</title>
-    <link rel="stylesheet" href="<?= $base ?>css/styles.css">
-    <style>
-        body {
-            background: linear-gradient(135deg, #232526 0%, #414345 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0;
-        }
-        .pro-auth-container {
-            background: rgba(255,255,255,0.07);
-            border-radius: 24px;
-            box-shadow: 0 8px 32px 0 rgba(31,38,135,0.37);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 1px solid rgba(255,255,255,0.18);
-            padding: 40px 32px 32px 32px;
-            text-align: center;
-            max-width: 440px;
-            width: 100%;
-            animation: fadeInUp 0.7s cubic-bezier(.39,.575,.565,1.000) both;
-        }
-        .pro-logo {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #1abc9c;
-            margin-bottom: 12px;
-            letter-spacing: 2px;
-        }
-        .pro-auth-container h2 {
-            color: #fff;
-            margin-bottom: 18px;
-            font-size: 1.4rem;
-        }
-        .pro-auth-container input {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 18px;
-            border: none;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.15);
-            color: #222;
-            font-size: 1rem;
-            box-sizing: border-box;
-            transition: box-shadow 0.2s;
-        }
-        .pro-auth-container input:focus {
-            outline: none;
-            box-shadow: 0 0 0 2px #1abc9c;
-        }
-        .pro-auth-container button {
-            width: 100%;
-            background: linear-gradient(90deg, #1abc9c 0%, #16a085 100%);
-            color: #fff;
-            padding: 12px 0;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 16px rgba(26,188,156,0.15);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .pro-auth-container button:hover {
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 8px 24px rgba(26,188,156,0.25);
-        }
-        .pro-auth-container .error {
-            color: #e74c3c;
-            background: rgba(231,76,60,0.1);
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 18px;
-            font-size: 0.95rem;
-        }
-        .pro-auth-container .info {
-            color: #f39c12;
-            background: rgba(243,156,18,0.15);
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 18px;
-            font-size: 0.95rem;
-        }
-        @keyframes fadeInUp {
-            0% { opacity: 0; transform: translateY(30px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-    </style>
+    <?php
+    $page_title = 'تغيير كلمة المرور';
+    include __DIR__ . '/includes/header-meta.php';
+    ?>
 </head>
-<body>
-    <?php include __DIR__ . '/includes/nav.php'; render_nav($base); ?>
+<body class="auth-wrapper">
+    <?php if (!$is_forced) {
+        include_once __DIR__ . '/includes/nav.php';
+        render_nav($base);
+    } ?>
 
-    <div class="pro-auth-container">
-        <div class="pro-logo">TaskFlow</div>
-        <h2>تغيير كلمة المرور</h2>
+    <div class="auth-card">
+        <div class="auth-header">
+            <a href="dashboard.php" class="auth-brand" aria-label="TaskFlow">
+                <img src="<?= $base ?>assets/logo-horizontal-light.svg" alt="TaskFlow" class="brand-logo brand-logo-light">
+                <img src="<?= $base ?>assets/logo-horizontal-dark.svg" alt="TaskFlow" class="brand-logo brand-logo-dark">
+            </a>
+            <h1 class="auth-title">تغيير كلمة المرور</h1>
+            <p class="auth-subtitle">
+                <?= $is_forced ? 'يجب عليك تعيين كلمة مرور جديدة للمتابعة' : 'قم بتحديث كلمة مرور حسابك بانتظام لأمان أعلى' ?>
+            </p>
+        </div>
 
         <?php if ($is_forced): ?>
-            <div class="info">يجب عليك تعيين كلمة مرور جديدة للمتابعة.</div>
+            <div class="alert alert-warning" role="alert">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <span>تم فرض تغيير كلمة المرور من قِبل الإدارة لأسباب أمنية.</span>
+            </div>
         <?php endif; ?>
 
         <?php if ($error): ?>
-            <p class="error"><?= e($error) ?></p>
+            <div class="alert alert-error" role="alert">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <span><?= htmlspecialchars($error) ?></span>
+            </div>
         <?php endif; ?>
 
-        <form method="POST">
+        <form method="POST" action="change-password.php" novalidate>
             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+
             <?php if (!$is_forced): ?>
-                <input type="password" name="current_password" placeholder="كلمة المرور الحالية" required>
+            <div class="form-group">
+                <label for="current_password" class="form-label">كلمة المرور الحالية <span class="required">*</span></label>
+                <div class="password-field-wrapper">
+                    <input type="password" id="current_password" name="current_password" class="form-control" required autocomplete="current-password">
+                    <button type="button" class="password-toggle-btn" aria-label="إظهار كلمة المرور">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
+            </div>
             <?php endif; ?>
-            <input type="password" name="new_password" placeholder="كلمة المرور الجديدة (10 أحرف على الأقل)" required minlength="10">
-            <input type="password" name="confirm_password" placeholder="تأكيد كلمة المرور الجديدة" required minlength="10">
-            <button type="submit">تحديث كلمة المرور</button>
+
+            <div class="form-group">
+                <label for="new_password" class="form-label">كلمة المرور الجديدة <span class="required">*</span></label>
+                <div class="password-field-wrapper">
+                    <input type="password" id="new_password" name="new_password" class="form-control" placeholder="10 أحرف على الأقل" required minlength="10" autocomplete="new-password">
+                    <button type="button" class="password-toggle-btn" aria-label="إظهار كلمة المرور">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
+                <span class="form-hint">يجب أن تتكون من 10 خانات على الأقل وتكون مختلفة عن السابقة.</span>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password" class="form-label">تأكيد كلمة المرور الجديدة <span class="required">*</span></label>
+                <div class="password-field-wrapper">
+                    <input type="password" id="confirm_password" name="confirm_password" class="form-control" required minlength="10" autocomplete="new-password">
+                    <button type="button" class="password-toggle-btn" aria-label="إظهار كلمة المرور">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-submit-auth">تحديث كلمة المرور</button>
         </form>
     </div>
 </body>

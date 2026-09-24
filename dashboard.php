@@ -4,448 +4,220 @@ require_login();
 require_once __DIR__ . '/includes/db.php';
 
 $base = '';
-$user_id = $_SESSION['user_id'];
+$user_id = (int)$_SESSION['user_id'];
+$userName = $_SESSION['user_name'] ?? 'مستخدم';
 
-// Get user info
-$stmt = $pdo->prepare("SELECT name FROM users WHERE id = ?");
-$stmt->execute([$user_id]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-// Get visible projects for current user
+// Single aggregated query to fetch projects with task counts and progress (No N+1)
 if (is_admin()) {
     $stmt = $pdo->query("
-        SELECT projects.*, users.name AS owner_name 
+        SELECT 
+            projects.*, 
+            users.name AS owner_name,
+            COUNT(tasks.id) AS total_tasks,
+            COALESCE(SUM(CASE WHEN tasks.status = 'Pending' THEN 1 ELSE 0 END), 0) AS pending_tasks,
+            COALESCE(SUM(CASE WHEN tasks.status = 'In Progress' THEN 1 ELSE 0 END), 0) AS in_progress_tasks,
+            COALESCE(SUM(CASE WHEN tasks.status = 'Completed' THEN 1 ELSE 0 END), 0) AS completed_tasks
         FROM projects 
         JOIN users ON projects.user_id = users.id 
+        LEFT JOIN tasks ON tasks.project_id = projects.id 
+        GROUP BY projects.id, users.name 
         ORDER BY projects.created_at DESC
     ");
     $allProjects = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $myProjects = array_values(array_filter($allProjects, fn($p) => (int)$p['user_id'] === (int)$user_id));
-    $teamProjects = array_values(array_filter($allProjects, fn($p) => (int)$p['user_id'] !== (int)$user_id));
+    $myProjects = array_values(array_filter($allProjects, fn($p) => (int)$p['user_id'] === $user_id));
+    $teamProjects = array_values(array_filter($allProjects, fn($p) => (int)$p['user_id'] !== $user_id));
 } else {
     $stmt = $pdo->prepare("
-        SELECT projects.*, users.name AS owner_name 
+        SELECT 
+            projects.*, 
+            users.name AS owner_name,
+            COUNT(tasks.id) AS total_tasks,
+            COALESCE(SUM(CASE WHEN tasks.status = 'Pending' THEN 1 ELSE 0 END), 0) AS pending_tasks,
+            COALESCE(SUM(CASE WHEN tasks.status = 'In Progress' THEN 1 ELSE 0 END), 0) AS in_progress_tasks,
+            COALESCE(SUM(CASE WHEN tasks.status = 'Completed' THEN 1 ELSE 0 END), 0) AS completed_tasks
         FROM projects 
         JOIN users ON projects.user_id = users.id 
+        LEFT JOIN tasks ON tasks.project_id = projects.id 
         WHERE projects.user_id = ? 
            OR EXISTS (
-               SELECT 1 FROM tasks 
-               WHERE tasks.project_id = projects.id 
-                 AND tasks.assigned_to = ?
+               SELECT 1 FROM tasks t2 
+               WHERE t2.project_id = projects.id 
+                 AND t2.assigned_to = ?
            )
+        GROUP BY projects.id, users.name 
         ORDER BY projects.created_at DESC
     ");
     $stmt->execute([$user_id, $user_id]);
     $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
-?>
 
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-
-<head>
-    <meta charset="UTF-8">
-    <title>لوحة التحكم - TaskFlow</title>
-    <link rel="stylesheet" href="<?= $base ?>css/styles.css">
-    <style>
-        body {
-            background: linear-gradient(135deg, #44434b  0%, #414345 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
-            margin: 0;
-        }
-        .pro-dashboard-container {
-            background: rgba(255,255,255,0.07);
-            border-radius: 24px;
-            box-shadow: 0 8px 32px 0 rgba(31,38,135,0.37);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border: 1px solid rgba(255,255,255,0.18);
-            padding: 40px 32px 32px 32px;
-            margin-top: 40px;
-            min-width: 350px;
-            width: 100%;
-            max-width: 100%;
-            animation: fadeInUp 1s cubic-bezier(.39,.575,.565,1.000) both;
-        }
-        .pro-dashboard-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 24px;
-        }
-        .pro-dashboard-header h1 {
-            color: #1abc9c;
-            font-size: 2rem;
-            margin: 0;
-            text-shadow: 0 2px 8px rgba(26,188,156,0.15);
-        }
-        .pro-dashboard-header .btn {
-            background: linear-gradient(90deg, #1abc9c 0%, #16a085 100%);
-            color: #fff;
-            padding: 10px 22px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            text-decoration: none;
-            margin-left: 8px;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 4px 16px rgba(26,188,156,0.15);
-        }
-        .pro-dashboard-header .btn:hover {
-            transform: translateY(-2px) scale(1.03);
-            box-shadow: 0 8px 24px rgba(26,188,156,0.25);
-        }
-        .pro-dashboard-header .logout-btn {
-            background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%);
-            color: #fff;
-            margin-left: 0;
-            margin-right: 8px;
-        }
-        .projects {
-            margin-top: 16px;
-        }
-        .projects h2 {
-            color: #fff;
-            margin-bottom: 18px;
-        }
-        .projects ul {
-            list-style: none;
-            padding: 0;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 24px;
-            justify-content: flex-start;
-        }
-        .projects li {
-            background: linear-gradient(120deg, rgba(26,188,156,0.13) 0%, rgba(52,152,219,0.10) 100%);
-            padding: 24px 20px 18px 20px;
-            border-radius: 16px;
-            box-shadow: 0 4px 24px 0 rgba(31,38,135,0.10);
-            transition: transform 0.25s cubic-bezier(.39,.575,.565,1.000), box-shadow 0.25s;
-            color: #fff;
-            position: relative;
-            overflow: hidden;
-            border: 1.5px solid rgba(26,188,156,0.13);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            animation: fadeInUp 0.7s cubic-bezier(.39,.575,.565,1.000);
-            /* min-width: 300px; */
-            max-width: 380px;
-            flex: 1 1 320px;
-        }
-        .projects li::before {
-            content: '';
-            position: absolute;
-            top: -40px;
-            right: -40px;
-            width: 100px;
-            height: 100px;
-            background: radial-gradient(circle, rgba(26,188,156,0.18) 0%, rgba(52,152,219,0.10) 100%);
-            z-index: 0;
-            border-radius: 50%;
-        }
-        .projects li strong {
-            font-size: 1.25rem;
-            color: #1abc9c;
-            z-index: 1;
-            position: relative;
-            margin-bottom: 2px;
-        }
-        .projects li small {
-            color: #ecf0f1;
-            font-size: 1rem;
-            opacity: 0.85;
-            z-index: 1;
-            position: relative;
-        }
-        .projects .project-actions {
-            display: flex;
-            align-items: center;
-            gap: 0;
-        }
-        .projects .project-actions a {
-            background: linear-gradient(90deg, #1abc9c 0%, #16a085 100%);
-            color: #fff;
-            padding: 7px 16px;
-            border-radius: 6px;
-            font-size: 0.98rem;
-            font-weight: 500;
-            text-decoration: none;
-            transition: background 0.2s, transform 0.2s;
-            box-shadow: 0 2px 8px rgba(26,188,156,0.10);
-            border: none;
-            margin-left: 8px;
-        }
-        .projects .project-actions a:hover {
-            background: linear-gradient(90deg, #16a085 0%, #1abc9c 100%);
-            transform: translateY(-2px) scale(1.04);
-        }
-        .projects .project-actions a:last-child {
-            background: linear-gradient(90deg, #3498db 0%, #2980b9 100%);
-        }
-        .projects .project-actions a:last-child:hover {
-            background: linear-gradient(90deg, #2980b9 0%, #3498db 100%);
-        }
-        .projects .project-actions a[href*='delete'] {
-            background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%);
-        }
-        .projects .project-actions a[href*='delete']:hover {
-            background: linear-gradient(90deg, #c0392b 0%, #e74c3c 100%);
-        }
-        @keyframes fadeInUp {
-            0% { opacity: 0; transform: translateY(40px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-        .icon-btn {
-            background: none;
-            border: none;
-            padding: 4px 7px;
-            border-radius: 6px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            transition: background 0.18s, transform 0.18s;
-            margin-left: 2px;
-        }
-        .icon-btn svg {
-            display: inline-block;
-            vertical-align: middle;
-        }
-        .icon-btn[title*='تعديل'] svg use {
-            stroke: #2980b9;
-            fill: #2980b9;
-        }
-        .icon-btn[title*='حذف'] svg use {
-            stroke: #e74c3c;
-            fill: #e74c3c;
-        }
-        .icon-btn:hover {
-            background: rgba(26,188,156,0.08);
-            transform: scale(1.13);
-        }
-        .project-actions {
-            display: flex;
-            align-items: center;
-            gap: 0;
-        }
-        .list-btn {
-            display: inline-flex;
-            align-items: center;
-            background: linear-gradient(90deg, #1abc9c 0%, #16a085 100%);
-            color: #fff;
-            padding: 7px 16px;
-            border-radius: 6px;
-            font-size: 0.98rem;
-            font-weight: 500;
-            text-decoration: none;
-            transition: background 0.2s, transform 0.2s;
-            box-shadow: 0 2px 8px rgba(26,188,156,0.10);
-            border: none;
-            margin-left: 8px;
-        }
-        .list-btn:hover {
-            background: linear-gradient(90deg, #16a085 0%, #1abc9c 100%);
-            transform: translateY(-2px) scale(1.04);
-        }
-        .left-icon {
-            margin-left: 0;
-            margin-right: 0;
-            background: none;
-            box-shadow: none;
-            padding: 4px 7px;
-        }
-        .left-icon svg use {
-            stroke-width: 1.5;
-        }
-        .left-icon[title*='تعديل'] svg use {
-            stroke: #2980b9;
-            fill: #2980b9;
-        }
-        .left-icon[title*='حذف'] svg use {
-            stroke: #e74c3c;
-            fill: #e74c3c;
-        }
-        .left-icon:hover {
-            background: rgba(26,188,156,0.08);
-            transform: scale(1.13);
-        }
-        svg {
-            display: none;
-        }
-        .left-icon svg, .icon-btn svg {
-            stroke: black !important;
-            fill: none !important;
-            stroke-width: 2 !important;
-        }
-        .left-icon[title*='تعديل'] svg use,
-        .left-icon[title*='حذف'] svg use {
-            stroke: black !important;
-            fill: none !important;
-        }
-        .icon-btn, .left-icon {
-            background: none !important;
-            box-shadow: none !important;
-        }
-        .left-icon svg {
-            stroke: #888 !important;
-            fill: none !important;
-            stroke-width: 2 !important;
-        }
-        .left-icon[title*='حذف'] svg {
-            stroke: #e74c3c !important;
-        }
-        .left-icon:hover svg {
-            stroke: #232526 !important;
-        }
-        .list-btn svg {
-            stroke: black !important;
-            fill: none !important;
-            stroke-width: 2 !important;
-        }
-    </style>
-</head>
-<body>
-    <?php include 'includes/nav.php'; render_nav($base); ?>
-
-    <div class="pro-dashboard-container">
-        <div class="pro-dashboard-header">
-            <h1>مرحبًا، <?= e($user['name']) ?> 👋</h1>
-            <div>
-                <a href="projects/add-project.php" class="btn">+ مشروع جديد</a>
+function render_project_card($p, $pdo, $user_id, $base = '') {
+    $total = (int)$p['total_tasks'];
+    $done = (int)$p['completed_tasks'];
+    $inProg = (int)$p['in_progress_tasks'];
+    $pending = (int)$p['pending_tasks'];
+    $pct = $total > 0 ? (int)round(($done / $total) * 100) : 0;
+    $canManage = can_manage_project($pdo, $user_id, $p['id']);
+    $ownerInitials = get_user_initials($p['owner_name']);
+    ?>
+    <article class="project-card">
+        <div class="project-card-header">
+            <h3 class="project-card-title">
+                <a href="<?= $base ?>tasks/view-tasks.php?project_id=<?= $p['id'] ?>">
+                    <?= htmlspecialchars($p['title']) ?>
+                </a>
+            </h3>
+            <div class="project-card-actions">
+                <?php if ($canManage): ?>
+                    <a href="<?= $base ?>projects/edit-project.php?id=<?= $p['id'] ?>" class="btn-icon" aria-label="تعديل المشروع '<?= htmlspecialchars($p['title']) ?>'" title="تعديل">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                    </a>
+                    <a href="<?= $base ?>projects/delete-project.php?id=<?= $p['id'] ?>" class="btn-icon btn-icon-danger" aria-label="حذف المشروع '<?= htmlspecialchars($p['title']) ?>'" title="حذف" onclick="return confirm('هل أنت متأكد من حذف هذا المشروع؟ سيتم حذف جميع المهام التابعة له.');">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </a>
+                <?php endif; ?>
             </div>
         </div>
+
+        <p class="project-card-desc">
+            <?= !empty($p['description']) ? htmlspecialchars($p['description']) : '<span class="text-muted-italic">لا يوجد وصف لهذا المشروع</span>' ?>
+        </p>
+
+        <div class="project-card-meta">
+            <span class="avatar avatar-sm" title="<?= htmlspecialchars($p['owner_name']) ?>"><?= htmlspecialchars($ownerInitials) ?></span>
+            <span>المالك: <strong><?= htmlspecialchars($p['owner_name']) ?></strong></span>
+        </div>
+
+        <div class="project-status-counts">
+            <div class="count-item">
+                <span class="count-number count-pending"><?= $pending ?></span>
+                <span class="count-label">للتنفيذ</span>
+            </div>
+            <div class="count-item">
+                <span class="count-number count-inprog"><?= $inProg ?></span>
+                <span class="count-label">قيد التنفيذ</span>
+            </div>
+            <div class="count-item">
+                <span class="count-number count-done"><?= $done ?></span>
+                <span class="count-label">مكتملة</span>
+            </div>
+        </div>
+
+        <div class="project-progress-wrap">
+            <div class="project-progress-header">
+                <span>نسبة الإنجاز</span>
+                <strong><?= $pct ?>%</strong>
+            </div>
+            <div class="progress-bar-container" role="progressbar" aria-valuenow="<?= $pct ?>" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar-fill" style="width: <?= $pct ?>%;"></div>
+            </div>
+        </div>
+
+        <div class="project-card-footer">
+            <a href="<?= $base ?>tasks/view-tasks.php?project_id=<?= $p['id'] ?>" class="btn btn-secondary btn-sm btn-block">
+                عرض المهام (<?= $total ?>)
+            </a>
+        </div>
+    </article>
+    <?php
+}
+?>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <?php
+    $page_title = 'لوحة التحكم';
+    include __DIR__ . '/includes/header-meta.php';
+    ?>
+</head>
+<body>
+    <?php
+    include __DIR__ . '/includes/nav.php';
+    render_nav($base);
+    ?>
+
+    <main>
         <?php if (isset($_GET['msg']) && $_GET['msg'] === 'password_changed'): ?>
-            <div style="background:rgba(46,204,113,0.15);border:1px solid #2ecc71;color:#2ecc71;padding:12px 18px;border-radius:10px;margin-top:16px;font-size:1.05rem;">
-                تم تغيير كلمة المرور بنجاح.
+            <div class="alert alert-success" role="alert">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>تم تحديث كلمة المرور بنجاح.</span>
             </div>
         <?php endif; ?>
-        <main>
-            <?php if (!is_admin()): ?>
-                <section class="projects">
-                    <h2>مشاريعك</h2>
-                    <?php if (!empty($projects)): ?>
-                        <ul>
-                            <?php foreach ($projects as $project): ?>
-                                <li>
-                                    <strong><?= e($project['title']) ?></strong><br>
-                                    <small><?= e($project['description']) ?></small><br>
-                                    <span style="color:#b2dfdb;font-size:0.95em;">مالك المشروع: <?= e($project['owner_name']) ?></span>
-                                    <div class="project-actions">
-                                        <a href="tasks/view-tasks.php?project_id=<?= (int)$project['id'] ?>" title="عرض المهام" class="list-btn">
-                                            <svg width="20" height="20" style="vertical-align:middle; margin-left:4px;"><use href="#icon-tasks-alt"/></svg>
-                                            <span>عرض المهام</span>
-                                        </a>
-                                        <span style="flex:1"></span>
-                                        <?php if (can_manage_project($pdo, $user_id, $project['id'])): ?>
-                                            <a href="projects/edit-project.php?id=<?= $project['id'] ?>" title="تعديل المشروع" class="icon-btn left-icon">
-                                                <svg width="22" height="22"><use href="#icon-edit-stylish"/></svg>
-                                            </a>
-                                            <form method="POST" action="projects/delete-project.php" style="display:inline;margin:0;" onsubmit="return confirm('هل أنت متأكد من الحذف؟');">
-                                                <input type="hidden" name="id" value="<?= $project['id'] ?>">
-                                                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                                                <button type="submit" title="حذف المشروع" class="icon-btn left-icon" style="background:none;border:none;cursor:pointer;padding:0;">
-                                                    <svg width="22" height="22"><use href="#icon-trash-alt"/></svg>
-                                                </button>
-                                            </form>
-                                        <?php endif; ?>
-                                    </div>
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php else: ?>
-                        <p>لا توجد مشاريع بعد. ابدأ بإنشاء أول مشروع لك.</p>
-                    <?php endif; ?>
-                </section>
-            <?php else: ?>
-                <?php if (empty($myProjects) && empty($teamProjects)): ?>
-                    <section class="projects">
-                        <p>لا توجد مشاريع بعد. ابدأ بإنشاء أول مشروع لك.</p>
-                    </section>
-                <?php else: ?>
-                    <?php if (!empty($myProjects)): ?>
-                        <section class="projects">
-                            <h2>مشاريعي</h2>
-                            <ul>
-                                <?php foreach ($myProjects as $project): ?>
-                                    <li>
-                                        <strong><?= e($project['title']) ?></strong><br>
-                                        <small><?= e($project['description']) ?></small><br>
-                                        <div class="project-actions">
-                                            <a href="tasks/view-tasks.php?project_id=<?= (int)$project['id'] ?>" title="عرض المهام" class="list-btn">
-                                                <svg width="20" height="20" style="vertical-align:middle; margin-left:4px;"><use href="#icon-tasks-alt"/></svg>
-                                                <span>عرض المهام</span>
-                                            </a>
-                                            <span style="flex:1"></span>
-                                            <?php if (can_manage_project($pdo, $user_id, $project['id'])): ?>
-                                                <a href="projects/edit-project.php?id=<?= $project['id'] ?>" title="تعديل المشروع" class="icon-btn left-icon">
-                                                    <svg width="22" height="22"><use href="#icon-edit-stylish"/></svg>
-                                                </a>
-                                                <form method="POST" action="projects/delete-project.php" style="display:inline;margin:0;" onsubmit="return confirm('هل أنت متأكد من الحذف؟');">
-                                                    <input type="hidden" name="id" value="<?= $project['id'] ?>">
-                                                    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                                                    <button type="submit" title="حذف المشروع" class="icon-btn left-icon" style="background:none;border:none;cursor:pointer;padding:0;">
-                                                        <svg width="22" height="22"><use href="#icon-trash-alt"/></svg>
-                                                    </button>
-                                                </form>
-                                            <?php endif; ?>
-                                        </div>
-                                    </li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </section>
-                    <?php endif; ?>
 
-                    <?php if (!empty($teamProjects)): ?>
-                        <section class="projects" style="<?= !empty($myProjects) ? 'margin-top: 36px;' : '' ?>">
-                            <h2>مشاريع الفريق</h2>
-                            <ul>
-                                <?php foreach ($teamProjects as $project): ?>
-                                    <li>
-                                        <strong><?= e($project['title']) ?></strong><br>
-                                        <small><?= e($project['description']) ?></small><br>
-                                        <span style="color:#b2dfdb;font-size:0.95em;">مالك المشروع: <?= e($project['owner_name']) ?></span>
-                                        <div class="project-actions">
-                                            <a href="tasks/view-tasks.php?project_id=<?= (int)$project['id'] ?>" title="عرض المهام" class="list-btn">
-                                                <svg width="20" height="20" style="vertical-align:middle; margin-left:4px;"><use href="#icon-tasks-alt"/></svg>
-                                                <span>عرض المهام</span>
-                                            </a>
-                                            <span style="flex:1"></span>
-                                            <?php if (can_manage_project($pdo, $user_id, $project['id'])): ?>
-                                                <a href="projects/edit-project.php?id=<?= $project['id'] ?>" title="تعديل المشروع" class="icon-btn left-icon">
-                                                    <svg width="22" height="22"><use href="#icon-edit-stylish"/></svg>
-                                                </a>
-                                                <form method="POST" action="projects/delete-project.php" style="display:inline;margin:0;" onsubmit="return confirm('هل أنت متأكد من الحذف؟');">
-                                                    <input type="hidden" name="id" value="<?= $project['id'] ?>">
-                                                    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                                                    <button type="submit" title="حذف المشروع" class="icon-btn left-icon" style="background:none;border:none;cursor:pointer;padding:0;">
-                                                        <svg width="22" height="22"><use href="#icon-trash-alt"/></svg>
-                                                    </button>
-                                                </form>
-                                            <?php endif; ?>
-                                        </div>
-                                    </li>
-                                <?php endforeach; ?>
-                            </ul>
-                        </section>
-                    <?php endif; ?>
+        <!-- Page Header with Greeting + New Project CTA -->
+        <header class="page-header">
+            <div class="page-title-wrap">
+                <h1 class="page-title">مرحباً، <?= htmlspecialchars($userName) ?> 👋</h1>
+                <p class="page-subtitle">تابع سير أعمالك ومشاريع فريقك بكل سهولة</p>
+            </div>
+            <div class="page-actions">
+                <a href="<?= $base ?>projects/add-project.php" class="btn btn-primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    مشروع جديد
+                </a>
+            </div>
+        </header>
+
+        <?php if (is_admin()): ?>
+            <!-- Admin View: My Projects & Team Projects -->
+            <?php if (empty($myProjects) && empty($teamProjects)): ?>
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                    </div>
+                    <h2 class="empty-state-title">لا توجد أي مشاريع بعد</h2>
+                    <p class="empty-state-text">ابدأ بإنشاء أول مشروع في النظام لتنظيم المهام وتوزيعها على أعضاء الفريق.</p>
+                    <a href="<?= $base ?>projects/add-project.php" class="btn btn-primary">+ إنشاء مشروع جديد</a>
+                </div>
+            <?php else: ?>
+                <?php if (!empty($myProjects)): ?>
+                    <section aria-labelledby="section-my-projects">
+                        <h2 id="section-my-projects" class="section-title">
+                            <span>مشاريعي</span>
+                            <span class="section-badge"><?= count($myProjects) ?></span>
+                        </h2>
+                        <div class="projects-grid">
+                            <?php foreach ($myProjects as $p) { render_project_card($p, $pdo, $user_id, $base); } ?>
+                        </div>
+                    </section>
+                <?php endif; ?>
+
+                <?php if (!empty($teamProjects)): ?>
+                    <section aria-labelledby="section-team-projects">
+                        <h2 id="section-team-projects" class="section-title">
+                            <span>مشاريع الفريق</span>
+                            <span class="section-badge"><?= count($teamProjects) ?></span>
+                        </h2>
+                        <div class="projects-grid">
+                            <?php foreach ($teamProjects as $p) { render_project_card($p, $pdo, $user_id, $base); } ?>
+                        </div>
+                    </section>
                 <?php endif; ?>
             <?php endif; ?>
-        </main>
-    </div>
-    <svg style="display:none">
-        <symbol id="icon-tasks-alt" viewBox="0 0 24 24"><circle cx="7" cy="7" r="2" stroke="black" stroke-width="2" fill="none"/><circle cx="7" cy="17" r="2" stroke="black" stroke-width="2" fill="none"/><rect x="11" y="6" width="10" height="2" rx="1" stroke="black" stroke-width="2" fill="none"/><rect x="11" y="16" width="10" height="2" rx="1" stroke="black" stroke-width="2" fill="none"/></symbol>
-        <symbol id="icon-edit-stylish" viewBox="0 0 24 24">
-            <path d="M4 20h4.586a1 1 0 0 0 .707-.293l9.414-9.414a2 2 0 0 0 0-2.828l-2.172-2.172a2 2 0 0 0-2.828 0l-9.414 9.414A1 1 0 0 0 4 15.414V20z" stroke="#888" stroke-width="2" fill="none"/>
-            <path d="M14.5 7.5l2 2" stroke="#888" stroke-width="2" fill="none" stroke-linecap="round"/>
-        </symbol>
-        <symbol id="icon-trash-alt" viewBox="0 0 24 24"><rect x="5" y="7" width="14" height="12" rx="2" stroke="#e74c3c" stroke-width="2" fill="none"/><path d="M3 7h18M10 11v4M14 11v4" stroke="#e74c3c" stroke-width="2" fill="none"/><rect x="9" y="3" width="6" height="4" rx="1" stroke="#e74c3c" stroke-width="2" fill="none"/></symbol>
-    </svg>
-    <script src="<?= $base ?>js/main.js"></script>
+
+        <?php else: ?>
+            <!-- Member View -->
+            <?php if (empty($projects)): ?>
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                    </div>
+                    <h2 class="empty-state-title">لا توجد مشاريع متاحة لك</h2>
+                    <p class="empty-state-text">لم تقم بإنشاء أي مشاريع بعد، ولم يتم إسناد أي مهام لك في مشاريع أخرى.</p>
+                    <a href="<?= $base ?>projects/add-project.php" class="btn btn-primary">+ إنشاء مشروع جديد</a>
+                </div>
+            <?php else: ?>
+                <div class="projects-grid">
+                    <?php foreach ($projects as $p) { render_project_card($p, $pdo, $user_id, $base); } ?>
+                </div>
+            <?php endif; ?>
+        <?php endif; ?>
+    </main>
 </body>
 </html>

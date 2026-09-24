@@ -1,368 +1,255 @@
 <?php
 function render_nav($base = '') {
     if (!isset($_SESSION['user_id'])) return;
-    ?>
-    <style>
-    .app-nav {
-        position: fixed;
-        top: 0;
-        right: 0;
-        left: 0;
-        height: 58px;
-        background: rgba(30, 42, 60, 0.94);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 32px;
-        z-index: 1001;
-        box-shadow: 0 2px 12px rgba(26, 188, 156, 0.10);
-        box-sizing: border-box;
-    }
-    .nav-brand-section {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        min-width: 0;
-    }
-    .nav-logo {
-        color: #1abc9c;
-        font-weight: bold;
-        font-size: 1.25rem;
-        text-decoration: none;
-        letter-spacing: 1px;
-        white-space: nowrap;
-        flex-shrink: 0;
-    }
-    .nav-links {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-    }
-    .nav-links a {
-        color: #fff;
-        font-size: 0.96rem;
-        text-decoration: none;
-        opacity: 0.85;
-        white-space: nowrap;
-        transition: opacity 0.2s, color 0.2s;
-    }
-    .nav-links a:hover {
-        opacity: 1;
-        color: #1abc9c;
-    }
-    .nav-actions-section {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        position: relative;
-        flex-shrink: 0;
-    }
-    .nav-toggle-btn {
-        display: none;
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        border-radius: 8px;
-        color: #1abc9c;
-        padding: 6px 8px;
-        cursor: pointer;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        line-height: 0;
-    }
-    .nav-toggle-btn:hover {
-        background: rgba(255, 255, 255, 0.15);
-    }
-    .logout-btn-nav {
-        background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%);
-        color: #fff;
-        padding: 8px 16px;
-        border-radius: 8px;
-        font-weight: bold;
-        text-decoration: none;
-        border: none;
-        cursor: pointer;
-        font-family: inherit;
-        font-size: 0.95rem;
-        white-space: nowrap;
-        flex-shrink: 0;
-        transition: transform 0.15s, opacity 0.15s;
-    }
-    .logout-btn-nav:hover {
-        opacity: 0.9;
-        transform: translateY(-1px);
-    }
 
-    @media (max-width: 900px) {
-        .app-nav {
-            padding: 0 16px;
-        }
-        .nav-toggle-btn {
-            display: inline-flex;
-        }
-        .nav-links {
-            display: none;
-            position: absolute;
-            top: 58px;
-            right: 0;
-            left: 0;
-            background: rgba(24, 34, 48, 0.98);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            flex-direction: column;
-            align-items: stretch;
-            padding: 14px 20px;
-            gap: 10px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            z-index: 1002;
-        }
-        .nav-links.nav-open {
-            display: flex;
-        }
-        .nav-links a {
-            padding: 10px 14px;
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.04);
-            font-size: 1rem;
-        }
-        .nav-links a:hover {
-            background: rgba(26, 188, 156, 0.15);
-        }
-        .logout-btn-nav {
-            padding: 6px 12px;
-            font-size: 0.85rem;
-        }
-    }
-    @media (max-width: 400px) {
-        .app-nav {
-            padding: 0 10px;
-        }
-        .nav-brand-section {
-            gap: 8px;
-        }
-        .nav-actions-section {
-            gap: 10px;
-        }
-        .nav-logo {
-            font-size: 1.1rem;
-        }
-        .logout-btn-nav {
-            padding: 5px 8px;
-            font-size: 0.8rem;
-        }
-    }
-    </style>
-    <nav class="app-nav">
-        <div class="nav-brand-section">
-            <a href="<?= $base ?>dashboard.php" class="nav-logo">TaskFlow</a>
-            <div class="nav-links" id="nav-links-menu">
-                <a href="<?= $base ?>projects/add-project.php">+ مشروع جديد</a>
-                <a href="<?= $base ?>dashboard.php">لوحة التحكم</a>
-                <a href="<?= $base ?>change-password.php">تغيير كلمة المرور</a>
-                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
-                    <a href="<?= $base ?>admin/users.php">المستخدمين</a>
-                <?php endif; ?>
+    $currentScript = basename($_SERVER['PHP_SELF'] ?? '');
+    $isDashboard = ($currentScript === 'dashboard.php');
+    $isUsers = ($currentScript === 'users.php');
+    $userName = $_SESSION['user_name'] ?? 'مستخدم';
+    $userInitials = function_exists('get_user_initials') ? get_user_initials($userName) : 'TF';
+    $isAdminUser = function_exists('is_admin') && is_admin();
+    ?>
+    <nav class="app-nav" aria-label="التنقل الرئيسي">
+        <div class="nav-container">
+            <div class="nav-start">
+                <a href="<?= $base ?>dashboard.php" class="nav-brand" aria-label="TaskFlow الرئيسية">
+                    <img src="<?= $base ?>assets/logo-horizontal-dark.svg" alt="TaskFlow" class="brand-logo">
+                </a>
+                <ul class="nav-links" id="nav-links-menu">
+                    <li>
+                        <a href="<?= $base ?>dashboard.php" class="nav-link <?= $isDashboard ? 'is-active' : '' ?>">لوحة التحكم</a>
+                    </li>
+                    <?php if ($isAdminUser): ?>
+                    <li>
+                        <a href="<?= $base ?>admin/users.php" class="nav-link <?= $isUsers ? 'is-active' : '' ?>">المستخدمين</a>
+                    </li>
+                    <?php endif; ?>
+                </ul>
             </div>
-        </div>
-        <div class="nav-actions-section">
-            <div id="notif-bell-container" style="position:relative;">
-                <button id="notif-bell" style="background:none;border:none;cursor:pointer;padding:0;position:relative;display:flex;align-items:center;">
-                    <svg width="26" height="26" fill="#1abc9c" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9v5c0 .55-.45 1-1 1H3v2h18v-2h-1c-.55 0-1-.45-1-1V9c0-3.87-3.13-7-7-7zm0 19c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2z"/></svg>
-                    <span id="notif-count" style="position:absolute;top:-6px;right:-6px;background:#e74c3c;color:#fff;border-radius:50%;padding:2px 7px;font-size:0.8rem;font-weight:bold;display:none;">0</span>
+
+            <div class="nav-end">
+                <!-- Theme Toggle Button -->
+                <button type="button" class="nav-icon-btn theme-toggle-btn" onclick="toggleTheme()" aria-label="تبديل الوضع">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
                 </button>
-                <div id="notif-dropdown" style="display:none;position:absolute;top:40px;right:auto;left:0;background:#fff;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.13);min-width:260px;max-width:320px;z-index:10002;padding:12px 0;">
-                    <div id="notif-list" style="max-height:320px;overflow-y:auto;"></div>
+
+                <!-- Notification Bell -->
+                <div class="nav-user-dropdown" id="notif-bell-container">
+                    <button type="button" class="nav-icon-btn" id="notif-bell" aria-label="الإشعارات" aria-expanded="false">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                        </svg>
+                        <span class="nav-badge d-none" id="notif-count">0</span>
+                    </button>
+                    <div class="dropdown-menu notif-dropdown-menu" id="notif-dropdown">
+                        <div class="notif-dropdown-header">
+                            <span class="card-title notif-title">الإشعارات</span>
+                            <button type="button" class="btn btn-ghost btn-sm notif-mark-btn" id="notif-mark-read-btn">تحديد الكل كمقروء</button>
+                        </div>
+                        <div class="notif-dropdown-list" id="notif-list">
+                            <div class="notif-empty">جاري تحميل الإشعارات...</div>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- User Profile Menu -->
+                <div class="nav-user-dropdown" id="user-menu-container">
+                    <button type="button" class="nav-user-trigger" id="user-menu-btn" aria-expanded="false" aria-label="قائمة المستخدم">
+                        <span class="avatar avatar-sm"><?= htmlspecialchars($userInitials) ?></span>
+                        <span class="nav-user-name"><?= htmlspecialchars($userName) ?></span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </button>
+                    <div class="dropdown-menu" id="user-dropdown-menu">
+                        <div class="dropdown-header">
+                            <div class="dropdown-header-name"><?= htmlspecialchars($userName) ?></div>
+                            <div class="role-badge-wrap">
+                                <span class="badge <?= $isAdminUser ? 'badge-admin' : 'badge-member' ?>"><?= $isAdminUser ? 'مسؤول' : 'عضو' ?></span>
+                            </div>
+                        </div>
+                        <a href="<?= $base ?>change-password.php" class="dropdown-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            تغيير كلمة المرور
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <form method="POST" action="<?= $base ?>logout.php" class="inline-form">
+                            <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                            <button type="submit" class="dropdown-item dropdown-item-danger">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                                تسجيل الخروج
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <button type="button" class="nav-mobile-btn" id="nav-mobile-btn" aria-label="فتح القائمة" aria-expanded="false">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                </button>
             </div>
-            <form method="POST" action="<?= $base ?>logout.php" style="display:inline;margin:0;">
-                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                <button type="submit" class="logout-btn-nav">تسجيل الخروج</button>
-            </form>
-            <button type="button" class="nav-toggle-btn" id="nav-toggle-btn" aria-label="القائمة">
-                <svg width="22" height="22" fill="#1abc9c" viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
-            </button>
         </div>
     </nav>
-    <div style="height:58px;"></div>
+    <div class="app-nav-spacer"></div>
+
     <script>
-    // Notification Bell Logic
-    function fetchNotifications(updateCountOnly = false, markRead = false) {
-        let url = '<?= $base ?>get-notifications.php';
-        let fetchOptions = { method: 'GET' };
-        if (markRead) {
-            url += '?mark_read=1';
-            fetchOptions = {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-Token': '<?= csrf_token() ?>'
-                }
-            };
+    (function () {
+        // Notification bell & user dropdowns
+        const notifBell = document.getElementById('notif-bell');
+        const notifDropdown = document.getElementById('notif-dropdown');
+        const userBtn = document.getElementById('user-menu-btn');
+        const userDropdown = document.getElementById('user-dropdown-menu');
+        const mobileBtn = document.getElementById('nav-mobile-btn');
+        const navLinks = document.getElementById('nav-links-menu');
+        const markReadBtn = document.getElementById('notif-mark-read-btn');
+
+        function closeAllDropdowns() {
+            if (notifDropdown) notifDropdown.classList.remove('is-open');
+            if (userDropdown) userDropdown.classList.remove('is-open');
+            if (notifBell) notifBell.setAttribute('aria-expanded', 'false');
+            if (userBtn) userBtn.setAttribute('aria-expanded', 'false');
         }
-        fetch(url, fetchOptions)
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    const notifCount = document.getElementById('notif-count');
-                    if (markRead || !data.notifications.some(n => n.is_read == 0)) {
-                        notifCount.style.display = 'none';
-                    } else if (data.notifications.length > 0) {
-                        notifCount.textContent = data.notifications.filter(n => n.is_read == 0).length;
-                        notifCount.style.display = 'inline-block';
-                    } else {
-                        notifCount.style.display = 'none';
-                    }
-                    if (!updateCountOnly) {
-                        const notifList = document.getElementById('notif-list');
-                        notifList.innerHTML = '';
-                        if (data.notifications.length > 0) {
-                            data.notifications.forEach(n => {
-                                let msg = n.message;
-                                let time = '';
-                                let actor = '';
-                                let action = '';
-                                let task = '';
-                                let project = '';
-                                let status = '';
-                                const match = msg.match(/^\[(.*?)\]\s+(.*?)\s+(أضاف مهمة جديدة|عدّل مهمة|حذف المهمة|غيّر حالة المهمة)\s+'(.*?)'\s+(?:إلى\s+(.*?)\s+)?في مشروع\s+'(.*?)'/);
-                                if (match) {
-                                    time = match[1];
-                                    actor = match[2];
-                                    action = match[3];
-                                    task = match[4];
-                                    status = match[5] || '';
-                                    project = match[6];
-                                }
-                                const item = document.createElement('div');
-                                item.style.padding = '12px 18px';
-                                item.style.borderBottom = '1px solid #eee';
-                                item.style.fontSize = '1rem';
-                                item.style.wordBreak = 'break-word';
-                                item.style.display = 'flex';
-                                item.style.flexDirection = 'column';
-                                if (n.is_read == 0) {
-                                    item.style.background = '#eafaf1';
-                                    item.style.fontWeight = 'bold';
-                                } else {
-                                    item.style.background = '#fff';
-                                    item.style.opacity = '0.7';
-                                }
-                                if (match) {
-                                    const actorEl = document.createElement('div');
-                                    actorEl.style.cssText = 'font-size:0.97em;color:#1abc9c;font-weight:bold;';
-                                    actorEl.textContent = actor;
 
-                                    const actionEl = document.createElement('div');
-                                    actionEl.style.fontSize = '0.97em';
-                                    actionEl.textContent = action + " '" + task + "'";
-                                    if (action === 'غيّر حالة المهمة' && status) {
-                                        actionEl.textContent += ' إلى ' + status;
-                                    }
-
-                                    const projectEl = document.createElement('div');
-                                    projectEl.style.cssText = 'font-size:0.95em;color:#888;';
-                                    projectEl.textContent = project;
-
-                                    const timeEl = document.createElement('div');
-                                    timeEl.style.cssText = 'font-size:0.92em;color:#aaa;';
-                                    timeEl.textContent = time;
-
-                                    item.appendChild(actorEl);
-                                    item.appendChild(actionEl);
-                                    item.appendChild(projectEl);
-                                    item.appendChild(timeEl);
-                                } else {
-                                    item.textContent = msg;
-                                }
-                                notifList.appendChild(item);
-                            });
-                        } else {
-                            notifList.innerHTML = '<div style="padding:14px;color:#888;text-align:center;">لا توجد إشعارات</div>';
-                        }
-                    }
+        if (notifBell && notifDropdown) {
+            notifBell.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const isOpen = notifDropdown.classList.contains('is-open');
+                closeAllDropdowns();
+                if (!isOpen) {
+                    notifDropdown.classList.add('is-open');
+                    notifBell.setAttribute('aria-expanded', 'true');
+                    fetchNotifications(false);
                 }
             });
-    }
-    let notifOpen = false;
-    const navToggleBtn = document.getElementById('nav-toggle-btn');
-    const navLinksMenu = document.getElementById('nav-links-menu');
+        }
 
-    if (navToggleBtn && navLinksMenu) {
-        navToggleBtn.addEventListener('click', function(e) {
-            navLinksMenu.classList.toggle('nav-open');
-            const dropdown = document.getElementById('notif-dropdown');
-            if (dropdown) dropdown.style.display = 'none';
-            notifOpen = false;
-            e.stopPropagation();
+        if (userBtn && userDropdown) {
+            userBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const isOpen = userDropdown.classList.contains('is-open');
+                closeAllDropdowns();
+                if (!isOpen) {
+                    userDropdown.classList.add('is-open');
+                    userBtn.setAttribute('aria-expanded', 'true');
+                }
+            });
+        }
+
+        if (mobileBtn && navLinks) {
+            mobileBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const isOpen = navLinks.classList.contains('is-open');
+                navLinks.classList.toggle('is-open');
+                mobileBtn.setAttribute('aria-expanded', !isOpen);
+            });
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#notif-bell-container') && !e.target.closest('#user-menu-container')) {
+                closeAllDropdowns();
+            }
+            if (navLinks && !e.target.closest('#nav-links-menu') && !e.target.closest('#nav-mobile-btn')) {
+                navLinks.classList.remove('is-open');
+                if (mobileBtn) mobileBtn.setAttribute('aria-expanded', 'false');
+            }
         });
-    }
 
-    document.getElementById('notif-bell').addEventListener('click', function(e) {
-        const dropdown = document.getElementById('notif-dropdown');
-        const notifCount = document.getElementById('notif-count');
-        if (navLinksMenu) navLinksMenu.classList.remove('nav-open');
-        notifOpen = !notifOpen;
-        dropdown.style.display = notifOpen ? 'block' : 'none';
-        notifCount.style.display = notifOpen ? 'none' : (notifCount.textContent !== '0' ? 'inline-block' : 'none');
-        if (notifOpen) {
-            fetchNotifications(false, true);
-            setTimeout(function() {
-                const rect = dropdown.getBoundingClientRect();
-                let offset = 0;
-                if (rect.right > window.innerWidth) {
-                    offset = rect.right - window.innerWidth + 16;
-                }
-                if (rect.left - offset < 0) {
-                    offset = rect.left - 8;
-                }
-                dropdown.style.transform = offset ? `translateX(-${offset}px)` : '';
-            }, 50);
-        } else {
-            dropdown.style.transform = '';
+        // Notifications fetching
+        function fetchNotifications(countOnly = false, markRead = false) {
+            let url = '<?= $base ?>get-notifications.php';
+            let fetchOptions = { method: 'GET' };
+            if (markRead) {
+                url += '?mark_read=1';
+                fetchOptions = {
+                    method: 'POST',
+                    headers: { 'X-CSRF-Token': '<?= csrf_token() ?>' }
+                };
+            }
+            fetch(url, fetchOptions)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) return;
+                    const notifCount = document.getElementById('notif-count');
+                    const unread = data.notifications ? data.notifications.filter(n => n.is_read == 0).length : 0;
+                    if (notifCount) {
+                        if (unread > 0) {
+                            notifCount.textContent = unread > 99 ? '99+' : unread;
+                            notifCount.classList.remove('d-none');
+                        } else {
+                            notifCount.classList.add('d-none');
+                        }
+                    }
+                    if (!countOnly) {
+                        renderNotificationList(data.notifications || []);
+                    }
+                })
+                .catch(() => {});
         }
-        e.stopPropagation();
-    });
-    document.addEventListener('click', function(e) {
-        const dropdown = document.getElementById('notif-dropdown');
-        if (dropdown && !dropdown.contains(e.target) && e.target.id !== 'notif-bell') {
-            dropdown.style.display = 'none';
-            notifOpen = false;
-        }
-        if (navLinksMenu && navToggleBtn && !navLinksMenu.contains(e.target) && !navToggleBtn.contains(e.target)) {
-            navLinksMenu.classList.remove('nav-open');
-        }
-    });
-    let notifInterval = null;
-    function pollNotifications() {
-        fetchNotifications(true);
-        if (notifOpen) fetchNotifications(false);
-    }
-    function startNotifPolling() {
-        if (!notifInterval) {
-            notifInterval = setInterval(pollNotifications, 30000); // Poll every 30 seconds
-        }
-    }
-    function stopNotifPolling() {
-        if (notifInterval) {
-            clearInterval(notifInterval);
-            notifInterval = null;
-        }
-    }
 
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            stopNotifPolling();
-        } else {
-            pollNotifications();
-            startNotifPolling();
+        function renderNotificationList(items) {
+            const listEl = document.getElementById('notif-list');
+            if (!listEl) return;
+            if (items.length === 0) {
+                listEl.innerHTML = '<div class="notif-empty">لا توجد إشعارات حالياً</div>';
+                return;
+            }
+            listEl.innerHTML = items.map(n => {
+                const unreadClass = (n.is_read == 0) ? 'is-unread' : '';
+                return `
+                    <div class="notif-item ${unreadClass}">
+                        <div class="notif-item-msg">${escapeHtml(n.message)}</div>
+                        <div class="notif-item-time">${escapeHtml(n.created_at)}</div>
+                    </div>
+                `;
+            }).join('');
         }
-    });
 
-    startNotifPolling();
-    fetchNotifications(true);
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        if (markReadBtn) {
+            markReadBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                fetchNotifications(false, true);
+            });
+        }
+
+        // Visibility & interval polling
+        let notifTimer = null;
+        function poll() {
+            fetchNotifications(true);
+        }
+        function start() {
+            if (!notifTimer) notifTimer = setInterval(poll, 30000);
+        }
+        function stop() {
+            if (notifTimer) { clearInterval(notifTimer); notifTimer = null; }
+        }
+
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                stop();
+            } else {
+                poll();
+                start();
+            }
+        });
+
+        start();
+        poll();
+    })();
     </script>
     <?php
 }
-?>

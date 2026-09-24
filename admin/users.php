@@ -211,531 +211,204 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <title>إدارة المستخدمين - TaskFlow</title>
-    <link rel="stylesheet" href="<?= $base ?>css/styles.css">
-    <style>
-        html, body {
-            max-width: 100%;
-            overflow-x: hidden;
-        }
-        body {
-            background: linear-gradient(135deg, #232526 0%, #414345 100%);
-            min-height: 100vh;
-            margin: 0;
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        .admin-container {
-            width: 95%;
-            max-width: 1100px;
-            min-width: 0;
-            margin: 30px auto;
-            background: rgba(255,255,255,0.06);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.14);
-            border-radius: 20px;
-            padding: 32px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            box-sizing: border-box;
-        }
-        .header-section {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid rgba(255,255,255,0.12);
-            padding-bottom: 20px;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-        .header-section h1 {
-            margin: 0;
-            font-size: 1.8rem;
-            color: #1abc9c;
-        }
-        .alert {
-            padding: 14px 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-size: 1rem;
-        }
-        .alert-error {
-            background: rgba(231,76,60,0.18);
-            border: 1px solid #e74c3c;
-            color: #ff7675;
-        }
-        .alert-success {
-            background: rgba(46,204,113,0.18);
-            border: 1px solid #2ecc71;
-            color: #2ecc71;
-        }
-        .one-time-pwd-box {
-            background: rgba(243,156,18,0.15);
-            border: 2px dashed #f39c12;
-            border-radius: 14px;
-            padding: 24px;
-            margin-bottom: 28px;
-            text-align: center;
-        }
-        .one-time-pwd-box h3 {
-            margin: 0 0 10px 0;
-            color: #f1c40f;
-            font-size: 1.3rem;
-        }
-        .pwd-display {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 12px;
-            margin: 16px 0;
-            flex-wrap: wrap;
-        }
-        .pwd-code {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 1.5rem;
-            font-weight: bold;
-            background: #111;
-            color: #1abc9c;
-            padding: 10px 24px;
-            border-radius: 8px;
-            letter-spacing: 2px;
-            border: 1px solid #333;
-            user-select: all;
-            max-width: 100%;
-            box-sizing: border-box;
-            word-break: break-all;
-        }
-        .copy-btn {
-            background: #1abc9c;
-            color: #fff;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
-        }
-        .copy-btn:hover {
-            background: #16a085;
-            transform: scale(1.04);
-        }
-        .pwd-warning {
-            color: #f39c12;
-            font-size: 1.1rem;
-            font-weight: bold;
-            margin-top: 10px;
-        }
-        .create-form-card {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 14px;
-            padding: 24px;
-            margin-bottom: 32px;
-        }
-        .create-form-card h2 {
-            margin-top: 0;
-            font-size: 1.25rem;
-            color: #fff;
-            margin-bottom: 16px;
-        }
-        .create-form {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 14px;
-            align-items: center;
-        }
-        .create-form input, .create-form select {
-            padding: 10px 14px;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.2);
-            background: rgba(255,255,255,0.12);
-            color: #fff;
-            font-size: 0.98rem;
-            outline: none;
-            flex: 1 1 200px;
-            min-width: 0;
-            box-sizing: border-box;
-        }
-        .create-form input::placeholder {
-            color: #bbb;
-        }
-        .create-form select option {
-            background: #2c3e50;
-            color: #fff;
-        }
-        .create-form button {
-            background: linear-gradient(90deg, #1abc9c 0%, #16a085 100%);
-            color: #fff;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .create-form button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 14px rgba(26,188,156,0.3);
-        }
-        .table-responsive {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            width: 100%;
-            max-width: 100%;
-            display: block;
-            border-radius: 14px;
-            border: 1px solid rgba(255,255,255,0.12);
-            background: rgba(255,255,255,0.03);
-            margin-top: 10px;
-            box-sizing: border-box;
-        }
-        .users-table {
-            width: 100%;
-            min-width: 680px;
-            border-collapse: collapse;
-            background: transparent !important;
-            box-shadow: none !important;
-            margin: 0 !important;
-            text-align: right;
-        }
-        .users-table thead tr {
-            background: rgba(255,255,255,0.06);
-            border-bottom: 1px solid rgba(255,255,255,0.12);
-        }
-        .users-table th {
-            background-color: transparent !important;
-            color: #1abc9c;
-            font-weight: 700;
-            font-size: 0.95rem;
-            padding: 14px 18px;
-            border: none;
-            border-bottom: 1px solid rgba(255,255,255,0.12);
-            text-align: right;
-            white-space: nowrap;
-        }
-        .users-table td {
-            padding: 14px 18px;
-            border: none;
-            border-bottom: 1px solid rgba(255,255,255,0.07);
-            color: #e2e8f0;
-            font-size: 0.95rem;
-            vertical-align: middle;
-            text-align: right;
-            background: transparent !important;
-        }
-        .users-table tbody tr {
-            transition: background-color 0.15s ease;
-        }
-        .users-table tbody tr:hover td {
-            background-color: rgba(255,255,255,0.05) !important;
-        }
-        .users-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-        /* Admin's own row */
-        .users-table tr.user-row-self {
-            background-color: rgba(26,188,156,0.07);
-        }
-        .users-table tr.user-row-self:hover td {
-            background-color: rgba(26,188,156,0.12) !important;
-        }
-        .users-table tr.user-row-self td {
-            color: #ffffff;
-        }
-        /* Inactive row */
-        .users-table tr.user-row-inactive {
-            background-color: rgba(0,0,0,0.15);
-        }
-        .users-table tr.user-row-inactive td {
-            color: #94a3b8;
-        }
-        .users-table tr.user-row-inactive:hover td {
-            background-color: rgba(255,255,255,0.04) !important;
-        }
-        .users-table .user-name {
-            color: #ffffff;
-            font-weight: 600;
-        }
-        .users-table tr.user-row-inactive .user-name {
-            color: #cbd5e1;
-        }
-        .users-table .user-email {
-            color: #cbd5e1;
-            font-family: inherit;
-            direction: ltr;
-            display: inline-block;
-        }
-        .users-table tr.user-row-inactive .user-email {
-            color: #94a3b8;
-        }
-        .users-table .user-date {
-            color: #94a3b8;
-            font-size: 0.88rem;
-            white-space: nowrap;
-        }
-        .self-label {
-            color: #94a3b8;
-            font-size: 0.88rem;
-            font-weight: 600;
-            padding: 4px 10px;
-            background: rgba(255,255,255,0.06);
-            border-radius: 6px;
-            border: 1px solid rgba(255,255,255,0.1);
-            display: inline-block;
-            white-space: nowrap;
-        }
-        .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: bold;
-            white-space: nowrap;
-        }
-        .badge-admin {
-            background: rgba(155,89,182,0.25);
-            color: #e056fd;
-            border: 1px solid #9b59b6;
-        }
-        .badge-member {
-            background: rgba(52,152,219,0.25);
-            color: #3498db;
-            border: 1px solid #2980b9;
-        }
-        .badge-active {
-            background: rgba(46,204,113,0.2);
-            color: #2ecc71;
-            border: 1px solid #2ecc71;
-        }
-        .badge-inactive {
-            background: rgba(231,76,60,0.2);
-            color: #e74c3c;
-            border: 1px solid #e74c3c;
-        }
-        .action-btns {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .action-btns form {
-            margin: 0;
-            display: inline-block;
-        }
-        .btn-sm {
-            padding: 6px 12px;
-            border-radius: 6px;
-            border: none;
-            font-size: 0.85rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: opacity 0.2s, transform 0.1s;
-            white-space: nowrap;
-        }
-        .btn-sm:hover:not(:disabled) {
-            opacity: 0.85;
-            transform: scale(1.03);
-        }
-        .btn-sm:disabled {
-            opacity: 0.35;
-            cursor: not-allowed;
-        }
-        .btn-reset {
-            background: #f39c12;
-            color: #fff;
-        }
-        .btn-deactivate {
-            background: #e74c3c;
-            color: #fff;
-        }
-        .btn-activate {
-            background: #2ecc71;
-            color: #fff;
-        }
-        .btn-role {
-            background: #34495e;
-            color: #ecf0f1;
-            border: 1px solid #556b82;
-        }
-
-        @media (max-width: 600px) {
-            .admin-container {
-                width: 96%;
-                padding: 18px 14px;
-                margin: 15px auto;
-                border-radius: 14px;
-            }
-            .header-section {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 8px;
-            }
-            .header-section h1 {
-                font-size: 1.4rem;
-            }
-            .create-form {
-                flex-direction: column;
-            }
-            .create-form input, .create-form select, .create-form button {
-                width: 100%;
-                flex: 1 1 100%;
-                box-sizing: border-box;
-            }
-            .pwd-display {
-                flex-direction: column;
-            }
-            .pwd-code {
-                font-size: 1.2rem;
-                padding: 8px 14px;
-                max-width: 100%;
-                box-sizing: border-box;
-                word-break: break-all;
-            }
-        }
-    </style>
+    <?php
+    $page_title = 'إدارة المستخدمين';
+    include __DIR__ . '/../includes/header-meta.php';
+    ?>
 </head>
 <body>
-    <?php include __DIR__ . '/../includes/nav.php'; render_nav($base); ?>
+    <?php
+    include __DIR__ . '/../includes/nav.php';
+    render_nav($base);
+    ?>
 
-    <div class="admin-container">
-        <div class="header-section">
-            <h1>إدارة حسابات المستخدمين</h1>
-            <a href="<?= $base ?>dashboard.php" style="color:#1abc9c;text-decoration:none;font-weight:bold;">&larr; العودة للوحة التحكم</a>
-        </div>
+    <main>
+        <!-- Header -->
+        <header class="page-header">
+            <div class="page-title-wrap">
+                <h1 class="page-title">إدارة المستخدمين</h1>
+                <p class="page-subtitle">إضافة حسابات جديدة، إدارة الصلاحيات وتعيين كلمات المرور المؤقتة</p>
+            </div>
+            <div class="page-actions">
+                <button type="button" class="btn btn-primary" onclick="openModal('createUserModal')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    إضافة مستخدم جديد
+                </button>
+            </div>
+        </header>
 
+        <!-- Alerts -->
         <?php if ($error): ?>
-            <div class="alert alert-error"><?= e($error) ?></div>
-        <?php endif; ?>
-
-        <?php if ($success): ?>
-            <div class="alert alert-success"><?= e($success) ?></div>
-        <?php endif; ?>
-
-        <?php if ($one_time_password): ?>
-            <div class="one-time-pwd-box">
-                <h3><?= $one_time_action === 'create' ? 'تم إنشاء الحساب بكلمة مرور مؤقتة' : 'تم تعيين كلمة مرور مؤقتة جديدة' ?></h3>
-                <div>المستخدم: <strong><?= e($one_time_user_email) ?></strong></div>
-                <div class="pwd-display">
-                    <span id="pwd-val" class="pwd-code"><?= e($one_time_password) ?></span>
-                    <button type="button" class="copy-btn" onclick="copyPassword()">نسخ كلمة المرور</button>
-                </div>
-                <div class="pwd-warning">انسخ الباسورد دلوقتي، مش هتظهر تاني</div>
+            <div class="alert alert-error" role="alert">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <span><?= htmlspecialchars($error) ?></span>
             </div>
         <?php endif; ?>
 
-        <div class="create-form-card">
-            <h2>إضافة مستخدم جديد</h2>
-            <form method="POST" class="create-form">
-                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                <input type="hidden" name="action" value="create_user">
-                <input type="text" name="name" placeholder="الاسم بالكامل" required>
-                <input type="email" name="email" placeholder="البريد الإلكتروني" required>
-                <select name="role">
-                    <option value="member">عضو (Member)</option>
-                    <option value="admin">مدير (Admin)</option>
-                </select>
-                <button type="submit">إنشاء المستخدم</button>
-            </form>
-        </div>
+        <?php if ($success): ?>
+            <div class="alert alert-success" role="alert">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span><?= htmlspecialchars($success) ?></span>
+            </div>
+        <?php endif; ?>
 
-        <div class="table-responsive">
-            <table class="users-table">
+        <!-- One-Time Temporary Password Display Box -->
+        <?php if ($one_time_password): ?>
+            <section class="one-time-pwd-box" aria-labelledby="oneTimeTitle">
+                <h2 id="oneTimeTitle" class="one-time-title">
+                    <?= $one_time_action === 'create' ? 'كلمة المرور المؤقتة للمستخدم الجديد' : 'كلمة المرور المؤقتة الجديدة' ?>
+                    (<strong><?= htmlspecialchars($one_time_user_email) ?></strong>)
+                </h2>
+                <div class="one-time-pwd-code" id="pwd-val"><?= htmlspecialchars($one_time_password) ?></div>
+                <div class="one-time-warning">
+                    ⚠️ انسخ كلمة المرور الآن، لن تظهر مرة أخرى بعد مغادرة أو تحديث الصفحة!
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm copy-btn" onclick="copyPassword()">
+                    نسخ كلمة المرور
+                </button>
+            </section>
+        <?php endif; ?>
+
+        <!-- Users Table -->
+        <div class="table-container">
+            <table class="table" aria-label="قائمة المستخدمين">
                 <thead>
                     <tr>
-                        <th>الاسم</th>
-                        <th>البريد الإلكتروني</th>
-                        <th>الدور</th>
-                        <th>الحالة</th>
-                        <th>تاريخ الإنشاء</th>
-                        <th>الإجراءات</th>
+                        <th scope="col">الاسم</th>
+                        <th scope="col">البريد الإلكتروني</th>
+                        <th scope="col">الدور</th>
+                        <th scope="col">الحالة</th>
+                        <th scope="col">تاريخ الإنشاء</th>
+                        <th scope="col" class="text-center">الإجراءات</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($all_users as $u): ?>
-                        <?php 
-                        $isSelf = ((int)$u['id'] === $admin_id); 
-                        $isActive = ((int)$u['is_active'] === 1);
-                        $rowClasses = [];
-                        if ($isSelf) $rowClasses[] = 'user-row-self';
-                        if (!$isActive) $rowClasses[] = 'user-row-inactive';
-                        $rowClassAttr = !empty($rowClasses) ? ' class="' . implode(' ', $rowClasses) . '"' : '';
-                        ?>
-                        <tr<?= $rowClassAttr ?>>
-                            <td><span class="user-name"><?= e($u['name']) ?></span></td>
-                            <td><span class="user-email"><?= e($u['email']) ?></span></td>
-                            <td>
-                                <?php if ($u['role'] === 'admin'): ?>
-                                    <span class="badge badge-admin">مدير</span>
-                                <?php else: ?>
-                                    <span class="badge badge-member">عضو</span>
+                    <?php foreach ($all_users as $u):
+                        $is_self = ((int)$u['id'] === $admin_id);
+                        $userInitials = get_user_initials($u['name']);
+                    ?>
+                    <tr class="<?= $is_self ? 'user-row-self' : '' ?> <?= (int)$u['is_active'] === 0 ? 'user-row-inactive' : '' ?>">
+                        <td>
+                            <div class="user-cell">
+                                <span class="avatar avatar-sm"><?= htmlspecialchars($userInitials) ?></span>
+                                <strong><?= htmlspecialchars($u['name']) ?></strong>
+                                <?php if ($is_self): ?>
+                                    <span class="badge badge-self">حسابك</span>
                                 <?php endif; ?>
-                            </td>
-                            <td>
-                                <?php if ($isActive): ?>
-                                    <span class="badge badge-active">نشط</span>
+                            </div>
+                        </td>
+                        <td><?= htmlspecialchars($u['email']) ?></td>
+                        <td>
+                            <span class="badge <?= $u['role'] === 'admin' ? 'badge-admin' : 'badge-member' ?>">
+                                <?= $u['role'] === 'admin' ? 'مسؤول' : 'عضو' ?>
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge <?= (int)$u['is_active'] === 1 ? 'badge-active' : 'badge-inactive' ?>">
+                                <?= (int)$u['is_active'] === 1 ? 'نشط' : 'معطّل' ?>
+                            </span>
+                        </td>
+                        <td class="text-cell-muted">
+                            <?= date('Y-m-d', strtotime($u['created_at'])) ?>
+                        </td>
+                        <td>
+                            <div class="actions-cell">
+                                <?php if ($is_self): ?>
+                                    <span class="text-self">(حسابك)</span>
                                 <?php else: ?>
-                                    <span class="badge badge-inactive">معطل</span>
+                                    <!-- Toggle Active Button -->
+                                    <form method="POST" class="inline-form">
+                                        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                                        <input type="hidden" name="action" value="toggle_active">
+                                        <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                                        <button type="submit" 
+                                                class="btn btn-sm action-confirm-btn <?= (int)$u['is_active'] === 1 ? 'btn-danger' : 'btn-secondary' ?>"
+                                                data-confirm-action="<?= (int)$u['is_active'] === 1 ? 'deactivate' : 'reactivate' ?>"
+                                                data-user-name="<?= htmlspecialchars($u['name']) ?>">
+                                            <?= (int)$u['is_active'] === 1 ? 'تعطيل' : 'تفعيل' ?>
+                                        </button>
+                                    </form>
+
+                                    <!-- Reset Password Button -->
+                                    <form method="POST" class="inline-form">
+                                        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                                        <input type="hidden" name="action" value="reset_password">
+                                        <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                                        <button type="submit" 
+                                                class="btn btn-ghost btn-sm action-confirm-btn"
+                                                data-confirm-action="reset_password"
+                                                data-user-name="<?= htmlspecialchars($u['name']) ?>">
+                                            إعادة تعيين كلمة المرور
+                                        </button>
+                                    </form>
+
+                                    <!-- Promote / Demote Role Button -->
+                                    <form method="POST" class="inline-form">
+                                        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                                        <input type="hidden" name="action" value="change_role">
+                                        <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
+                                        <input type="hidden" name="role" value="<?= $u['role'] === 'admin' ? 'member' : 'admin' ?>">
+                                        <button type="submit" 
+                                                class="btn btn-ghost btn-sm action-confirm-btn"
+                                                data-confirm-action="<?= $u['role'] === 'admin' ? 'demote' : 'promote' ?>"
+                                                data-user-name="<?= htmlspecialchars($u['name']) ?>">
+                                            <?= $u['role'] === 'admin' ? 'خفض لعضو' : 'ترقية لمسؤول' ?>
+                                        </button>
+                                    </form>
                                 <?php endif; ?>
-                            </td>
-                            <td><span class="user-date"><?= date('Y-m-d H:i', strtotime($u['created_at'])) ?></span></td>
-                            <td>
-                                <div class="action-btns">
-                                    <?php if ($isSelf): ?>
-                                        <span class="self-label">(حسابك)</span>
-                                    <?php else: ?>
-                                        <!-- Reset Password -->
-                                        <form method="POST">
-                                            <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                                            <input type="hidden" name="action" value="reset_password">
-                                            <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
-                                            <button type="submit" class="btn-sm btn-reset action-confirm-btn" data-confirm-action="reset_password" data-user-name="<?= e($u['name']) ?>">إعادة تعيين الباسورد</button>
-                                        </form>
-
-                                        <!-- Deactivate / Activate -->
-                                        <form method="POST">
-                                            <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                                            <input type="hidden" name="action" value="toggle_active">
-                                            <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
-                                            <?php if ($isActive): ?>
-                                                <button type="submit" class="btn-sm btn-deactivate action-confirm-btn" data-confirm-action="deactivate" data-user-name="<?= e($u['name']) ?>">تعطيل</button>
-                                            <?php else: ?>
-                                                <button type="submit" class="btn-sm btn-activate action-confirm-btn" data-confirm-action="reactivate" data-user-name="<?= e($u['name']) ?>">تفعيل</button>
-                                            <?php endif; ?>
-                                        </form>
-
-                                        <!-- Change Role -->
-                                        <form method="POST">
-                                            <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                                            <input type="hidden" name="action" value="change_role">
-                                            <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
-                                            <?php if ($u['role'] === 'admin'): ?>
-                                                <input type="hidden" name="role" value="member">
-                                                <button type="submit" class="btn-sm btn-role action-confirm-btn" data-confirm-action="demote" data-user-name="<?= e($u['name']) ?>">خفض لعضو</button>
-                                            <?php else: ?>
-                                                <input type="hidden" name="role" value="admin">
-                                                <button type="submit" class="btn-sm btn-role action-confirm-btn" data-confirm-action="promote" data-user-name="<?= e($u['name']) ?>">ترقية لمدير</button>
-                                            <?php endif; ?>
-                                        </form>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
-                        </tr>
+                            </div>
+                        </td>
+                    </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
+    </main>
+
+    <!-- Create User Modal -->
+    <div class="modal" id="createUserModal" role="dialog" aria-modal="true" aria-labelledby="createUserTitle">
+        <div class="modal-backdrop" data-dismiss="modal"></div>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="createUserTitle">إضافة مستخدم جديد</h2>
+                    <button type="button" class="modal-close" data-dismiss="modal" aria-label="إغلاق">&times;</button>
+                </div>
+                <form method="POST" action="users.php">
+                    <div class="modal-body">
+                        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                        <input type="hidden" name="action" value="create_user">
+
+                        <div class="form-group">
+                            <label for="new_user_name" class="form-label">الاسم الكامل <span class="required">*</span></label>
+                            <input type="text" id="new_user_name" name="name" class="form-control" required placeholder="مثال: أحمد محمد">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="new_user_email" class="form-label">البريد الإلكتروني <span class="required">*</span></label>
+                            <input type="email" id="new_user_email" name="email" class="form-control" required placeholder="name@example.com">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="new_user_role" class="form-label">الدور <span class="required">*</span></label>
+                            <select id="new_user_role" name="role" class="form-select" required>
+                                <option value="member" selected>عضو عادي (member)</option>
+                                <option value="admin">مسؤول نظام (admin)</option>
+                            </select>
+                            <span class="form-hint">سيتم توليد كلمة مرور مؤقتة عشوائية مكوّنة من 14 خانة وعرضها لمرة واحدة فقط.</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-primary">إنشاء المستخدم</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
+    <!-- Confirmation Dialog Listener & Password Copy -->
     <script>
-    // Delegated confirmation listener for admin user actions
     document.addEventListener('click', function(e) {
         const btn = e.target.closest('.action-confirm-btn');
         if (!btn) return;
@@ -770,36 +443,34 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     function copyPassword() {
         const text = document.getElementById('pwd-val').textContent.trim();
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(() => {
-                const btn = document.querySelector('.copy-btn');
-                const orig = btn.textContent;
+        const btn = document.querySelector('.copy-btn');
+        const orig = btn ? btn.textContent : '';
+
+        function feedback() {
+            if (btn) {
                 btn.textContent = 'تم النسخ!';
-                btn.style.background = '#2ecc71';
-                setTimeout(() => {
-                    btn.textContent = orig;
-                    btn.style.background = '#1abc9c';
-                }, 2000);
-            }).catch(() => fallbackCopy(text));
+                setTimeout(() => { btn.textContent = orig; }, 2000);
+            }
+            if (typeof showToast === 'function') {
+                showToast('تم نسخ كلمة المرور إلى الحافظة بنجاح', 'success');
+            }
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(feedback).catch(() => fallbackCopy(text, feedback));
         } else {
-            fallbackCopy(text);
+            fallbackCopy(text, feedback);
         }
     }
-    function fallbackCopy(text) {
+
+    function fallbackCopy(text, cb) {
         const temp = document.createElement('textarea');
         temp.value = text;
         document.body.appendChild(temp);
         temp.select();
         document.execCommand('copy');
         document.body.removeChild(temp);
-        const btn = document.querySelector('.copy-btn');
-        const orig = btn.textContent;
-        btn.textContent = 'تم النسخ!';
-        btn.style.background = '#2ecc71';
-        setTimeout(() => {
-            btn.textContent = orig;
-            btn.style.background = '#1abc9c';
-        }, 2000);
+        if (cb) cb();
     }
     </script>
 </body>
