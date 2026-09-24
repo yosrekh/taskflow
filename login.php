@@ -113,13 +113,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             <div class="form-group">
                 <label for="email" class="form-label">البريد الإلكتروني <span class="required">*</span></label>
-                <input type="email" id="email" name="email" class="form-control" value="<?= htmlspecialchars($email ?? '') ?>" placeholder="name@example.com" required autofocus autocomplete="username">
+                <input type="email" id="email" name="email" class="form-control" dir="ltr" value="<?= htmlspecialchars($email ?? '') ?>" placeholder="name@example.com" required autofocus autocomplete="username">
             </div>
 
             <div class="form-group">
                 <label for="password" class="form-label">كلمة المرور <span class="required">*</span></label>
                 <div class="password-field-wrapper">
-                    <input type="password" id="password" name="password" class="form-control" placeholder="••••••••••••" required autocomplete="current-password">
+                    <input type="password" id="password" name="password" class="form-control" dir="ltr" placeholder="••••••••••••" required autocomplete="current-password">
                     <button type="button" class="password-toggle-btn" aria-label="إظهار كلمة المرور">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>

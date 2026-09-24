@@ -57,7 +57,7 @@ foreach ($migrations as $m) {
         <header class="page-header">
             <div class="page-title-wrap">
                 <h1 class="page-title">تحديثات قاعدة البيانات</h1>
-                <p class="page-subtitle">إدارة وتطبيق ترحيلات ومخططات قاعدة البيانات (Migrations) للنظام</p>
+                <p class="page-subtitle">التحديثات اللي اتطبقت على قاعدة البيانات، وأي تحديث جديد مستني التطبيق</p>
             </div>
             <?php if ($pendingCount > 0): ?>
                 <div class="page-actions">
@@ -91,7 +91,7 @@ foreach ($migrations as $m) {
         <div class="settings-card">
             <div class="card-header">
                 <div>
-                    <h2 class="card-title">سجل الترحيلات (Schema Migrations)</h2>
+                    <h2 class="card-title">سجل التحديثات</h2>
                     <p class="card-desc">قائمة بملفات التحديثات وحالة تطبيقها على قاعدة البيانات الحالية</p>
                 </div>
                 <?php if ($pendingCount > 0): ?>
@@ -107,7 +107,7 @@ foreach ($migrations as $m) {
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>ملف التحديث</th>
+                            <th>التحديث</th>
                             <th>الحالة</th>
                             <th>تاريخ التطبيق</th>
                         </tr>
@@ -115,13 +115,18 @@ foreach ($migrations as $m) {
                     <tbody>
                         <?php if (empty($migrations)): ?>
                             <tr>
-                                <td colspan="3" class="text-center text-muted" style="padding: var(--space-6);">لا توجد أي ملفات ترحيل في المجلد db/migrations/</td>
+                                <td colspan="3" class="text-center text-muted" style="padding: var(--space-6);">لا توجد أي ملفات تحديث في المجلد db/migrations/</td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($migrations as $m): ?>
                                 <tr>
                                     <td>
-                                        <code style="font-size: var(--font-size-sm); font-weight: 600;"><?= htmlspecialchars($m['filename']) ?></code>
+                                        <div style="font-weight: 600; color: var(--text-primary); margin-block-end: 2px;">
+                                            <?= htmlspecialchars($m['description'] ?: $m['filename']) ?>
+                                        </div>
+                                        <div class="text-muted" style="font-size: 0.8rem; font-family: var(--font-mono, monospace);">
+                                            <bdi dir="ltr"><?= htmlspecialchars($m['filename']) ?></bdi>
+                                        </div>
                                     </td>
                                     <td>
                                         <?php if ($m['status'] === 'applied'): ?>
@@ -136,8 +141,12 @@ foreach ($migrations as $m) {
                                             </span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-muted" style="font-size: var(--font-size-sm);">
-                                        <?= $m['applied_at'] ? htmlspecialchars($m['applied_at']) : '—' ?>
+                                    <td class="text-muted tabular-nums" style="font-size: var(--font-size-sm);">
+                                        <?php if ($m['applied_at']): ?>
+                                            <bdi dir="ltr"><?= htmlspecialchars($m['applied_at']) ?></bdi>
+                                        <?php else: ?>
+                                            —
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

@@ -1,4 +1,6 @@
+-- description: تذكير مواعيد التسليم
 -- Migration 004: Add task_reminders table for idempotent due-date reminders
+
 CREATE TABLE IF NOT EXISTS task_reminders (
     id INT AUTO_INCREMENT PRIMARY KEY,
     task_id INT NOT NULL,

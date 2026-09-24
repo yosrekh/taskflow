@@ -112,7 +112,7 @@ $base = '';
             <div class="form-group">
                 <label for="current_password" class="form-label">كلمة المرور الحالية <span class="required">*</span></label>
                 <div class="password-field-wrapper">
-                    <input type="password" id="current_password" name="current_password" class="form-control" required autocomplete="current-password">
+                    <input type="password" id="current_password" name="current_password" class="form-control" dir="ltr" required autocomplete="current-password">
                     <button type="button" class="password-toggle-btn" aria-label="إظهار كلمة المرور">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -126,7 +126,7 @@ $base = '';
             <div class="form-group">
                 <label for="new_password" class="form-label">كلمة المرور الجديدة <span class="required">*</span></label>
                 <div class="password-field-wrapper">
-                    <input type="password" id="new_password" name="new_password" class="form-control" placeholder="10 أحرف على الأقل" required minlength="10" autocomplete="new-password">
+                    <input type="password" id="new_password" name="new_password" class="form-control" dir="ltr" placeholder="10 أحرف على الأقل" required minlength="10" autocomplete="new-password">
                     <button type="button" class="password-toggle-btn" aria-label="إظهار كلمة المرور">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -140,7 +140,7 @@ $base = '';
             <div class="form-group">
                 <label for="confirm_password" class="form-label">تأكيد كلمة المرور الجديدة <span class="required">*</span></label>
                 <div class="password-field-wrapper">
-                    <input type="password" id="confirm_password" name="confirm_password" class="form-control" required minlength="10" autocomplete="new-password">
+                    <input type="password" id="confirm_password" name="confirm_password" class="form-control" dir="ltr" required minlength="10" autocomplete="new-password">
                     <button type="button" class="password-toggle-btn" aria-label="إظهار كلمة المرور">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>

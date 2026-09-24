@@ -287,7 +287,7 @@ $branding = get_branding($base);
                                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                                         </div>
                                         <span class="drop-zone-text">اسحب الملف هنا أو اضغط للاختيار</span>
-                                        <span class="drop-zone-hint">SVG أو PNG أو WebP — الحد الأقصى: 1 ميجابايت</span>
+                                        <span class="drop-zone-hint"><bdi dir="ltr">SVG</bdi> أو <bdi dir="ltr">PNG</bdi> أو <bdi dir="ltr">WebP</bdi> — الحد الأقصى: <bdi class="tabular-nums">1</bdi> ميجابايت</span>
                                     </div>
 
                                     <div class="drop-zone-staged" id="staged_logo_dark" hidden>
@@ -295,7 +295,7 @@ $branding = get_branding($base);
                                             <img src="" alt="" class="staged-thumb" id="thumb_logo_dark">
                                         </div>
                                         <div class="staged-meta">
-                                            <span class="staged-name" id="name_logo_dark"></span>
+                                            <span class="staged-name ltr"><bdi dir="ltr" id="name_logo_dark"></bdi></span>
                                             <span class="staged-size" id="size_logo_dark"></span>
                                         </div>
                                         <button type="button" class="staged-remove-btn" id="remove_logo_dark" title="إزالة الملف المحدد">
@@ -343,7 +343,7 @@ $branding = get_branding($base);
                                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                                         </div>
                                         <span class="drop-zone-text">اسحب الملف هنا أو اضغط للاختيار</span>
-                                        <span class="drop-zone-hint">SVG أو PNG أو WebP — الحد الأقصى: 1 ميجابايت</span>
+                                        <span class="drop-zone-hint"><bdi dir="ltr">SVG</bdi> أو <bdi dir="ltr">PNG</bdi> أو <bdi dir="ltr">WebP</bdi> — الحد الأقصى: <bdi class="tabular-nums">1</bdi> ميجابايت</span>
                                     </div>
 
                                     <div class="drop-zone-staged" id="staged_logo_light" hidden>
@@ -351,7 +351,7 @@ $branding = get_branding($base);
                                             <img src="" alt="" class="staged-thumb" id="thumb_logo_light">
                                         </div>
                                         <div class="staged-meta">
-                                            <span class="staged-name" id="name_logo_light"></span>
+                                            <span class="staged-name ltr"><bdi dir="ltr" id="name_logo_light"></bdi></span>
                                             <span class="staged-size" id="size_logo_light"></span>
                                         </div>
                                         <button type="button" class="staged-remove-btn" id="remove_logo_light" title="إزالة الملف المحدد">
@@ -404,13 +404,13 @@ $branding = get_branding($base);
                                     <span class="mock-tab-body-label">تبويب فاتح</span>
                                     <div class="mock-tab-sizes">
                                         <div class="mock-size-badge">
-                                            <span>16 بكسل</span>
+                                            <span><bdi class="tabular-nums">16</bdi> بكسل</span>
                                             <div class="mock-icon-box size-16" id="mockLightBox16">
                                                 <?= render_tab_icon_markup($branding['favicon_url']) ?>
                                             </div>
                                         </div>
                                         <div class="mock-size-badge">
-                                            <span>32 بكسل</span>
+                                            <span><bdi class="tabular-nums">32</bdi> بكسل</span>
                                             <div class="mock-icon-box size-32" id="mockLightBox32">
                                                 <?= render_tab_icon_markup($branding['favicon_url']) ?>
                                             </div>
@@ -434,13 +434,13 @@ $branding = get_branding($base);
                                     <span class="mock-tab-body-label">تبويب داكن</span>
                                     <div class="mock-tab-sizes">
                                         <div class="mock-size-badge">
-                                            <span>16 بكسل</span>
+                                            <span><bdi class="tabular-nums">16</bdi> بكسل</span>
                                             <div class="mock-icon-box size-16" id="mockDarkBox16">
                                                 <?= render_tab_icon_markup($darkFaviconUrl) ?>
                                             </div>
                                         </div>
                                         <div class="mock-size-badge">
-                                            <span>32 بكسل</span>
+                                            <span><bdi class="tabular-nums">32</bdi> بكسل</span>
                                             <div class="mock-icon-box size-32" id="mockDarkBox32">
                                                 <?= render_tab_icon_markup($darkFaviconUrl) ?>
                                             </div>
@@ -475,7 +475,7 @@ $branding = get_branding($base);
                                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                                         </div>
                                         <span class="drop-zone-text">اسحب الملف هنا أو اضغط للاختيار</span>
-                                        <span class="drop-zone-hint">SVG أو PNG مربعة — الحد الأقصى: 256 كيلوبايت</span>
+                                        <span class="drop-zone-hint"><bdi dir="ltr">SVG</bdi> أو <bdi dir="ltr">PNG</bdi> مربعة — الحد الأقصى: <bdi class="tabular-nums">256</bdi> كيلوبايت</span>
                                     </div>
 
                                     <div class="drop-zone-staged" id="staged_favicon" hidden>
@@ -483,7 +483,7 @@ $branding = get_branding($base);
                                             <img src="" alt="" class="staged-thumb" id="thumb_favicon">
                                         </div>
                                         <div class="staged-meta">
-                                            <span class="staged-name" id="name_favicon"></span>
+                                            <span class="staged-name ltr"><bdi dir="ltr" id="name_favicon"></bdi></span>
                                             <span class="staged-size" id="size_favicon"></span>
                                         </div>
                                         <button type="button" class="staged-remove-btn" id="remove_favicon" title="إزالة الملف المحدد">
@@ -526,7 +526,7 @@ $branding = get_branding($base);
                                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                                         </div>
                                         <span class="drop-zone-text">اسحب الملف هنا أو اضغط للاختيار</span>
-                                        <span class="drop-zone-hint">SVG أو PNG مربعة — الحد الأقصى: 256 كيلوبايت</span>
+                                        <span class="drop-zone-hint"><bdi dir="ltr">SVG</bdi> أو <bdi dir="ltr">PNG</bdi> مربعة — الحد الأقصى: <bdi class="tabular-nums">256</bdi> كيلوبايت</span>
                                     </div>
 
                                     <div class="drop-zone-staged" id="staged_favicon_dark" hidden>
@@ -534,7 +534,7 @@ $branding = get_branding($base);
                                             <img src="" alt="" class="staged-thumb" id="thumb_favicon_dark">
                                         </div>
                                         <div class="staged-meta">
-                                            <span class="staged-name" id="name_favicon_dark"></span>
+                                            <span class="staged-name ltr"><bdi dir="ltr" id="name_favicon_dark"></bdi></span>
                                             <span class="staged-size" id="size_favicon_dark"></span>
                                         </div>
                                         <button type="button" class="staged-remove-btn" id="remove_favicon_dark" title="إزالة الملف المحدد">
@@ -629,9 +629,9 @@ $branding = get_branding($base);
         let hasUnsavedChanges = false;
 
         function formatSize(bytes) {
-            if (bytes < 1024) return bytes + ' بايت';
-            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' كيلوبايت';
-            return (bytes / (1024 * 1024)).toFixed(2) + ' ميجابايت';
+            if (bytes < 1024) return `<bdi class="tabular-nums">${bytes}</bdi> بايت`;
+            if (bytes < 1024 * 1024) return `<bdi class="tabular-nums">${(bytes / 1024).toFixed(1)}</bdi> كيلوبايت`;
+            return `<bdi class="tabular-nums">${(bytes / (1024 * 1024)).toFixed(2)}</bdi> ميجابايت`;
         }
 
         function checkUnsavedChanges() {
@@ -812,7 +812,7 @@ $branding = get_branding($base);
 
             function showError(msg) {
                 if (errorEl) {
-                    errorEl.textContent = msg;
+                    errorEl.innerHTML = msg;
                     errorEl.hidden = false;
                 }
             }
@@ -843,7 +843,7 @@ $branding = get_branding($base);
                 }
                 if (thumbImg) thumbImg.src = '';
                 if (nameEl) nameEl.textContent = '';
-                if (sizeEl) sizeEl.textContent = '';
+                if (sizeEl) sizeEl.innerHTML = '';
 
                 // Restore previews
                 if (fieldKey === 'logo_dark') {
@@ -887,7 +887,7 @@ $branding = get_branding($base);
                     const testImg = new Image();
                     testImg.onload = function () {
                         if (testImg.naturalWidth !== testImg.naturalHeight) {
-                            showError('أيقونة Favicon بصيغة PNG يجب أن تكون مربعة الأبعاد (العرض = الارتفاع). الأبعاد: ' + testImg.naturalWidth + '×' + testImg.naturalHeight + '.');
+                            showError('أيقونة Favicon بصيغة PNG يجب أن تكون مربعة الأبعاد (العرض = الارتفاع). الأبعاد: <bdi dir="ltr" class="tabular-nums">' + testImg.naturalWidth + '×' + testImg.naturalHeight + '</bdi>.');
                             input.value = '';
                             return;
                         }
@@ -908,7 +908,7 @@ $branding = get_branding($base);
                 const objectUrl = URL.createObjectURL(file);
 
                 if (nameEl) nameEl.textContent = file.name;
-                if (sizeEl) sizeEl.textContent = formatSize(file.size);
+                if (sizeEl) sizeEl.innerHTML = formatSize(file.size);
                 if (thumbImg) thumbImg.src = objectUrl;
 
                 if (promptBox) {
