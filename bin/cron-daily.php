@@ -34,7 +34,8 @@ if (isset($cliOptions['only'])) {
 $isDryRun = isset($cliOptions['dry-run']);
 
 // 4. Overlap Prevention via Lock File
-$lockFile = sys_get_temp_dir() . '/taskflow_cron_' . md5($projectRoot) . '.lock';
+$normalizedRoot = strtolower(str_replace('\\', '/', realpath($projectRoot) ?: $projectRoot));
+$lockFile = sys_get_temp_dir() . '/taskflow_cron_' . md5($normalizedRoot) . '.lock';
 $lockFp = @fopen($lockFile, 'c+');
 
 if (!$lockFp || !flock($lockFp, LOCK_EX | LOCK_NB)) {
