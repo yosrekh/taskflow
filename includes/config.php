@@ -9,12 +9,12 @@ if (PHP_VERSION_ID < 80000) {
 
 // Minimal .env file parser as fallback
 function load_env_file($filePath) {
-    if (!file_exists($filePath)) {
-        return;
+    if (!file_exists($filePath) || !is_file($filePath)) {
+        return false;
     }
     $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     if ($lines === false) {
-        return;
+        return false;
     }
     foreach ($lines as $line) {
         $line = trim($line);
@@ -37,11 +37,30 @@ function load_env_file($filePath) {
             }
         }
     }
+    return true;
 }
 
-// Load .env from ONE LEVEL ABOVE the project root first (outside public_html), falling back to project root
-load_env_file(dirname(__DIR__, 2) . '/.env');
-load_env_file(dirname(__DIR__) . '/.env');
+// Multi-Install Isolation Environment Loading Order:
+// 1. ../.env.<basename of the project folder> (e.g. /home/user/.env.company-a.example.com)
+// 2. ../.env (single-install fallback)
+// 3. ./.env (local dev)
+$projectDir = dirname(__DIR__);
+$projectFolder = basename($projectDir);
+$parentDir = dirname($projectDir);
+
+$envCandidates = [
+    $parentDir . '/.env.' . $projectFolder,
+    $parentDir . '/.env',
+    $projectDir . '/.env',
+];
+
+$loadedEnvFile = null;
+foreach ($envCandidates as $candidate) {
+    if (load_env_file($candidate)) {
+        $loadedEnvFile = $candidate;
+        break;
+    }
+}
 
 // Helper to retrieve configuration value
 function env($key, $default = null) {
@@ -50,6 +69,11 @@ function env($key, $default = null) {
         $val = $_ENV[$key] ?? $_SERVER[$key] ?? $default;
     }
     return $val;
+}
+
+// Log (not display) which file was loaded when APP_ENV=development
+if (env('APP_ENV') === 'development' && $loadedEnvFile) {
+    error_log("[TaskFlow Config] Loaded environment file: " . $loadedEnvFile);
 }
 
 // Database configuration
