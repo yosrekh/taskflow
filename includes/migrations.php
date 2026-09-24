@@ -148,8 +148,16 @@ function get_all_migrations_status(PDO $pdo): array {
     foreach ($files as $filePath) {
         $basename = basename($filePath);
         $isApplied = isset($applied[$basename]);
+
+        $description = '';
+        $fileContent = file_get_contents($filePath);
+        if ($fileContent && preg_match('/^--\s*description:\s*(.+)$/mi', $fileContent, $descMatch)) {
+            $description = trim($descMatch[1]);
+        }
+
         $result[] = [
             'filename' => $basename,
+            'description' => $description,
             'status' => $isApplied ? 'applied' : 'pending',
             'applied_at' => $isApplied ? $applied[$basename] : null
         ];

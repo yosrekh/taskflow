@@ -407,9 +407,9 @@ $active_users = $active_stmt->fetchAll(PDO::FETCH_ASSOC);
             <section class="one-time-pwd-box" aria-labelledby="oneTimeTitle">
                 <h2 id="oneTimeTitle" class="one-time-title">
                     <?= $one_time_action === 'create' ? 'كلمة المرور المؤقتة للمستخدم الجديد' : 'كلمة المرور المؤقتة الجديدة' ?>
-                    (<strong><?= htmlspecialchars($one_time_user_email) ?></strong>)
+                    (<strong><bdi dir="ltr"><?= htmlspecialchars($one_time_user_email) ?></bdi></strong>)
                 </h2>
-                <div class="one-time-pwd-code" id="pwd-val"><?= htmlspecialchars($one_time_password) ?></div>
+                <div class="one-time-pwd-code ltr" id="pwd-val"><bdi dir="ltr"><?= htmlspecialchars($one_time_password) ?></bdi></div>
                 <div class="one-time-warning">
                     ⚠️ انسخ كلمة المرور الآن، لن تظهر مرة أخرى بعد مغادرة أو تحديث الصفحة!
                 </div>
@@ -447,7 +447,7 @@ $active_users = $active_stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <?php endif; ?>
                             </div>
                         </td>
-                        <td><?= htmlspecialchars($u['email']) ?></td>
+                        <td><bdi dir="ltr"><?= htmlspecialchars($u['email']) ?></bdi></td>
                         <td>
                             <span class="badge <?= $u['role'] === 'admin' ? 'badge-admin' : 'badge-member' ?>">
                                 <?= $u['role'] === 'admin' ? 'مسؤول' : 'عضو' ?>
@@ -458,8 +458,8 @@ $active_users = $active_stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <?= (int)$u['is_active'] === 1 ? 'نشط' : 'معطّل' ?>
                             </span>
                         </td>
-                        <td class="text-cell-muted">
-                            <?= date('Y-m-d', strtotime($u['created_at'])) ?>
+                        <td class="text-cell-muted tabular-nums">
+                            <bdi dir="ltr"><?= date('Y-m-d', strtotime($u['created_at'])) ?></bdi>
                         </td>
                         <td>
                             <div class="actions-cell">
@@ -547,7 +547,7 @@ $active_users = $active_stmt->fetchAll(PDO::FETCH_ASSOC);
 
                         <div class="form-group">
                             <label for="new_user_email" class="form-label">البريد الإلكتروني <span class="required">*</span></label>
-                            <input type="email" id="new_user_email" name="email" class="form-control" required placeholder="name@example.com">
+                            <input type="email" id="new_user_email" name="email" class="form-control" dir="ltr" required placeholder="name@example.com">
                         </div>
 
                         <div class="form-group">
@@ -594,16 +594,16 @@ $active_users = $active_stmt->fetchAll(PDO::FETCH_ASSOC);
                             <div class="delete-user-info">
                                 <span class="delete-user-label">المستخدم المراد حذفه:</span>
                                 <strong id="delete_modal_user_name" class="delete-user-name">-</strong>
-                                <span id="delete_modal_user_email" class="delete-user-email text-muted">-</span>
+                                <span class="delete-user-email text-muted ltr"><bdi dir="ltr" id="delete_modal_user_email">-</bdi></span>
                             </div>
 
                             <div class="delete-stats-grid">
                                 <div class="delete-stat-box">
-                                    <div class="delete-stat-num" id="delete_modal_projects_count">0</div>
+                                    <div class="delete-stat-num tabular-nums" id="delete_modal_projects_count">0</div>
                                     <div class="delete-stat-label">مشاريع يملكها</div>
                                 </div>
                                 <div class="delete-stat-box">
-                                    <div class="delete-stat-num" id="delete_modal_tasks_count">0</div>
+                                    <div class="delete-stat-num tabular-nums" id="delete_modal_tasks_count">0</div>
                                     <div class="delete-stat-label">مهام مفتوحة مسندة له</div>
                                 </div>
                             </div>
@@ -627,9 +627,9 @@ $active_users = $active_stmt->fetchAll(PDO::FETCH_ASSOC);
                         <!-- Confirm by typing email -->
                         <div class="form-group">
                             <label for="delete_confirm_email" class="form-label">
-                                لتأكيد الحذف، اكتب البريد الإلكتروني للمستخدم (<strong id="delete_confirm_email_hint"></strong>): <span class="required">*</span>
+                                لتأكيد الحذف، اكتب البريد الإلكتروني للمستخدم (<strong class="ltr"><bdi dir="ltr" id="delete_confirm_email_hint"></bdi></strong>): <span class="required">*</span>
                             </label>
-                            <input type="email" id="delete_confirm_email" name="confirm_email" class="form-control" required autocomplete="off" placeholder="اكتب البريد الإلكتروني هنا">
+                            <input type="email" id="delete_confirm_email" name="confirm_email" class="form-control" dir="ltr" required autocomplete="off" placeholder="اكتب البريد الإلكتروني هنا">
                         </div>
                     </div>
                     <div class="modal-footer">

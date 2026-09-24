@@ -218,8 +218,8 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
             <?php if (!empty($task['due_date'])): ?>
                 <span class="kanban-due-date <?= $isOverdue ? 'is-overdue' : '' ?>" title="<?= $isOverdue ? 'متأخرة عن موعدها' : 'تاريخ الاستحقاق' ?>">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                    <?= htmlspecialchars($task['due_date']) ?>
-                    <?= $isOverdue ? '(متأخرة)' : '' ?>
+                    <bdi dir="ltr" class="tabular-nums"><?= htmlspecialchars($task['due_date']) ?></bdi>
+                    <?= $isOverdue ? ' (متأخرة)' : '' ?>
                 </span>
             <?php endif; ?>
 
@@ -414,7 +414,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
 
                             <div class="form-group">
                                 <label for="task_due_date" class="form-label">تاريخ الاستحقاق</label>
-                                <input type="date" id="task_due_date" name="due_date" class="form-control" value="<?= htmlspecialchars($edit_task['due_date'] ?? '') ?>">
+                                <input type="date" id="task_due_date" name="due_date" class="form-control tabular-nums" dir="ltr" value="<?= htmlspecialchars($edit_task['due_date'] ?? '') ?>">
                             </div>
                         </div>
 
@@ -523,11 +523,11 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
             let dueDateHtml = '';
             if (task.due_date) {
                 const overdueClass = isOverdue ? 'is-overdue' : '';
-                const overdueNote = isOverdue ? '(متأخرة)' : '';
+                const overdueNote = isOverdue ? ' (متأخرة)' : '';
                 dueDateHtml = `
                     <span class="kanban-due-date ${overdueClass}">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                        ${escapeHtml(task.due_date)} ${overdueNote}
+                        <bdi dir="ltr" class="tabular-nums">${escapeHtml(task.due_date)}</bdi>${overdueNote}
                     </span>
                 `;
             }
@@ -737,7 +737,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
             <div class="task-drawer-meta-grid">
                 <div class="task-drawer-meta-item">
                     <span class="meta-label">تاريخ الاستحقاق</span>
-                    <span class="meta-value" id="drawerTaskDueDate">--</span>
+                    <span class="meta-value tabular-nums" id="drawerTaskDueDate">--</span>
                 </div>
                 <div class="task-drawer-meta-item">
                     <span class="meta-label">المسؤول عن المهمة</span>
@@ -845,21 +845,21 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
             if (diffMin < 60) {
                 if (diffMin === 1) return 'من دقيقة';
                 if (diffMin === 2) return 'من دقيقتين';
-                if (diffMin >= 3 && diffMin <= 10) return `من ${diffMin} دقايق`;
-                return `من ${diffMin} دقيقة`;
+                if (diffMin >= 3 && diffMin <= 10) return `من <bdi class="tabular-nums">${diffMin}</bdi> دقايق`;
+                return `من <bdi class="tabular-nums">${diffMin}</bdi> دقيقة`;
             }
             const diffHours = Math.floor(diffMin / 60);
             if (diffHours < 24) {
                 if (diffHours === 1) return 'من ساعة';
                 if (diffHours === 2) return 'من ساعتين';
-                if (diffHours >= 3 && diffHours <= 10) return `من ${diffHours} ساعات`;
-                return `من ${diffHours} ساعة`;
+                if (diffHours >= 3 && diffHours <= 10) return `من <bdi class="tabular-nums">${diffHours}</bdi> ساعات`;
+                return `من <bdi class="tabular-nums">${diffHours}</bdi> ساعة`;
             }
             const diffDays = Math.floor(diffHours / 24);
             if (diffDays === 1) return 'امبارح';
             if (diffDays === 2) return 'من يومين';
-            if (diffDays >= 3 && diffDays <= 10) return `من ${diffDays} أيام`;
-            return dateStr.substring(0, 10);
+            if (diffDays >= 3 && diffDays <= 10) return `من <bdi class="tabular-nums">${diffDays}</bdi> أيام`;
+            return `<bdi dir="ltr" class="tabular-nums">${dateStr.substring(0, 10)}</bdi>`;
         }
 
         function updateCardCommentCountBadge(taskId, count) {
@@ -939,7 +939,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                     statusEl.textContent = 'للتنفيذ';
                 }
 
-                dueDateEl.textContent = card.dataset.dueDate || 'غير محدد';
+                dueDateEl.innerHTML = card.dataset.dueDate ? '<bdi dir="ltr">' + escapeHtml(card.dataset.dueDate) + '</bdi>' : 'غير محدد';
                 assigneeEl.textContent = card.dataset.assignee || 'غير مسندة';
             } else {
                 titleEl.textContent = `مهمة #${taskId}`;
@@ -1068,9 +1068,9 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                 }
 
                 const timeEl = document.createElement('div');
-                timeEl.className = 'comment-card-time';
+                timeEl.className = 'comment-card-time tabular-nums';
                 timeEl.title = comment.created_at;
-                timeEl.textContent = formatArabicRelativeTime(comment.created_at);
+                timeEl.innerHTML = formatArabicRelativeTime(comment.created_at);
                 nameWrap.appendChild(timeEl);
 
                 authorInfo.appendChild(nameWrap);

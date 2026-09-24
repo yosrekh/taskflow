@@ -1,4 +1,6 @@
+-- description: التعليقات على المهام وروابط الإشعارات
 -- Migration 005: Add task_comments table and notification links
+
 CREATE TABLE IF NOT EXISTS task_comments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     task_id INT NOT NULL,

@@ -16,7 +16,7 @@ if (is_admin()) {
     $backupLastSuccess = get_setting('backup_last_success');
     if (empty($backupLastSuccess)) {
         $showBackupWarning = true;
-        $backupWarningMessage = 'مفيش أي نسخة احتياطية لحد دلوقتي. اتأكد إن الـ cron شغال.';
+        $backupWarningMessage = 'مفيش أي نسخة احتياطية لحد دلوقتي. اتأكد إن الـ <bdi dir="ltr">cron</bdi> شغال.';
     } else {
         $lastSuccessTs = strtotime($backupLastSuccess);
         if ($lastSuccessTs === false || (time() - $lastSuccessTs) > 172800) {
@@ -27,13 +27,13 @@ if (is_admin()) {
             if ($days === 2) {
                 $relativeTime = 'يومين';
             } elseif ($days >= 3 && $days <= 10) {
-                $relativeTime = "{$days} أيام";
+                $relativeTime = "<bdi class=\"tabular-nums\">{$days}</bdi> أيام";
             } elseif ($days > 10) {
-                $relativeTime = "{$days} يوم";
+                $relativeTime = "<bdi class=\"tabular-nums\">{$days}</bdi> يوم";
             } else {
-                $relativeTime = "{$hours} ساعة";
+                $relativeTime = "<bdi class=\"tabular-nums\">{$hours}</bdi> ساعة";
             }
-            $backupWarningMessage = "آخر نسخة احتياطية ناجحة كانت من {$relativeTime}. اتأكد إن الـ cron شغال.";
+            $backupWarningMessage = "آخر نسخة احتياطية ناجحة كانت من {$relativeTime}. اتأكد إن الـ <bdi dir=\"ltr\">cron</bdi> شغال.";
         }
     }
 
@@ -124,15 +124,15 @@ function render_project_card($p, $pdo, $user_id, $base = '') {
 
         <div class="project-status-counts">
             <div class="count-item">
-                <span class="count-number count-pending"><?= $pending ?></span>
+                <span class="count-number count-pending tabular-nums"><?= $pending ?></span>
                 <span class="count-label">للتنفيذ</span>
             </div>
             <div class="count-item">
-                <span class="count-number count-inprog"><?= $inProg ?></span>
+                <span class="count-number count-inprog tabular-nums"><?= $inProg ?></span>
                 <span class="count-label">قيد التنفيذ</span>
             </div>
             <div class="count-item">
-                <span class="count-number count-done"><?= $done ?></span>
+                <span class="count-number count-done tabular-nums"><?= $done ?></span>
                 <span class="count-label">مكتملة</span>
             </div>
         </div>
@@ -140,7 +140,7 @@ function render_project_card($p, $pdo, $user_id, $base = '') {
         <div class="project-progress-wrap">
             <div class="project-progress-header">
                 <span>نسبة الإنجاز</span>
-                <strong><?= $pct ?>%</strong>
+                <strong><bdi class="tabular-nums"><?= $pct ?>%</bdi></strong>
             </div>
             <div class="progress-bar-container" role="progressbar" aria-valuenow="<?= $pct ?>" aria-valuemin="0" aria-valuemax="100">
                 <div class="progress-bar-fill" style="width: <?= $pct ?>%;"></div>
@@ -149,7 +149,7 @@ function render_project_card($p, $pdo, $user_id, $base = '') {
 
         <div class="project-card-footer">
             <a href="<?= $base ?>tasks/view-tasks.php?project_id=<?= $p['id'] ?>" class="btn btn-secondary btn-sm btn-block">
-                عرض المهام (<?= $total ?>)
+                عرض المهام (<bdi class="tabular-nums"><?= $total ?></bdi>)
             </a>
         </div>
     </article>
@@ -179,7 +179,7 @@ function render_project_card($p, $pdo, $user_id, $base = '') {
                         <line x1="12" y1="9" x2="12" y2="13"></line>
                         <line x1="12" y1="17" x2="12.01" y2="17"></line>
                     </svg>
-                    <span><?= htmlspecialchars($backupWarningMessage) ?></span>
+                    <span><?= $backupWarningMessage ?></span>
                 </div>
                 <button type="button" class="btn-icon" id="dismissBackupWarningBtn" aria-label="إغلاق التنبيه" title="إغلاق" style="border: none; background: transparent; cursor: pointer; color: inherit; font-size: 1.25rem; line-height: 1; padding: var(--space-1);">
                     &times;
@@ -239,7 +239,7 @@ function render_project_card($p, $pdo, $user_id, $base = '') {
                     <section aria-labelledby="section-my-projects">
                         <h2 id="section-my-projects" class="section-title">
                             <span>مشاريعي</span>
-                            <span class="section-badge"><?= count($myProjects) ?></span>
+                            <span class="section-badge tabular-nums"><?= count($myProjects) ?></span>
                         </h2>
                         <div class="projects-grid">
                             <?php foreach ($myProjects as $p) { render_project_card($p, $pdo, $user_id, $base); } ?>
@@ -251,7 +251,7 @@ function render_project_card($p, $pdo, $user_id, $base = '') {
                     <section aria-labelledby="section-team-projects">
                         <h2 id="section-team-projects" class="section-title">
                             <span>مشاريع الفريق</span>
-                            <span class="section-badge"><?= count($teamProjects) ?></span>
+                            <span class="section-badge tabular-nums"><?= count($teamProjects) ?></span>
                         </h2>
                         <div class="projects-grid">
                             <?php foreach ($teamProjects as $p) { render_project_card($p, $pdo, $user_id, $base); } ?>

@@ -38,14 +38,6 @@ function render_nav($base = '') {
                     <li>
                         <a href="<?= $base ?>admin/branding.php" class="nav-link <?= $isBranding ? 'is-active' : '' ?>">الهوية البصرية</a>
                     </li>
-                    <li>
-                        <a href="<?= $base ?>admin/migrations.php" class="nav-link <?= $isMigrations ? 'is-active' : '' ?>">
-                            تحديثات قاعدة البيانات
-                            <?php if ($pendingMigrationsCount > 0): ?>
-                                <span class="badge" style="background-color: var(--orange-500); color: #fff; padding: 2px 6px; font-size: 0.75rem; margin-inline-start: 4px; border-radius: var(--radius-full);"><?= $pendingMigrationsCount ?></span>
-                            <?php endif; ?>
-                        </a>
-                    </li>
                     <?php endif; ?>
                 </ul>
             </div>
@@ -100,6 +92,19 @@ function render_nav($base = '') {
                                 <span class="badge <?= $isAdminUser ? 'badge-admin' : 'badge-member' ?>"><?= $isAdminUser ? 'مسؤول' : 'عضو' ?></span>
                             </div>
                         </div>
+                        <?php if ($isAdminUser): ?>
+                        <a href="<?= $base ?>admin/migrations.php" class="dropdown-item">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                            </svg>
+                            تحديثات قاعدة البيانات
+                            <?php if ($pendingMigrationsCount > 0): ?>
+                                <span class="badge" style="background-color: var(--orange-500); color: #fff; padding: 1px 6px; font-size: 0.7rem; margin-inline-start: auto; border-radius: var(--radius-full);"><?= $pendingMigrationsCount ?></span>
+                            <?php endif; ?>
+                        </a>
+                        <?php endif; ?>
                         <a href="<?= $base ?>change-password.php" class="dropdown-item">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                             تغيير كلمة المرور
@@ -244,10 +249,12 @@ function render_nav($base = '') {
                 const hasLink = (n.link && typeof n.link === 'string' && n.link.startsWith('tasks/'));
                 const tag = hasLink ? 'a' : 'div';
                 const hrefAttr = hasLink ? ` href="${escapeHtml('<?= $base ?>' + n.link)}"` : '';
+                let msgHtml = escapeHtml(n.message);
+                msgHtml = msgHtml.replace(/^(\[\d{4}-\d{2}-\d{2}[^\]]*\])/, '<bdi dir="ltr" class="tabular-nums">$1</bdi>');
                 return `
                     <${tag}${hrefAttr} class="notif-item ${unreadClass}">
-                        <div class="notif-item-msg">${escapeHtml(n.message)}</div>
-                        <div class="notif-item-time">${escapeHtml(n.created_at)}</div>
+                        <div class="notif-item-msg">${msgHtml}</div>
+                        <div class="notif-item-time tabular-nums"><bdi dir="ltr">${escapeHtml(n.created_at)}</bdi></div>
                     </${tag}>
                 `;
             }).join('');

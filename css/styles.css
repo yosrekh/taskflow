@@ -337,7 +337,19 @@ a:hover {
     border-radius: var(--radius-sm);
 }
 
+/* BiDi / LTR Isolation & Tabular Numerals */
+.ltr, [dir="ltr"], bdi[dir="ltr"] {
+    direction: ltr !important;
+    unicode-bidi: isolate;
+    text-align: start;
+}
+
+.tabular-nums {
+    font-variant-numeric: tabular-nums;
+}
+
 main {
+
     flex: 1;
     padding-block: var(--space-8);
     padding-inline: var(--space-5);
