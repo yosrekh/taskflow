@@ -51,12 +51,12 @@ function render_nav($base = '') {
                             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                             <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                         </svg>
-                        <span class="nav-badge" id="notif-count" style="display:none;">0</span>
+                        <span class="nav-badge d-none" id="notif-count">0</span>
                     </button>
                     <div class="dropdown-menu notif-dropdown-menu" id="notif-dropdown">
                         <div class="notif-dropdown-header">
-                            <span class="card-title" style="font-size:var(--font-size-sm);">الإشعارات</span>
-                            <button type="button" class="btn btn-ghost btn-sm" id="notif-mark-read-btn" style="font-size:var(--font-size-xs);">تحديد الكل كمقروء</button>
+                            <span class="card-title notif-title">الإشعارات</span>
+                            <button type="button" class="btn btn-ghost btn-sm notif-mark-btn" id="notif-mark-read-btn">تحديد الكل كمقروء</button>
                         </div>
                         <div class="notif-dropdown-list" id="notif-list">
                             <div class="notif-empty">جاري تحميل الإشعارات...</div>
@@ -74,7 +74,7 @@ function render_nav($base = '') {
                     <div class="dropdown-menu" id="user-dropdown-menu">
                         <div class="dropdown-header">
                             <div class="dropdown-header-name"><?= htmlspecialchars($userName) ?></div>
-                            <div style="margin-block-start:4px;">
+                            <div class="role-badge-wrap">
                                 <span class="badge <?= $isAdminUser ? 'badge-admin' : 'badge-member' ?>"><?= $isAdminUser ? 'مسؤول' : 'عضو' ?></span>
                             </div>
                         </div>
@@ -83,7 +83,7 @@ function render_nav($base = '') {
                             تغيير كلمة المرور
                         </a>
                         <div class="dropdown-divider"></div>
-                        <form method="POST" action="<?= $base ?>logout.php" style="margin:0;">
+                        <form method="POST" action="<?= $base ?>logout.php" class="inline-form">
                             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                             <button type="submit" class="dropdown-item dropdown-item-danger">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
@@ -184,9 +184,9 @@ function render_nav($base = '') {
                     if (notifCount) {
                         if (unread > 0) {
                             notifCount.textContent = unread > 99 ? '99+' : unread;
-                            notifCount.style.display = 'inline-flex';
+                            notifCount.classList.remove('d-none');
                         } else {
-                            notifCount.style.display = 'none';
+                            notifCount.classList.add('d-none');
                         }
                     }
                     if (!countOnly) {

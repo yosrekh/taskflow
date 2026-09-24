@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         <?php if ($error): ?>
             <div class="alert alert-error" role="alert">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 <span><?= htmlspecialchars($error) ?></span>
             </div>
         <?php endif; ?>
@@ -128,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-primary" style="width: 100%; margin-block-start: var(--space-3);">تسجيل الدخول</button>
+            <button type="submit" class="btn btn-primary btn-submit-auth">تسجيل الدخول</button>
         </form>
     </div>
 </body>

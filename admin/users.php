@@ -240,14 +240,14 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <!-- Alerts -->
         <?php if ($error): ?>
             <div class="alert alert-error" role="alert">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 <span><?= htmlspecialchars($error) ?></span>
             </div>
         <?php endif; ?>
 
         <?php if ($success): ?>
             <div class="alert alert-success" role="alert">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 <span><?= htmlspecialchars($success) ?></span>
             </div>
         <?php endif; ?>
@@ -255,12 +255,12 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <!-- One-Time Temporary Password Display Box -->
         <?php if ($one_time_password): ?>
             <section class="one-time-pwd-box" aria-labelledby="oneTimeTitle">
-                <h2 id="oneTimeTitle" style="font-size:var(--font-size-base);color:var(--text-primary);margin-block-end:var(--space-1);">
+                <h2 id="oneTimeTitle" class="one-time-title">
                     <?= $one_time_action === 'create' ? 'كلمة المرور المؤقتة للمستخدم الجديد' : 'كلمة المرور المؤقتة الجديدة' ?>
                     (<strong><?= htmlspecialchars($one_time_user_email) ?></strong>)
                 </h2>
                 <div class="one-time-pwd-code" id="pwd-val"><?= htmlspecialchars($one_time_password) ?></div>
-                <div style="font-size:var(--font-size-xs);color:var(--text-secondary);margin-block-end:var(--space-3);">
+                <div class="one-time-warning">
                     ⚠️ انسخ كلمة المرور الآن، لن تظهر مرة أخرى بعد مغادرة أو تحديث الصفحة!
                 </div>
                 <button type="button" class="btn btn-secondary btn-sm copy-btn" onclick="copyPassword()">
@@ -279,7 +279,7 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <th scope="col">الدور</th>
                         <th scope="col">الحالة</th>
                         <th scope="col">تاريخ الإنشاء</th>
-                        <th scope="col" style="text-align:center;">الإجراءات</th>
+                        <th scope="col" class="text-center">الإجراءات</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -289,11 +289,11 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     ?>
                     <tr class="<?= $is_self ? 'user-row-self' : '' ?> <?= (int)$u['is_active'] === 0 ? 'user-row-inactive' : '' ?>">
                         <td>
-                            <div style="display:flex;align-items:center;gap:var(--space-2);">
+                            <div class="user-cell">
                                 <span class="avatar avatar-sm"><?= htmlspecialchars($userInitials) ?></span>
                                 <strong><?= htmlspecialchars($u['name']) ?></strong>
                                 <?php if ($is_self): ?>
-                                    <span class="badge" style="background:var(--navy-100);color:var(--navy-900);font-size:0.7rem;">حسابك</span>
+                                    <span class="badge badge-self">حسابك</span>
                                 <?php endif; ?>
                             </div>
                         </td>
@@ -308,16 +308,16 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <?= (int)$u['is_active'] === 1 ? 'نشط' : 'معطّل' ?>
                             </span>
                         </td>
-                        <td style="color:var(--text-muted);font-size:var(--font-size-xs);">
+                        <td class="text-cell-muted">
                             <?= date('Y-m-d', strtotime($u['created_at'])) ?>
                         </td>
                         <td>
-                            <div style="display:flex;align-items:center;justify-content:center;gap:var(--space-2);flex-wrap:wrap;">
+                            <div class="actions-cell">
                                 <?php if ($is_self): ?>
-                                    <span style="color:var(--text-muted);font-size:var(--font-size-xs);">(حسابك)</span>
+                                    <span class="text-self">(حسابك)</span>
                                 <?php else: ?>
                                     <!-- Toggle Active Button -->
-                                    <form method="POST" style="margin:0;display:inline;">
+                                    <form method="POST" class="inline-form">
                                         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                                         <input type="hidden" name="action" value="toggle_active">
                                         <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
@@ -330,7 +330,7 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     </form>
 
                                     <!-- Reset Password Button -->
-                                    <form method="POST" style="margin:0;display:inline;">
+                                    <form method="POST" class="inline-form">
                                         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                                         <input type="hidden" name="action" value="reset_password">
                                         <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">
@@ -343,7 +343,7 @@ $all_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     </form>
 
                                     <!-- Promote / Demote Role Button -->
-                                    <form method="POST" style="margin:0;display:inline;">
+                                    <form method="POST" class="inline-form">
                                         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                                         <input type="hidden" name="action" value="change_role">
                                         <input type="hidden" name="user_id" value="<?= (int)$u['id'] ?>">

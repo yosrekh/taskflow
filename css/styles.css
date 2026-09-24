@@ -1991,3 +1991,83 @@ main {
 [data-theme="dark"] .one-time-pwd-code {
     color: var(--teal-200);
 }
+
+/* --------------------------------------------------------------------------
+   UTILITY CLASSES (Eliminating static inline style="" attributes)
+   -------------------------------------------------------------------------- */
+.flex-shrink-0 { flex-shrink: 0; }
+.btn-block { width: 100%; }
+.btn-submit-auth { width: 100%; margin-block-start: var(--space-4); }
+.btn-back-link { display: inline-flex; margin-block-end: var(--space-2); width: fit-content; }
+.inline-form { margin: 0; display: inline; }
+.form-row-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+}
+@media (max-width: 600px) {
+    .form-row-2col { grid-template-columns: 1fr; }
+}
+
+.d-none { display: none !important; }
+.text-center { text-align: center; }
+.text-start { text-align: start; }
+.text-muted-italic { color: var(--text-muted); font-style: italic; }
+.text-self { color: var(--text-muted); font-size: var(--font-size-xs); }
+.text-cell-muted { color: var(--text-muted); font-size: var(--font-size-xs); }
+
+.count-pending { color: var(--navy-600); }
+.count-inprog { color: var(--teal-700); }
+.count-done { color: var(--green-600); }
+
+.dot-todo { color: var(--navy-600); font-size: 1.2rem; }
+.dot-progress { color: var(--teal-600); font-size: 1.2rem; }
+.dot-done { color: var(--green-600); font-size: 1.2rem; }
+
+.btn-icon-danger { color: var(--red-600); }
+.btn-icon-danger:hover { color: var(--red-700); background-color: var(--red-50); }
+[data-theme="dark"] .btn-icon-danger:hover { background-color: #3b1111; color: #fca5a5; }
+
+.actions-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.user-cell {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.badge-self {
+    background: var(--navy-100);
+    color: var(--navy-900);
+    font-size: 0.7rem;
+}
+
+[data-theme="dark"] .badge-self {
+    background: var(--navy-800);
+    color: var(--navy-100);
+}
+
+.one-time-title {
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
+    margin-block-end: var(--space-1);
+}
+
+.one-time-warning {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    margin-block-end: var(--space-3);
+}
+
+.notif-title { font-size: var(--font-size-sm); }
+.notif-mark-btn { font-size: var(--font-size-xs); }
+.role-badge-wrap { margin-block-start: 4px; }
+.assignee-name-label { font-size: var(--font-size-xs); color: var(--text-secondary); }
+.assignee-unassigned-label { font-size: var(--font-size-xs); color: var(--text-muted); }
+.kanban-card-status-wrap { margin-block-end: var(--space-3); }

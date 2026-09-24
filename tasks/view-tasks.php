@@ -215,7 +215,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
             <?php endif; ?>
         </div>
 
-        <div class="form-group" style="margin-block-end: var(--space-3);">
+        <div class="form-group kanban-card-status-wrap">
             <select class="form-select task-status-select" data-task-id="<?= (int)$task['id'] ?>" aria-label="تغيير حالة المهمة">
                 <option value="Pending" <?= $task['status'] === 'Pending' ? 'selected' : '' ?>>للتنفيذ</option>
                 <option value="In Progress" <?= $task['status'] === 'In Progress' ? 'selected' : '' ?>>قيد التنفيذ</option>
@@ -227,9 +227,9 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
             <div class="kanban-card-assignee">
                 <?php if ($assigneeName): ?>
                     <span class="avatar avatar-sm" title="<?= htmlspecialchars($assigneeName) ?>"><?= htmlspecialchars($assigneeInitials) ?></span>
-                    <span style="font-size:var(--font-size-xs);color:var(--text-secondary);"><?= htmlspecialchars($assigneeName) ?></span>
+                    <span class="assignee-name-label"><?= htmlspecialchars($assigneeName) ?></span>
                 <?php else: ?>
-                    <span style="font-size:var(--font-size-xs);color:var(--text-muted);">غير مسندة</span>
+                    <span class="assignee-unassigned-label">غير مسندة</span>
                 <?php endif; ?>
             </div>
 
@@ -238,7 +238,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                     <a href="view-tasks.php?project_id=<?= (int)$project_id ?>&edit_task_id=<?= (int)$task['id'] ?>" class="btn-icon" aria-label="تعديل المهمة '<?= htmlspecialchars($task['title']) ?>'" title="تعديل">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                     </a>
-                    <form method="POST" style="margin:0;display:inline;">
+                    <form method="POST" class="inline-form">
                         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
                         <input type="hidden" name="task_id" value="<?= (int)$task['id'] ?>">
                         <button type="submit" name="delete_task" class="btn-icon btn-icon-danger" aria-label="حذف المهمة '<?= htmlspecialchars($task['title']) ?>'" title="حذف" onclick="return confirm('هل أنت متأكد من حذف هذه المهمة؟');">
@@ -270,7 +270,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
         <!-- Header & Breadcrumb -->
         <header class="page-header">
             <div class="page-title-wrap">
-                <a href="../dashboard.php" class="btn-ghost btn-sm" style="display:inline-flex;margin-block-end:var(--space-2);width:fit-content;">
+                <a href="../dashboard.php" class="btn-ghost btn-sm btn-back-link">
                     ← العودة إلى لوحة التحكم
                 </a>
                 <h1 class="page-title"><?= htmlspecialchars($project['title']) ?></h1>
@@ -311,7 +311,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                 <section class="kanban-column col-todo" data-status="Pending">
                     <header class="kanban-column-header">
                         <div class="kanban-column-title">
-                            <span style="color:var(--navy-600);font-size:1.2rem;">●</span>
+                            <span class="dot-todo">●</span>
                             <span>للتنفيذ</span>
                         </div>
                         <span class="kanban-count-badge count-todo"><?= count($todoTasks) ?></span>
@@ -329,7 +329,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                 <section class="kanban-column col-progress" data-status="In Progress">
                     <header class="kanban-column-header">
                         <div class="kanban-column-title">
-                            <span style="color:var(--teal-600);font-size:1.2rem;">●</span>
+                            <span class="dot-progress">●</span>
                             <span>قيد التنفيذ</span>
                         </div>
                         <span class="kanban-count-badge count-progress"><?= count($progressTasks) ?></span>
@@ -347,7 +347,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                 <section class="kanban-column col-done" data-status="Completed">
                     <header class="kanban-column-header">
                         <div class="kanban-column-title">
-                            <span style="color:var(--green-600);font-size:1.2rem;">●</span>
+                            <span class="dot-done">●</span>
                             <span>مكتملة</span>
                         </div>
                         <span class="kanban-count-badge count-done"><?= count($doneTasks) ?></span>
@@ -390,7 +390,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                             <textarea id="task_desc" name="description" class="form-textarea" rows="3" placeholder="تفاصيل ومتطلبات المهمة..."><?= htmlspecialchars($edit_task['description'] ?? '') ?></textarea>
                         </div>
 
-                        <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4);">
+                        <div class="form-row-2col">
                             <div class="form-group">
                                 <label for="task_priority" class="form-label">الأولوية <span class="required">*</span></label>
                                 <select id="task_priority" name="priority" class="form-select" required>
@@ -411,9 +411,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                             <select id="task_assigned_to" name="assigned_to" class="form-select">
                                 <option value="">-- بدون إسناد --</option>
                                 <?php foreach ($users as $u): ?>
-                                    <option value="<?= (int)$u['id'] ?>" <?= (isset($edit_task) && (int)$edit_task['assigned_to'] === (int)$u['id']) ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($u['name']) ?>
-                                    </option>
+                                    <option value="<?= (int)$u['id'] ?>" <?= (isset($edit_task) && (int)$edit_task['assigned_to'] === (int)$u['id']) ? 'selected' : '' ?>><?= htmlspecialchars($u['name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -527,7 +525,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                         <a href="view-tasks.php?project_id=${projectId}&edit_task_id=${encodeURIComponent(task.id)}" class="btn-icon" aria-label="تعديل المهمة" title="تعديل">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                         </a>
-                        <form method="POST" style="margin:0;display:inline;">
+                        <form method="POST" class="inline-form">
                             <input type="hidden" name="csrf_token" value="${escapeHtml(csrfToken)}">
                             <input type="hidden" name="task_id" value="${escapeHtml(task.id)}">
                             <button type="submit" name="delete_task" class="btn-icon btn-icon-danger" aria-label="حذف المهمة" title="حذف" onclick="return confirm('هل أنت متأكد من حذف هذه المهمة؟');">
@@ -540,8 +538,8 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
 
             const assigneeHtml = assigneeName ? `
                 <span class="avatar avatar-sm" title="${escapeHtml(assigneeName)}">${escapeHtml(assigneeInitials)}</span>
-                <span style="font-size:var(--font-size-xs);color:var(--text-secondary);">${escapeHtml(assigneeName)}</span>
-            ` : `<span style="font-size:var(--font-size-xs);color:var(--text-muted);">غير مسندة</span>`;
+                <span class="assignee-name-label">${escapeHtml(assigneeName)}</span>
+            ` : `<span class="assignee-unassigned-label">غير مسندة</span>`;
 
             return `
                 <div class="kanban-card" data-task-id="${escapeHtml(task.id)}">
@@ -551,7 +549,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                         <span class="badge ${priorityClass}">${priorityLabel}</span>
                         ${dueDateHtml}
                     </div>
-                    <div class="form-group" style="margin-block-end: var(--space-3);">
+                    <div class="form-group kanban-card-status-wrap">
                         <select class="form-select task-status-select" data-task-id="${escapeHtml(task.id)}" aria-label="تغيير حالة المهمة">
                             <option value="Pending" ${task.status === 'Pending' ? 'selected' : ''}>للتنفيذ</option>
                             <option value="In Progress" ${task.status === 'In Progress' ? 'selected' : ''}>قيد التنفيذ</option>

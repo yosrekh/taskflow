@@ -75,7 +75,7 @@ function render_project_card($p, $pdo, $user_id, $base = '') {
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                         </svg>
                     </a>
-                    <a href="<?= $base ?>projects/delete-project.php?id=<?= $p['id'] ?>" class="btn-icon" style="color:var(--red-600);" aria-label="حذف المشروع '<?= htmlspecialchars($p['title']) ?>'" title="حذف" onclick="return confirm('هل أنت متأكد من حذف هذا المشروع؟ سيتم حذف جميع المهام التابعة له.');">
+                    <a href="<?= $base ?>projects/delete-project.php?id=<?= $p['id'] ?>" class="btn-icon btn-icon-danger" aria-label="حذف المشروع '<?= htmlspecialchars($p['title']) ?>'" title="حذف" onclick="return confirm('هل أنت متأكد من حذف هذا المشروع؟ سيتم حذف جميع المهام التابعة له.');">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <polyline points="3 6 5 6 21 6"></polyline>
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -86,7 +86,7 @@ function render_project_card($p, $pdo, $user_id, $base = '') {
         </div>
 
         <p class="project-card-desc">
-            <?= !empty($p['description']) ? htmlspecialchars($p['description']) : '<span style="color:var(--text-muted);font-style:italic;">لا يوجد وصف لهذا المشروع</span>' ?>
+            <?= !empty($p['description']) ? htmlspecialchars($p['description']) : '<span class="text-muted-italic">لا يوجد وصف لهذا المشروع</span>' ?>
         </p>
 
         <div class="project-card-meta">
@@ -96,15 +96,15 @@ function render_project_card($p, $pdo, $user_id, $base = '') {
 
         <div class="project-status-counts">
             <div class="count-item">
-                <span class="count-number" style="color:var(--navy-600);"><?= $pending ?></span>
+                <span class="count-number count-pending"><?= $pending ?></span>
                 <span class="count-label">للتنفيذ</span>
             </div>
             <div class="count-item">
-                <span class="count-number" style="color:var(--teal-700);"><?= $inProg ?></span>
+                <span class="count-number count-inprog"><?= $inProg ?></span>
                 <span class="count-label">قيد التنفيذ</span>
             </div>
             <div class="count-item">
-                <span class="count-number" style="color:var(--green-600);"><?= $done ?></span>
+                <span class="count-number count-done"><?= $done ?></span>
                 <span class="count-label">مكتملة</span>
             </div>
         </div>
@@ -120,7 +120,7 @@ function render_project_card($p, $pdo, $user_id, $base = '') {
         </div>
 
         <div class="project-card-footer">
-            <a href="<?= $base ?>tasks/view-tasks.php?project_id=<?= $p['id'] ?>" class="btn btn-secondary btn-sm" style="width:100%;">
+            <a href="<?= $base ?>tasks/view-tasks.php?project_id=<?= $p['id'] ?>" class="btn btn-secondary btn-sm btn-block">
                 عرض المهام (<?= $total ?>)
             </a>
         </div>
@@ -145,7 +145,7 @@ function render_project_card($p, $pdo, $user_id, $base = '') {
     <main>
         <?php if (isset($_GET['msg']) && $_GET['msg'] === 'password_changed'): ?>
             <div class="alert alert-success" role="alert">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 <span>تم تحديث كلمة المرور بنجاح.</span>
             </div>
         <?php endif; ?>
