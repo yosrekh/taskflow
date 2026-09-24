@@ -224,15 +224,18 @@ $branding = get_branding($base);
             <!-- SECTION 1: APP NAME -->
             <section class="branding-section">
                 <div class="branding-section-header">
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap;">
-                        <h2 class="branding-section-title">اسم التطبيق</h2>
+                    <h2 class="branding-section-title">اسم التطبيق</h2>
+                    <p class="branding-section-desc">يظهر في شريط التنقل وعناوين الصفحات وعند تثبيت التطبيق على الأجهزة.</p>
+                </div>
+                <div class="card branding-card">
+                    <div class="card-header branding-card-header">
+                        <div class="branding-card-title-wrap">
+                            <h3 class="card-title">اسم التطبيق</h3>
+                        </div>
                         <span class="badge <?= $branding['app_name'] !== 'TaskFlow' ? 'badge-custom' : 'badge-default' ?>">
                             <?= $branding['app_name'] !== 'TaskFlow' ? 'مخصص' : 'افتراضي' ?>
                         </span>
                     </div>
-                    <p class="branding-section-desc">يظهر في شريط التنقل وعناوين الصفحات وعند تثبيت التطبيق على الأجهزة.</p>
-                </div>
-                <div class="card branding-card">
                     <div class="card-body">
                         <div class="form-group" style="margin-bottom: 0;">
                             <label for="app_name_input" class="form-label">اسم التطبيق <span class="required">*</span></label>
@@ -287,7 +290,7 @@ $branding = get_branding($base);
                                         <span class="drop-zone-hint">SVG أو PNG أو WebP — الحد الأقصى: 1 ميجابايت</span>
                                     </div>
 
-                                    <div class="drop-zone-staged hidden" id="staged_logo_dark" style="display: none;">
+                                    <div class="drop-zone-staged" id="staged_logo_dark" hidden>
                                         <div class="staged-preview-wrap">
                                             <img src="" alt="" class="staged-thumb" id="thumb_logo_dark">
                                         </div>
@@ -301,7 +304,7 @@ $branding = get_branding($base);
                                         </button>
                                     </div>
                                 </div>
-                                <div class="drop-zone-error hidden" id="error_logo_dark" style="display: none;"></div>
+                                <div class="drop-zone-error" id="error_logo_dark" hidden></div>
                             </div>
                         </div>
                         <?php if ($branding['is_custom_logo_dark']): ?>
@@ -343,7 +346,7 @@ $branding = get_branding($base);
                                         <span class="drop-zone-hint">SVG أو PNG أو WebP — الحد الأقصى: 1 ميجابايت</span>
                                     </div>
 
-                                    <div class="drop-zone-staged hidden" id="staged_logo_light" style="display: none;">
+                                    <div class="drop-zone-staged" id="staged_logo_light" hidden>
                                         <div class="staged-preview-wrap">
                                             <img src="" alt="" class="staged-thumb" id="thumb_logo_light">
                                         </div>
@@ -357,7 +360,7 @@ $branding = get_branding($base);
                                         </button>
                                     </div>
                                 </div>
-                                <div class="drop-zone-error hidden" id="error_logo_light" style="display: none;"></div>
+                                <div class="drop-zone-error" id="error_logo_light" hidden></div>
                             </div>
                         </div>
                         <?php if ($branding['is_custom_logo_light']): ?>
@@ -475,7 +478,7 @@ $branding = get_branding($base);
                                         <span class="drop-zone-hint">SVG أو PNG مربعة — الحد الأقصى: 256 كيلوبايت</span>
                                     </div>
 
-                                    <div class="drop-zone-staged hidden" id="staged_favicon" style="display: none;">
+                                    <div class="drop-zone-staged" id="staged_favicon" hidden>
                                         <div class="staged-preview-wrap">
                                             <img src="" alt="" class="staged-thumb" id="thumb_favicon">
                                         </div>
@@ -489,7 +492,8 @@ $branding = get_branding($base);
                                         </button>
                                     </div>
                                 </div>
-                                <div class="drop-zone-error hidden" id="error_favicon" style="display: none;"></div>
+                                <div class="drop-zone-error" id="error_favicon" hidden></div>
+                                <div class="drop-zone-warning" id="warning_favicon" hidden></div>
                                 <span class="form-hint" style="margin-top: var(--space-2); display: block;">إذا تم رفع ملف SVG غير مربع، سيتم ضبط إحداثياته تلقائياً ليتوسط مساحة مربعة.</span>
                             </div>
                         </div>
@@ -525,7 +529,7 @@ $branding = get_branding($base);
                                         <span class="drop-zone-hint">SVG أو PNG مربعة — الحد الأقصى: 256 كيلوبايت</span>
                                     </div>
 
-                                    <div class="drop-zone-staged hidden" id="staged_favicon_dark" style="display: none;">
+                                    <div class="drop-zone-staged" id="staged_favicon_dark" hidden>
                                         <div class="staged-preview-wrap">
                                             <img src="" alt="" class="staged-thumb" id="thumb_favicon_dark">
                                         </div>
@@ -539,7 +543,8 @@ $branding = get_branding($base);
                                         </button>
                                     </div>
                                 </div>
-                                <div class="drop-zone-error hidden" id="error_favicon_dark" style="display: none;"></div>
+                                <div class="drop-zone-error" id="error_favicon_dark" hidden></div>
+                                <div class="drop-zone-warning" id="warning_favicon_dark" hidden></div>
                                 <span class="form-hint" style="margin-top: var(--space-2); display: block;">إذا لم يتم رفع هذه النسخة، ستُستخدم الأيقونة الأساسية في التبويبات الداكنة أيضاً.</span>
                             </div>
                         </div>
@@ -582,7 +587,7 @@ $branding = get_branding($base);
     </main>
 
     <!-- Sticky Unsaved Changes Bar -->
-    <div class="unsaved-changes-bar" id="unsavedChangesBar" role="region" aria-label="شريط التغييرات غير المحفوظة">
+    <div class="unsaved-changes-bar" id="unsavedChangesBar" role="region" aria-label="شريط التغييرات غير المحفوظة" hidden>
         <div class="unsaved-changes-content">
             <div class="unsaved-changes-message">
                 <span class="unsaved-dot" aria-hidden="true"></span>
@@ -609,7 +614,16 @@ $branding = get_branding($base);
             logo_dark: document.getElementById('preview_logo_dark') ? document.getElementById('preview_logo_dark').src : '',
             logo_light: document.getElementById('preview_logo_light') ? document.getElementById('preview_logo_light').src : '',
             favicon: <?= json_encode($branding['favicon_url']) ?>,
-            favicon_dark: <?= json_encode($darkFaviconUrl) ?>
+            favicon_dark: <?= json_encode($branding['favicon_dark_url']) ?>
+        };
+
+        const savedFavicon = <?= json_encode($branding['favicon_url']) ?>;
+        const savedFaviconDark = <?= json_encode($branding['favicon_dark_url']) ?>;
+        const defaultFavicon = <?= json_encode($base . 'assets/favicon.svg') ?>;
+
+        const stagedFavicons = {
+            favicon: null,
+            favicon_dark: null
         };
 
         let hasUnsavedChanges = false;
@@ -635,8 +649,10 @@ $branding = get_branding($base);
             hasUnsavedChanges = changed;
             if (unsavedBar) {
                 if (changed) {
+                    unsavedBar.hidden = false;
                     unsavedBar.classList.add('show');
                 } else {
+                    unsavedBar.hidden = true;
                     unsavedBar.classList.remove('show');
                 }
             }
@@ -678,6 +694,104 @@ $branding = get_branding($base);
             renderMockIcon('mockDarkBox32', url);
         }
 
+        function getActiveLightFaviconUrl() {
+            if (stagedFavicons.favicon) {
+                return stagedFavicons.favicon;
+            }
+            return savedFavicon || defaultFavicon;
+        }
+
+        function getActiveDarkFaviconUrl() {
+            if (stagedFavicons.favicon_dark) {
+                return stagedFavicons.favicon_dark;
+            }
+            if (savedFaviconDark) {
+                return savedFaviconDark;
+            }
+            return getActiveLightFaviconUrl();
+        }
+
+        function refreshFaviconMockTabs() {
+            updateLightMockTabs(getActiveLightFaviconUrl());
+            updateDarkMockTabs(getActiveDarkFaviconUrl());
+        }
+
+        // Client-side image analysis for non-blocking warnings
+        function analyzeFaviconImage(file, fieldKey) {
+            const warningEl = document.getElementById('warning_' + fieldKey);
+            if (!warningEl) return;
+            warningEl.textContent = '';
+            warningEl.hidden = true;
+
+            try {
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = function () {
+                    try {
+                        const w = img.naturalWidth || img.width;
+                        const h = img.naturalHeight || img.height;
+                        const warnings = [];
+
+                        // 1. Aspect ratio warning for wide images (> 1.5:1)
+                        if (h > 0 && (w / h) > 1.5) {
+                            warnings.push("الصورة دي شكلها لوجو عرضي، وفي التبويب هتظهر صغيرة جداً ومش مقروءة. استخدم الرمز لوحده من غير الاسم.");
+                        }
+
+                        // 2. Relative luminance check
+                        const canvas = document.createElement('canvas');
+                        const size = 32;
+                        canvas.width = size;
+                        canvas.height = size;
+                        const ctx = canvas.getContext('2d');
+                        if (ctx) {
+                            ctx.drawImage(img, 0, 0, size, size);
+                            const imgData = ctx.getImageData(0, 0, size, size).data;
+                            let totalLum = 0;
+                            let count = 0;
+                            for (let i = 0; i < imgData.length; i += 4) {
+                                const alpha = imgData[i + 3];
+                                if (alpha > 20) {
+                                    const r = imgData[i] / 255;
+                                    const g = imgData[i + 1] / 255;
+                                    const b = imgData[i + 2] / 255;
+                                    const rLin = r <= 0.04045 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
+                                    const gLin = g <= 0.04045 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
+                                    const bLin = b <= 0.04045 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
+                                    const lum = 0.2126 * rLin + 0.7152 * gLin + 0.0722 * bLin;
+                                    totalLum += lum;
+                                    count++;
+                                }
+                            }
+
+                            if (count > 0) {
+                                const avgLum = totalLum / count;
+                                if (fieldKey === 'favicon' && avgLum > 0.85) {
+                                    warnings.push("الأيقونة دي فاتحة جداً ومش هتبان في التبويبات الفاتحة. ارفع نسخة غامقة هنا، والنسخة الفاتحة في أيقونة التبويبات الداكنة.");
+                                } else if (fieldKey === 'favicon_dark' && avgLum < 0.15) {
+                                    warnings.push("الأيقونة دي غامقة جداً ومش هتبان في التبويبات الداكنة. ارفع نسخة فاتحة هنا.");
+                                }
+                            }
+                        }
+
+                        if (warnings.length > 0) {
+                            warningEl.textContent = warnings.join(' ');
+                            warningEl.hidden = false;
+                        }
+                    } catch (e) {
+                        // Skip warning on failure
+                    } finally {
+                        URL.revokeObjectURL(url);
+                    }
+                };
+                img.onerror = function () {
+                    URL.revokeObjectURL(url);
+                };
+                img.src = url;
+            } catch (e) {
+                // Skip analysis on error
+            }
+        }
+
         // Drop Zone Handler setup
         function setupDropZone(fieldKey) {
             const dropzone = document.getElementById('dropzone_' + fieldKey);
@@ -689,6 +803,7 @@ $branding = get_branding($base);
             const sizeEl = document.getElementById('size_' + fieldKey);
             const removeBtn = document.getElementById('remove_' + fieldKey);
             const errorEl = document.getElementById('error_' + fieldKey);
+            const warningEl = document.getElementById('warning_' + fieldKey);
 
             if (!dropzone || !input) return;
 
@@ -698,29 +813,33 @@ $branding = get_branding($base);
             function showError(msg) {
                 if (errorEl) {
                     errorEl.textContent = msg;
-                    errorEl.classList.remove('hidden');
-                    errorEl.style.display = 'block';
+                    errorEl.hidden = false;
                 }
             }
 
             function clearError() {
                 if (errorEl) {
                     errorEl.textContent = '';
-                    errorEl.classList.add('hidden');
-                    errorEl.style.display = 'none';
+                    errorEl.hidden = true;
+                }
+            }
+
+            function clearWarning() {
+                if (warningEl) {
+                    warningEl.textContent = '';
+                    warningEl.hidden = true;
                 }
             }
 
             function resetStaged() {
                 input.value = '';
                 clearError();
+                clearWarning();
                 if (stagedBox) {
-                    stagedBox.classList.add('hidden');
-                    stagedBox.style.display = 'none';
+                    stagedBox.hidden = true;
                 }
                 if (promptBox) {
-                    promptBox.classList.remove('hidden');
-                    promptBox.style.display = 'flex';
+                    promptBox.hidden = false;
                 }
                 if (thumbImg) thumbImg.src = '';
                 if (nameEl) nameEl.textContent = '';
@@ -733,16 +852,9 @@ $branding = get_branding($base);
                 } else if (fieldKey === 'logo_light') {
                     const img = document.getElementById('preview_logo_light');
                     if (img) img.src = initialPreviews.logo_light;
-                } else if (fieldKey === 'favicon') {
-                    updateLightMockTabs(initialPreviews.favicon);
-                    // If no custom dark variant staged, also revert dark tab
-                    const darkInput = document.getElementById('file_favicon_dark');
-                    if (!darkInput || !darkInput.files || darkInput.files.length === 0) {
-                        updateDarkMockTabs(initialPreviews.favicon_dark);
-                    }
-                } else if (fieldKey === 'favicon_dark') {
-                    const fallback = initialPreviews.favicon_dark || initialPreviews.favicon;
-                    updateDarkMockTabs(fallback);
+                } else if (fieldKey === 'favicon' || fieldKey === 'favicon_dark') {
+                    stagedFavicons[fieldKey] = null;
+                    refreshFaviconMockTabs();
                 }
 
                 checkUnsavedChanges();
@@ -750,6 +862,7 @@ $branding = get_branding($base);
 
             function stageFile(file) {
                 clearError();
+                clearWarning();
                 const fileName = file.name || '';
                 const ext = fileName.split('.').pop().toLowerCase();
                 const validExts = isFavicon ? ['svg', 'png'] : ['svg', 'png', 'webp'];
@@ -799,12 +912,10 @@ $branding = get_branding($base);
                 if (thumbImg) thumbImg.src = objectUrl;
 
                 if (promptBox) {
-                    promptBox.classList.add('hidden');
-                    promptBox.style.display = 'none';
+                    promptBox.hidden = true;
                 }
                 if (stagedBox) {
-                    stagedBox.classList.remove('hidden');
-                    stagedBox.style.display = 'flex';
+                    stagedBox.hidden = false;
                 }
 
                 // Live Preview Updates
@@ -814,15 +925,10 @@ $branding = get_branding($base);
                 } else if (fieldKey === 'logo_light') {
                     const preview = document.getElementById('preview_logo_light');
                     if (preview) preview.src = objectUrl;
-                } else if (fieldKey === 'favicon') {
-                    updateLightMockTabs(objectUrl);
-                    // Also update dark tab if dark variant is not explicitly staged
-                    const darkInput = document.getElementById('file_favicon_dark');
-                    if (!darkInput || !darkInput.files || darkInput.files.length === 0) {
-                        updateDarkMockTabs(objectUrl);
-                    }
-                } else if (fieldKey === 'favicon_dark') {
-                    updateDarkMockTabs(objectUrl);
+                } else if (fieldKey === 'favicon' || fieldKey === 'favicon_dark') {
+                    stagedFavicons[fieldKey] = objectUrl;
+                    refreshFaviconMockTabs();
+                    analyzeFaviconImage(file, fieldKey);
                 }
 
                 checkUnsavedChanges();
