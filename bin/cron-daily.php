@@ -248,6 +248,68 @@ function cron_job_backup(PDO $pdo, string $projectRoot, bool $isDryRun): bool {
 }
 
 // -----------------------------------------------------------------------------
+// JOB 2: Cleanup (Batched DELETE ... LIMIT 1000)
+// -----------------------------------------------------------------------------
+function cron_job_cleanup(PDO $pdo, bool $isDryRun): bool {
+    cron_log("Starting Job 2: Cleanup" . ($isDryRun ? " (dry-run)" : "") . "...");
+
+    $notifReadDays = (int)env('NOTIF_READ_DAYS', 30);
+    $notifMaxDays = (int)env('NOTIF_MAX_DAYS', 90);
+
+    $readCutoff = date('Y-m-d H:i:s', time() - ($notifReadDays * 86400));
+    $maxCutoff = date('Y-m-d H:i:s', time() - ($notifMaxDays * 86400));
+    $loginCutoff = date('Y-m-d H:i:s', time() - 86400);
+
+    // 1. Read notifications older than NOTIF_READ_DAYS
+    $deletedRead = 0;
+    if ($isDryRun) {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM notifications WHERE is_read = 1 AND created_at < ?");
+        $stmt->execute([$readCutoff]);
+        $deletedRead = (int)$stmt->fetchColumn();
+    } else {
+        do {
+            $stmt = $pdo->prepare("DELETE FROM notifications WHERE is_read = 1 AND created_at < ? LIMIT 1000");
+            $stmt->execute([$readCutoff]);
+            $count = $stmt->rowCount();
+            $deletedRead += $count;
+        } while ($count === 1000);
+    }
+
+    // 2. Any notification older than NOTIF_MAX_DAYS (read or unread)
+    $deletedMax = 0;
+    if ($isDryRun) {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM notifications WHERE created_at < ?");
+        $stmt->execute([$maxCutoff]);
+        $deletedMax = (int)$stmt->fetchColumn();
+    } else {
+        do {
+            $stmt = $pdo->prepare("DELETE FROM notifications WHERE created_at < ? LIMIT 1000");
+            $stmt->execute([$maxCutoff]);
+            $count = $stmt->rowCount();
+            $deletedMax += $count;
+        } while ($count === 1000);
+    }
+
+    // 3. Login attempts older than 24 hours
+    $deletedLogins = 0;
+    if ($isDryRun) {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM login_attempts WHERE attempted_at < ?");
+        $stmt->execute([$loginCutoff]);
+        $deletedLogins = (int)$stmt->fetchColumn();
+    } else {
+        do {
+            $stmt = $pdo->prepare("DELETE FROM login_attempts WHERE attempted_at < ? LIMIT 1000");
+            $stmt->execute([$loginCutoff]);
+            $count = $stmt->rowCount();
+            $deletedLogins += $count;
+        } while ($count === 1000);
+    }
+
+    cron_log("Job 2 [Cleanup] completed: {$deletedRead} read notifs (> {$notifReadDays}d), {$deletedMax} max-age notifs (> {$notifMaxDays}d), {$deletedLogins} login attempts (> 24h)" . ($isDryRun ? " (dry-run)" : "") . ".");
+    return true;
+}
+
+// -----------------------------------------------------------------------------
 // Runner Dispatch
 // -----------------------------------------------------------------------------
 $jobsToRun = [
@@ -277,6 +339,16 @@ if ($jobsToRun['backup']) {
     } catch (Throwable $e) {
         $hadFailure = true;
         cron_log("Job 1 [Backup] FAILED: " . $e->getMessage());
+    }
+}
+
+// JOB 2: Cleanup
+if ($jobsToRun['cleanup']) {
+    try {
+        cron_job_cleanup($pdo, $isDryRun);
+    } catch (Throwable $e) {
+        $hadFailure = true;
+        cron_log("Job 2 [Cleanup] FAILED: " . $e->getMessage());
     }
 }
 
