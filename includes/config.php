@@ -46,7 +46,7 @@ function load_env_file($filePath) {
 // 1. ../.env.<basename of the project folder> (e.g. /home/user/.env.company-a.example.com)
 // 2. ../.env (single-install fallback)
 // 3. ./.env (local dev)
-$projectDir = dirname(__DIR__);
+$projectDir = str_replace('\\', '/', dirname(__DIR__));
 $projectFolder = basename($projectDir);
 $parentDir = dirname($projectDir);
 
@@ -64,6 +64,15 @@ foreach ($envCandidates as $candidate) {
     }
 }
 
+// Fail-closed security guard: if no environment file exists in any candidate location, abort immediately.
+// Never attempt a database connection with built-in default credentials.
+if ($loadedEnvFile === null) {
+    $checkedPaths = implode(', ', $envCandidates);
+    error_log("[TaskFlow Config] No environment file found. Checked paths: {$checkedPaths}");
+    render_error(500, "خطأ في تهيئة النظام. يرجى مراجعة إعدادات الخادم أو التواصل مع الدعم الفني.");
+    exit;
+}
+
 // Helper to retrieve configuration value
 function env($key, $default = null) {
     $val = getenv($key);
@@ -73,8 +82,12 @@ function env($key, $default = null) {
     return $val;
 }
 
+// Environment configuration: defaults to 'production'; 'development' must be explicitly opted into via .env
+$appEnv = env('APP_ENV');
+define('APP_ENV', ($appEnv === 'development') ? 'development' : 'production');
+
 // Log (not display) which file was loaded when APP_ENV=development (in CLI only if --verbose is passed)
-if (env('APP_ENV') === 'development' && $loadedEnvFile) {
+if (APP_ENV === 'development' && $loadedEnvFile) {
     $shouldLog = true;
     if (PHP_SAPI === 'cli') {
         $argv = $_SERVER['argv'] ?? [];
@@ -84,9 +97,6 @@ if (env('APP_ENV') === 'development' && $loadedEnvFile) {
         error_log("[TaskFlow Config] Loaded environment file: " . $loadedEnvFile);
     }
 }
-
-// Environment configuration
-define('APP_ENV', env('APP_ENV', 'development'));
 
 // Test database override for automated test suites:
 // Strictly opt-in: honored ONLY when APP_ENV === 'development', request is loopback/CLI,
@@ -103,11 +113,11 @@ if (APP_ENV === 'development') {
     }
 }
 
-// Database configuration
+// Database configuration (no hardcoded credentials fallbacks)
 define('DB_HOST', env('DB_HOST', 'localhost'));
 define('DB_NAME', env('DB_NAME', 'taskflow_db'));
-define('DB_USER', env('DB_USER', 'root'));
-define('DB_PASS', env('DB_PASS', ''));
+define('DB_USER', env('DB_USER', null));
+define('DB_PASS', env('DB_PASS', null));
 
 // Timezone configuration (default Africa/Cairo)
 define('APP_TIMEZONE', env('APP_TIMEZONE', 'Africa/Cairo'));

@@ -1,6 +1,12 @@
 <?php
 require_once __DIR__ . '/config.php';
 
+if (empty(DB_USER) || empty(DB_NAME)) {
+    error_log("Database configuration error: DB_USER and DB_NAME must be specified in environment configuration.");
+    render_error(500, "خطأ في الاتصال بقاعدة البيانات. يرجى المحاولة لاحقاً.");
+    exit;
+}
+
 try {
     $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
     $options = [
