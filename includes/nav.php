@@ -205,7 +205,9 @@ function render_nav($base = '') {
             }
         });
 
-        // Notifications fetching
+        // Notifications fetching and interaction
+        const pendingMarkReadIds = new Set();
+
         function fetchNotifications(countOnly = false, markRead = false) {
             let url = '<?= $base ?>get-notifications.php';
             let fetchOptions = { method: 'GET' };
@@ -220,6 +222,13 @@ function render_nav($base = '') {
                 .then(r => r.json())
                 .then(data => {
                     if (!data.success) return;
+                    if (data.notifications && pendingMarkReadIds.size > 0) {
+                        data.notifications.forEach(n => {
+                            if (pendingMarkReadIds.has(String(n.id))) {
+                                n.is_read = 1;
+                            }
+                        });
+                    }
                     const notifCount = document.getElementById('notif-count');
                     const unread = data.notifications ? data.notifications.filter(n => n.is_read == 0).length : 0;
                     if (notifCount) {
@@ -228,6 +237,7 @@ function render_nav($base = '') {
                             notifCount.classList.remove('d-none');
                         } else {
                             notifCount.classList.add('d-none');
+                            notifCount.textContent = '0';
                         }
                     }
                     if (!countOnly) {
@@ -245,19 +255,113 @@ function render_nav($base = '') {
                 return;
             }
             listEl.innerHTML = items.map(n => {
-                const unreadClass = (n.is_read == 0) ? 'is-unread' : '';
+                const isUnread = (n.is_read == 0 && !pendingMarkReadIds.has(String(n.id)));
+                const unreadClass = isUnread ? 'is-unread' : '';
                 const hasLink = (n.link && typeof n.link === 'string' && n.link.startsWith('tasks/'));
                 const tag = hasLink ? 'a' : 'div';
                 const hrefAttr = hasLink ? ` href="${escapeHtml('<?= $base ?>' + n.link)}"` : '';
+                const roleAttr = hasLink ? '' : ' role="button"';
                 let msgHtml = escapeHtml(n.message);
                 msgHtml = msgHtml.replace(/^(\[\d{4}-\d{2}-\d{2}[^\]]*\])/, '<bdi dir="ltr" class="tabular-nums">$1</bdi>');
                 return `
-                    <${tag}${hrefAttr} class="notif-item ${unreadClass}">
+                    <${tag}${hrefAttr} class="notif-item ${unreadClass}" tabindex="0"${roleAttr} data-id="${n.id}" data-is-read="${isUnread ? '0' : '1'}" ${hasLink ? `data-link="${escapeHtml('<?= $base ?>' + n.link)}"` : ''}>
                         <div class="notif-item-msg">${msgHtml}</div>
                         <div class="notif-item-time tabular-nums"><bdi dir="ltr">${escapeHtml(n.created_at)}</bdi></div>
                     </${tag}>
                 `;
             }).join('');
+        }
+
+        function handleNotificationActivation(item, e) {
+            const notifId = item.dataset.id;
+            const isRead = item.dataset.isRead === '1';
+            const targetLink = item.dataset.link;
+
+            if (e && item.tagName.toLowerCase() === 'a' && targetLink) {
+                e.preventDefault();
+            }
+
+            if (!isRead && notifId) {
+                item.classList.remove('is-unread');
+                item.dataset.isRead = '1';
+                pendingMarkReadIds.add(String(notifId));
+
+                // Decrement bell badge immediately
+                const notifCount = document.getElementById('notif-count');
+                if (notifCount && !notifCount.classList.contains('d-none')) {
+                    let cur = parseInt(notifCount.textContent, 10);
+                    if (!isNaN(cur) && cur > 0) {
+                        cur--;
+                        if (cur > 0) {
+                            notifCount.textContent = cur > 99 ? '99+' : cur;
+                        } else {
+                            notifCount.classList.add('d-none');
+                            notifCount.textContent = '0';
+                        }
+                    }
+                }
+
+                if (targetLink) {
+                    let navigated = false;
+                    const navigate = () => {
+                        if (!navigated) {
+                            navigated = true;
+                            window.location.href = targetLink;
+                        }
+                    };
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => {
+                        controller.abort();
+                        navigate();
+                    }, 1500);
+
+                    fetch('<?= $base ?>mark-notification-read.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRF-Token': '<?= csrf_token() ?>'
+                        },
+                        body: 'id=' + encodeURIComponent(notifId),
+                        signal: controller.signal
+                    })
+                    .catch(() => {})
+                    .finally(() => {
+                        clearTimeout(timeoutId);
+                        navigate();
+                    });
+                    return;
+                } else {
+                    fetch('<?= $base ?>mark-notification-read.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRF-Token': '<?= csrf_token() ?>'
+                        },
+                        body: 'id=' + encodeURIComponent(notifId)
+                    }).catch(() => {});
+                }
+            } else if (targetLink) {
+                window.location.href = targetLink;
+            }
+        }
+
+        const notifListEl = document.getElementById('notif-list');
+        if (notifListEl) {
+            notifListEl.addEventListener('click', function(e) {
+                const item = e.target.closest('.notif-item');
+                if (item) {
+                    handleNotificationActivation(item, e);
+                }
+            });
+            notifListEl.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    const item = e.target.closest('.notif-item');
+                    if (item) {
+                        e.preventDefault();
+                        handleNotificationActivation(item, e);
+                    }
+                }
+            });
         }
 
         function escapeHtml(str) {
@@ -269,6 +373,7 @@ function render_nav($base = '') {
         if (markReadBtn) {
             markReadBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
+                pendingMarkReadIds.clear();
                 fetchNotifications(false, true);
             });
         }

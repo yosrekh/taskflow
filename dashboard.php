@@ -149,7 +149,7 @@ function render_project_card($p, $pdo, $user_id, $base = '') {
 
         <div class="project-card-footer">
             <a href="<?= $base ?>tasks/view-tasks.php?project_id=<?= $p['id'] ?>" class="btn btn-secondary btn-sm btn-block">
-                عرض المهام (<bdi class="tabular-nums"><?= $total ?></bdi>)
+                عرض المهام (<?= (int)$total ?>)
             </a>
         </div>
     </article>

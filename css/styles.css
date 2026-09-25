@@ -590,20 +590,23 @@ main {
     }
 }
 
-/* Password Toggle Wrapper */
+/* Password Toggle Wrapper & LTR inputs inside RTL forms */
 .password-field-wrapper {
     position: relative;
     display: flex;
     align-items: center;
+    width: 100%;
 }
 
 .password-field-wrapper .form-control {
-    padding-inline-end: 44px;
+    padding-left: 44px;
+    padding-right: 44px;
 }
 
 .password-toggle-btn {
     position: absolute;
-    inset-inline-end: 8px;
+    left: 8px;
+    right: auto;
     top: 50%;
     transform: translateY(-50%);
     background: none;
@@ -616,10 +619,26 @@ main {
     align-items: center;
     justify-content: center;
     transition: color var(--transition-fast);
+    z-index: 2;
 }
 
 .password-toggle-btn:hover {
     color: var(--text-primary);
+}
+
+/* LTR inputs inside RTL forms (keep dir="ltr" for character order, text-align: right for label alignment) */
+.form-control[dir="ltr"],
+input[dir="ltr"].form-control,
+input[type="email"].form-control,
+input[type="password"].form-control {
+    text-align: right;
+}
+
+.form-control[dir="ltr"]::placeholder,
+input[dir="ltr"].form-control::placeholder,
+input[type="email"].form-control::placeholder,
+input[type="password"].form-control::placeholder {
+    text-align: right;
 }
 
 /* Form Actions */
@@ -1460,27 +1479,40 @@ main {
 }
 
 .notif-item {
+    position: relative;
     padding: var(--space-3) var(--space-4);
+    padding-inline-start: calc(var(--space-4) + 16px);
     border-block-end: 1px solid var(--border-subtle);
     font-size: var(--font-size-sm);
     display: flex;
     flex-direction: column;
     gap: 4px;
-    transition: background-color var(--transition-fast);
-}
-
-a.notif-item {
     text-decoration: none;
     color: inherit;
     cursor: pointer;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
-a.notif-item:hover {
+.notif-item:hover,
+.notif-item:focus-visible {
     background-color: var(--bg-surface-subtle);
+    outline: none;
 }
 
-[data-theme="dark"] a.notif-item:hover {
+.notif-item:focus-visible {
+    box-shadow: inset 0 0 0 2px var(--teal-500);
+}
+
+[data-theme="dark"] .notif-item:hover,
+[data-theme="dark"] .notif-item:focus-visible {
     background-color: var(--navy-800);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .notif-item:hover,
+    :root:not([data-theme="light"]) .notif-item:focus-visible {
+        background-color: var(--navy-800);
+    }
 }
 
 .notif-item:last-child {
@@ -1491,8 +1523,46 @@ a.notif-item:hover {
     background-color: var(--teal-50);
 }
 
+.notif-item.is-unread .notif-item-msg {
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+}
+
+.notif-item:not(.is-unread) .notif-item-msg {
+    font-weight: var(--font-weight-normal);
+    color: var(--text-secondary);
+}
+
+/* Unread notification accent dot */
+.notif-item.is-unread::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: var(--space-3);
+    top: 16px;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-full);
+    background-color: var(--teal-600);
+    box-shadow: 0 0 0 2px rgba(18, 139, 134, 0.25);
+}
+
 [data-theme="dark"] .notif-item.is-unread {
-    background-color: #0b2f3a;
+    background-color: rgba(23, 169, 163, 0.14);
+}
+
+[data-theme="dark"] .notif-item.is-unread::before {
+    background-color: var(--teal-400);
+    box-shadow: 0 0 0 2px rgba(54, 183, 176, 0.35);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .notif-item.is-unread {
+        background-color: rgba(23, 169, 163, 0.14);
+    }
+    :root:not([data-theme="light"]) .notif-item.is-unread::before {
+        background-color: var(--teal-400);
+        box-shadow: 0 0 0 2px rgba(54, 183, 176, 0.35);
+    }
 }
 
 .notif-item-actor {
@@ -2114,6 +2184,27 @@ a.notif-item:hover {
 .count-pending { color: var(--navy-600); }
 .count-inprog { color: var(--teal-700); }
 .count-done { color: var(--green-600); }
+
+[data-theme="dark"] .count-pending,
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .count-pending {
+        color: var(--navy-200);
+    }
+}
+
+[data-theme="dark"] .count-inprog,
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .count-inprog {
+        color: var(--teal-300);
+    }
+}
+
+[data-theme="dark"] .count-done,
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .count-done {
+        color: #4ade80;
+    }
+}
 
 .dot-todo { color: var(--navy-600); font-size: 1.2rem; }
 .dot-progress { color: var(--teal-700); font-size: 1.2rem; }

@@ -44,7 +44,8 @@ function is_json_request(): bool {
         'get-notifications.php',
         'update-status.php',
         'get-user-stats.php',
-        'mark-notifications-read.php'
+        'mark-notifications-read.php',
+        'mark-notification-read.php'
     ];
     if (in_array($script, $jsonEndpoints, true)) {
         return true;
