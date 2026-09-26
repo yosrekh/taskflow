@@ -249,7 +249,7 @@ function can_view_task($pdo, $userId, $taskId): bool {
     if ($row['assigned_to'] !== null && (int)$row['assigned_to'] === (int)$userId) {
         return true;
     }
-    return can_view_project($pdo, $userId, (int)$row['project_id']);
+    return false;
 }
 
 function can_edit_task_checklist($pdo, $userId, $taskId): bool {
