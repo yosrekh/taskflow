@@ -124,6 +124,12 @@ if ($action === 'add') {
         exit;
     }
 
+    if (!can_view_project($pdo, $userId, $projectId)) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'error' => 'not_found']);
+        exit;
+    }
+
     if (!can_manage_project($pdo, $userId, $projectId)) {
         http_response_code(403);
         echo json_encode(['success' => false, 'error' => 'forbidden', 'message' => 'غير مصرح لك بإدارة مراحل هذا المشروع']);
@@ -180,15 +186,9 @@ if ($action === 'rename') {
         $stmt->execute([$phaseId]);
         $projectId = $stmt->fetchColumn();
 
-        if ($projectId === false) {
+        if ($projectId === false || !can_manage_project($pdo, $userId, (int)$projectId)) {
             http_response_code(404);
             echo json_encode(['success' => false, 'error' => 'not_found']);
-            exit;
-        }
-
-        if (!can_manage_project($pdo, $userId, (int)$projectId)) {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'forbidden']);
             exit;
         }
 
@@ -212,6 +212,12 @@ if ($action === 'reorder') {
     if ($projectId <= 0 || !is_array($phaseIds)) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'invalid_input']);
+        exit;
+    }
+
+    if (!can_view_project($pdo, $userId, $projectId)) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'error' => 'not_found']);
         exit;
     }
 
@@ -249,15 +255,9 @@ if ($action === 'delete') {
         $stmt->execute([$phaseId]);
         $phase = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$phase) {
+        if (!$phase || !can_manage_project($pdo, $userId, (int)$phase['project_id'])) {
             http_response_code(404);
             echo json_encode(['success' => false, 'error' => 'not_found']);
-            exit;
-        }
-
-        if (!can_manage_project($pdo, $userId, (int)$phase['project_id'])) {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'forbidden']);
             exit;
         }
 
