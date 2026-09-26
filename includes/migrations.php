@@ -55,6 +55,28 @@ function migration_is_already_present(PDO $pdo, string $filename, string $sqlCon
         return $hasComments && $hasLink;
     }
 
+    if ($filename === '006_phases_checklists.sql') {
+        $pStmt = $pdo->query("
+            SELECT COUNT(*) FROM information_schema.tables 
+            WHERE table_schema = DATABASE() AND table_name = 'project_phases'
+        ");
+        $hasPhases = (int)$pStmt->fetchColumn() > 0;
+
+        $cStmt = $pdo->query("
+            SELECT COUNT(*) FROM information_schema.tables 
+            WHERE table_schema = DATABASE() AND table_name = 'task_checklist_items'
+        ");
+        $hasChecklists = (int)$cStmt->fetchColumn() > 0;
+
+        $colStmt = $pdo->query("
+            SELECT COUNT(*) FROM information_schema.columns 
+            WHERE table_schema = DATABASE() AND table_name = 'tasks' AND column_name = 'phase_id'
+        ");
+        $hasPhaseId = (int)$colStmt->fetchColumn() > 0;
+
+        return $hasPhases && $hasChecklists && $hasPhaseId;
+    }
+
     // 2. Generic AST / Regex detector for arbitrary migration files
     $hasChecks = false;
 
@@ -229,6 +251,36 @@ function execute_migration_file(PDO $pdo, string $filePath): void {
             $chk->execute([$tableName, $colName]);
             if ((int)$chk->fetchColumn() > 0) {
                 // Column already exists, skip
+                continue;
+            }
+        }
+
+        // Idempotent constraint check for ALTER TABLE ... ADD CONSTRAINT ...
+        if (preg_match('/ALTER\s+TABLE\s+`?([a-zA-Z0-9_]+)`?\s+ADD\s+CONSTRAINT\s+`?([a-zA-Z0-9_]+)`?/i', $stmt, $m)) {
+            $tableName = $m[1];
+            $constraintName = $m[2];
+            $chk = $pdo->prepare("
+                SELECT COUNT(*) FROM information_schema.table_constraints 
+                WHERE table_schema = DATABASE() AND table_name = ? AND constraint_name = ?
+            ");
+            $chk->execute([$tableName, $constraintName]);
+            if ((int)$chk->fetchColumn() > 0) {
+                // Constraint already exists, skip
+                continue;
+            }
+        }
+
+        // Idempotent index check for ALTER TABLE ... ADD INDEX ...
+        if (preg_match('/ALTER\s+TABLE\s+`?([a-zA-Z0-9_]+)`?\s+ADD\s+INDEX\s+`?([a-zA-Z0-9_]+)`?/i', $stmt, $m)) {
+            $tableName = $m[1];
+            $indexName = $m[2];
+            $chk = $pdo->prepare("
+                SELECT COUNT(*) FROM information_schema.statistics 
+                WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ?
+            ");
+            $chk->execute([$tableName, $indexName]);
+            if ((int)$chk->fetchColumn() > 0) {
+                // Index already exists, skip
                 continue;
             }
         }
