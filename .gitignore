@@ -5,3 +5,4 @@ uploads/*
 uploads/branding/*
 !uploads/branding/.htaccess
 !uploads/branding/.gitkeep
+*.zip
