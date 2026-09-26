@@ -3338,6 +3338,292 @@ input[type="password"].form-control::placeholder {
     }
 }
 
+/* ==========================================================================
+   Project Phases & Kanban Phase Filter Chips
+   ========================================================================== */
+.phase-chips-bar {
+    margin-block-end: var(--space-4);
+    overflow-x: auto;
+    padding-block-end: var(--space-2);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+.phase-chips-scroll {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: nowrap;
+}
+
+.phase-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface);
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+    user-select: none;
+}
+
+.phase-chip:hover {
+    border-color: var(--border-default);
+    color: var(--text-primary);
+}
+
+.phase-chip.is-active {
+    background-color: var(--primary-50);
+    border-color: var(--primary-600);
+    color: var(--primary-700);
+    font-weight: var(--font-weight-bold);
+}
+
+[data-theme="dark"] .phase-chip.is-active {
+    background-color: var(--primary-900);
+    border-color: var(--primary-400);
+    color: var(--primary-200);
+}
+
+.phase-chip .chip-pct {
+    font-size: 11px;
+    opacity: 0.85;
+    padding: 1px 5px;
+    border-radius: var(--radius-sm);
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .phase-chip .chip-pct {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Phase Tag on Kanban Cards (visible in 'all' view) */
+.kanban-phase-tag {
+    display: inline-block;
+    font-size: 11px;
+    color: var(--text-muted);
+    background-color: var(--bg-hover);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.kanban-board-container[data-filter-phase]:not([data-filter-phase="all"]) .kanban-phase-tag {
+    display: none !important;
+}
+
+/* Checklist Badge on Kanban Card */
+.kanban-checklist-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    font-weight: var(--font-weight-medium);
+}
+
+.kanban-checklist-badge .checklist-icon {
+    font-size: 11px;
+}
+
+.kanban-checklist-badge.is-complete {
+    color: var(--green-600);
+    font-weight: var(--font-weight-bold);
+}
+
+[data-theme="dark"] .kanban-checklist-badge.is-complete {
+    color: var(--green-400);
+}
+
+/* ==========================================================================
+   Task Checklist in Drawer
+   ========================================================================== */
+.task-drawer-checklist-section {
+    margin-block-start: var(--space-4);
+    margin-block-end: var(--space-4);
+}
+
+.checklist-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-block-end: var(--space-3);
+}
+
+.checklist-count-pill {
+    font-size: var(--font-size-xs);
+    background-color: var(--bg-hover);
+    color: var(--text-secondary);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-weight: var(--font-weight-semibold);
+}
+
+.checklist-suggestion-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    margin-block-end: var(--space-3);
+    border-radius: var(--radius-md);
+    background-color: var(--green-50);
+    border: 1px solid var(--green-200);
+    color: var(--green-800);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+}
+
+[data-theme="dark"] .checklist-suggestion-banner {
+    background-color: rgba(22, 101, 52, 0.25);
+    border-color: rgba(34, 197, 94, 0.35);
+    color: var(--green-300);
+}
+
+.checklist-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-block-end: var(--space-3);
+}
+
+.checklist-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-hover);
+    transition: background-color var(--transition-fast);
+}
+
+.checklist-item:hover {
+    background-color: var(--border-subtle);
+}
+
+.checklist-checkbox {
+    width: 18px;
+    height: 18px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border-default);
+    background: var(--bg-surface);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.checklist-checkbox:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.checklist-checkbox.is-checked {
+    background-color: var(--green-600);
+    border-color: var(--green-600);
+    color: #ffffff;
+}
+
+.checklist-item-title {
+    flex: 1;
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    line-height: var(--line-height-normal);
+    word-break: break-word;
+}
+
+.checklist-item.is-done .checklist-item-title {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.checklist-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.checklist-item:hover .checklist-item-actions,
+.checklist-item:focus-within .checklist-item-actions {
+    opacity: 1;
+}
+
+.checklist-add-form {
+    margin-block-start: var(--space-2);
+}
+
+.checklist-add-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.checklist-input {
+    flex: 1;
+    font-size: var(--font-size-sm);
+}
+
+.checklist-error-msg {
+    font-size: var(--font-size-xs);
+    color: var(--red-600);
+    margin-block-start: var(--space-1);
+}
+
+/* ==========================================================================
+   Phase Management Modal
+   ========================================================================== */
+.phase-manage-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-block-start: var(--space-3);
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.phase-manage-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface);
+    gap: var(--space-2);
+}
+
+.phase-manage-title {
+    flex: 1;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+}
+
+.phase-manage-count {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+.phase-manage-actions {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+
 
 
 

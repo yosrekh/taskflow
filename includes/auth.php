@@ -233,9 +233,41 @@ function can_view_task($pdo, $userId, $taskId): bool {
     }
 
     $stmt = $pdo->prepare("
-        SELECT t.id, t.assigned_to, p.user_id AS owner_id
+        SELECT t.id, t.assigned_to, p.user_id AS owner_id, p.id AS project_id
         FROM tasks t
         JOIN projects p ON t.project_id = p.id
+        WHERE t.id = ?
+    ");
+    $stmt->execute([$taskId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$row) {
+        return false;
+    }
+    if ((int)$row['owner_id'] === (int)$userId) {
+        return true;
+    }
+    if ($row['assigned_to'] !== null && (int)$row['assigned_to'] === (int)$userId) {
+        return true;
+    }
+    return can_view_project($pdo, $userId, (int)$row['project_id']);
+}
+
+function can_edit_task_checklist($pdo, $userId, $taskId): bool {
+    if (!$userId || !$taskId) {
+        return false;
+    }
+    if (is_admin()) {
+        return true;
+    }
+    $uStmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
+    $uStmt->execute([$userId]);
+    if ($uStmt->fetchColumn() === 'admin') {
+        return true;
+    }
+    $stmt = $pdo->prepare("
+        SELECT p.user_id AS owner_id, t.assigned_to 
+        FROM tasks t 
+        JOIN projects p ON t.project_id = p.id 
         WHERE t.id = ?
     ");
     $stmt->execute([$taskId]);

@@ -1,4 +1,5 @@
 <?php
+if (!function_exists('render_nav')) {
 function render_nav($base = '') {
     if (!isset($_SESSION['user_id'])) return;
 
@@ -404,4 +405,5 @@ function render_nav($base = '') {
     })();
     </script>
     <?php
+}
 }

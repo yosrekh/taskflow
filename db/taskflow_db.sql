@@ -22,10 +22,22 @@ CREATE TABLE IF NOT EXISTS projects (
     INDEX idx_projects_user_id (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- جدول مراحل المشاريع
+CREATE TABLE IF NOT EXISTS project_phases (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    project_id INT NOT NULL,
+    title VARCHAR(100) NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    INDEX idx_project_phases_order (project_id, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- جدول المهام
 CREATE TABLE IF NOT EXISTS tasks (
     id INT AUTO_INCREMENT PRIMARY KEY,
     project_id INT NOT NULL,
+    phase_id INT NULL DEFAULT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     priority ENUM('Low', 'Medium', 'High') DEFAULT 'Medium',
@@ -34,8 +46,10 @@ CREATE TABLE IF NOT EXISTS tasks (
     due_date DATE NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (phase_id) REFERENCES project_phases(id) ON DELETE SET NULL,
     FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_tasks_project_id (project_id),
+    INDEX idx_tasks_phase_id (phase_id),
     INDEX idx_tasks_assigned_to (assigned_to)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -93,6 +107,19 @@ CREATE TABLE IF NOT EXISTS task_comments (
     INDEX idx_task_comments_task_created (task_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- جدول عناصر المهام الفرعية (Checklists)
+CREATE TABLE IF NOT EXISTS task_checklist_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    task_id INT NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    is_done TINYINT(1) NOT NULL DEFAULT 0,
+    done_at TIMESTAMP NULL DEFAULT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+    INDEX idx_checklist_task_order (task_id, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- جدول تتبع سجل تحديثات قاعدة البيانات
 CREATE TABLE IF NOT EXISTS schema_migrations (
     filename VARCHAR(255) PRIMARY KEY,
@@ -104,5 +131,6 @@ INSERT INTO schema_migrations (filename, applied_at) VALUES
 ('002_user_admin.sql', NOW()),
 ('003_settings.sql', NOW()),
 ('004_task_reminders.sql', NOW()),
-('005_task_comments.sql', NOW())
+('005_task_comments.sql', NOW()),
+('006_phases_checklists.sql', NOW())
 ON DUPLICATE KEY UPDATE filename = filename;
