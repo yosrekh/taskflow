@@ -6,8 +6,7 @@ require_once __DIR__ . '/includes/db.php';
 global $pdo;
 
 $project_id = $_GET['project_id'] ?? null;
-
-$user_id = $_SESSION['user_id'];
+$user_id = (int)($_SESSION['user_id'] ?? 0);
 
 if (!$project_id) {
     http_response_code(400);
@@ -35,6 +34,8 @@ try {
         $has006 = false;
     }
 
+    $checklistByTask = [];
+
     if ($has006) {
         $sql = "
             SELECT t.*, u.name AS assignee_name,
@@ -52,6 +53,29 @@ try {
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $tasks = $stmt->fetchAll();
+
+        // ONE extra query for all visible tasks to fetch checklist preview items
+        if (!empty($tasks)) {
+            $taskIds = array_column($tasks, 'id');
+            $placeholders = implode(',', array_fill(0, count($taskIds), '?'));
+            $ciStmt = $pdo->prepare("
+                SELECT id, task_id, title, is_done, sort_order 
+                FROM task_checklist_items 
+                WHERE task_id IN ({$placeholders}) 
+                ORDER BY sort_order ASC, id ASC
+            ");
+            $ciStmt->execute($taskIds);
+            while ($row = $ciStmt->fetch(PDO::FETCH_ASSOC)) {
+                $tId = (int)$row['task_id'];
+                $checklistByTask[$tId][] = [
+                    'id' => (int)$row['id'],
+                    'task_id' => $tId,
+                    'title' => $row['title'],
+                    'is_done' => (int)$row['is_done'],
+                    'sort_order' => (int)$row['sort_order']
+                ];
+            }
+        }
     } else {
         $sql = "
             SELECT t.*, u.name AS assignee_name,
@@ -67,8 +91,10 @@ try {
         $tasks = $stmt->fetchAll();
     }
 
-    // Add permissions and normalized fields
+    $isAdminUser = is_admin();
+    // Add permissions, normalized fields, and checklist preview items
     foreach ($tasks as &$task) {
+        $taskId = (int)$task['id'];
         $task['can_edit'] = $canManage;
         $task['can_delete'] = $canManage;
         $task['comments_count'] = (int)($task['comments_count'] ?? 0);
@@ -76,6 +102,27 @@ try {
         $task['phase_title'] = $task['phase_title'] ?? null;
         $task['checklist_total'] = (int)($task['checklist_total'] ?? 0);
         $task['checklist_done'] = (int)($task['checklist_done'] ?? 0);
+
+        // Checklist edit permissions: owner, admin, or task assignee
+        $isAssignee = isset($task['assigned_to']) && (int)$task['assigned_to'] === $user_id;
+        $task['can_edit_checklist'] = $canManage || $isAdminUser || $isAssignee;
+
+        // Up to 3 preview items: unfinished first in sort_order, then done ones in sort_order
+        $items = $checklistByTask[$taskId] ?? [];
+        if (!empty($items)) {
+            $unfinished = [];
+            $done = [];
+            foreach ($items as $item) {
+                if ($item['is_done']) {
+                    $done[] = $item;
+                } else {
+                    $unfinished[] = $item;
+                }
+            }
+            $task['checklist_items'] = array_slice(array_merge($unfinished, $done), 0, 3);
+        } else {
+            $task['checklist_items'] = [];
+        }
     }
 
     echo json_encode(['success' => true, 'tasks' => $tasks]);

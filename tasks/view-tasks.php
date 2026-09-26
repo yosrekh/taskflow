@@ -47,7 +47,7 @@ if ($has006) {
 // Handle Task Actions (POST)
 $error = '';
 $success = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if (!verify_csrf($_POST['csrf_token'] ?? '')) {
         $error = "رمز التحقق غير صالح. يرجى إعادة المحاولة.";
     } elseif (isset($_POST['add_task'])) {
@@ -255,6 +255,54 @@ if ($has006) {
     }
 }
 
+// Fetch checklist items for visible tasks in ONE extra query
+$checklistByTask = [];
+if ($has006 && !empty($tasks)) {
+    $taskIds = array_column($tasks, 'id');
+    $placeholders = implode(',', array_fill(0, count($taskIds), '?'));
+    $ciStmt = $pdo->prepare("
+        SELECT id, task_id, title, is_done, sort_order 
+        FROM task_checklist_items 
+        WHERE task_id IN ({$placeholders}) 
+        ORDER BY sort_order ASC, id ASC
+    ");
+    $ciStmt->execute($taskIds);
+    while ($row = $ciStmt->fetch(PDO::FETCH_ASSOC)) {
+        $tId = (int)$row['task_id'];
+        $checklistByTask[$tId][] = [
+            'id' => (int)$row['id'],
+            'task_id' => $tId,
+            'title' => $row['title'],
+            'is_done' => (int)$row['is_done'],
+            'sort_order' => (int)$row['sort_order']
+        ];
+    }
+}
+
+$isAdminUser = is_admin();
+foreach ($tasks as &$task) {
+    $taskId = (int)$task['id'];
+    $isAssignee = isset($task['assigned_to']) && (int)$task['assigned_to'] === $user_id;
+    $task['can_edit_checklist'] = $is_project_owner || $isAdminUser || $isAssignee;
+
+    $items = $checklistByTask[$taskId] ?? [];
+    if (!empty($items)) {
+        $unfinished = [];
+        $done = [];
+        foreach ($items as $item) {
+            if ($item['is_done']) {
+                $done[] = $item;
+            } else {
+                $unfinished[] = $item;
+            }
+        }
+        $task['checklist_items'] = array_slice(array_merge($unfinished, $done), 0, 3);
+    } else {
+        $task['checklist_items'] = [];
+    }
+}
+unset($task);
+
 // Compute phase counts and visible phases for chip row
 $totalVisibleTasks = count($tasks);
 $unphasedCount = 0;
@@ -345,6 +393,49 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
         <div class="kanban-card-title"><?= htmlspecialchars($task['title']) ?></div>
         <?php if (!empty($task['description'])): ?>
             <div class="kanban-card-desc"><?= htmlspecialchars($task['description']) ?></div>
+        <?php endif; ?>
+
+        <?php if ($checklistTotal > 0): 
+            $pct = (int)round(($checklistDone / $checklistTotal) * 100);
+            $allDone = ($checklistDone === $checklistTotal);
+            $moreCount = $checklistTotal - 3;
+            $canEditChecklist = !empty($task['can_edit_checklist']);
+            $previewItems = $task['checklist_items'] ?? [];
+        ?>
+            <div class="kanban-card-checklist" data-task-id="<?= (int)$task['id'] ?>">
+                <div class="card-checklist-header">
+                    <div class="card-checklist-bar" role="progressbar" aria-valuenow="<?= $pct ?>" aria-valuemin="0" aria-valuemax="100">
+                        <div class="card-checklist-bar-fill" style="width: <?= $pct ?>%;"></div>
+                    </div>
+                    <span class="card-checklist-count"><bdi dir="ltr"><?= $checklistDone ?>/<?= $checklistTotal ?></bdi></span>
+                </div>
+                <?php if ($allDone): ?>
+                    <div class="card-checklist-all-done">
+                        <span class="all-done-icon">✓</span>
+                        <span>كل المهام الفرعية خلصت</span>
+                    </div>
+                <?php else: ?>
+                    <ul class="card-checklist-items">
+                        <?php foreach ($previewItems as $item): ?>
+                            <li class="card-checklist-item <?= $item['is_done'] ? 'is-done' : '' ?>" data-item-id="<?= (int)$item['id'] ?>">
+                                <input type="checkbox"
+                                       class="card-checklist-checkbox"
+                                       data-task-id="<?= (int)$task['id'] ?>"
+                                       data-item-id="<?= (int)$item['id'] ?>"
+                                       <?= $item['is_done'] ? 'checked' : '' ?>
+                                       <?= !$canEditChecklist ? 'disabled aria-disabled="true" tabindex="-1"' : '' ?>
+                                       aria-label="<?= htmlspecialchars($item['title'], ENT_QUOTES) ?>">
+                                <span class="card-checklist-item-title"><?= htmlspecialchars($item['title']) ?></span>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <?php if ($moreCount > 0): ?>
+                        <button type="button" class="card-checklist-more-btn" data-task-id="<?= (int)$task['id'] ?>">
+                            +<?= $moreCount ?> كمان
+                        </button>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </div>
         <?php endif; ?>
 
         <div class="kanban-card-meta">
@@ -899,6 +990,66 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
         });
 
         // Polling logic (10 seconds, pause on hidden)
+        function renderCardChecklistHtml(task) {
+            const total = parseInt(task.checklist_total || 0, 10);
+            const done = parseInt(task.checklist_done || 0, 10);
+            if (!total || total <= 0) return '';
+
+            const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+            const isAllDone = (total > 0 && done === total);
+            const canEdit = !!task.can_edit_checklist;
+            const items = task.checklist_items || [];
+            const moreCount = total > 3 ? (total - 3) : 0;
+
+            let itemsHtml = '';
+            if (isAllDone) {
+                itemsHtml = `
+                    <div class="card-checklist-all-done">
+                        <span class="all-done-icon">✓</span>
+                        <span>كل المهام الفرعية خلصت</span>
+                    </div>
+                `;
+            } else {
+                const listItems = items.map(item => `
+                    <li class="card-checklist-item ${item.is_done ? 'is-done' : ''}" data-item-id="${escapeHtml(item.id)}">
+                        <input type="checkbox"
+                               class="card-checklist-checkbox"
+                               data-task-id="${escapeHtml(task.id)}"
+                               data-item-id="${escapeHtml(item.id)}"
+                               ${item.is_done ? 'checked' : ''}
+                               ${!canEdit ? 'disabled aria-disabled="true" tabindex="-1"' : ''}
+                               aria-label="${escapeHtml(item.title)}">
+                        <span class="card-checklist-item-title">${escapeHtml(item.title)}</span>
+                    </li>
+                `).join('');
+
+                const moreBtnHtml = moreCount > 0 ? `
+                    <button type="button" class="card-checklist-more-btn" data-task-id="${escapeHtml(task.id)}">
+                        +${moreCount} كمان
+                    </button>
+                ` : '';
+
+                itemsHtml = `
+                    <ul class="card-checklist-items">
+                        ${listItems}
+                    </ul>
+                    ${moreBtnHtml}
+                `;
+            }
+
+            return `
+                <div class="kanban-card-checklist" data-task-id="${escapeHtml(task.id)}">
+                    <div class="card-checklist-header">
+                        <div class="card-checklist-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100">
+                            <div class="card-checklist-bar-fill" style="width: ${pct}%;"></div>
+                        </div>
+                        <span class="card-checklist-count"><bdi dir="ltr">${done}/${total}</bdi></span>
+                    </div>
+                    ${itemsHtml}
+                </div>
+            `;
+        }
+
         function renderCardHtml(task) {
             const todayStr = new Date().toISOString().split('T')[0];
             const isOverdue = (task.due_date && task.status !== 'Completed' && task.due_date < todayStr);
@@ -994,6 +1145,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                      aria-label="عرض تفاصيل المهمة: ${escapeHtml(task.title)}">
                     <div class="kanban-card-title">${escapeHtml(task.title)}</div>
                     ${descHtml}
+                    ${renderCardChecklistHtml(task)}
                     <div class="kanban-card-meta">
                         <span class="badge ${priorityClass}">${priorityLabel}</span>
                         ${phaseTagHtml}
@@ -1250,6 +1402,9 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
         });
 
         function pollTasks() {
+            if (window.inFlightChecklistToggles && window.inFlightChecklistToggles.size > 0) {
+                return;
+            }
             fetch(`../get-tasks.php?project_id=${projectId}`)
                 .then(res => {
                     if (res.status === 401) { window.location.href = '../login.php'; return null; }
@@ -1259,6 +1414,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                 })
                 .then(data => {
                     if (data && data.success && data.tasks) {
+                        if (window.inFlightChecklistToggles && window.inFlightChecklistToggles.size > 0) return;
                         const newJson = JSON.stringify(data.tasks);
                         if (newJson !== lastTasksJson) {
                             renderKanban(data.tasks);
@@ -1267,6 +1423,8 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                 })
                 .catch(() => {});
         }
+
+        window.pollTasks = pollTasks;
 
         let pollTimer = null;
         function start() {
@@ -1368,10 +1526,17 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
             <!-- Checklist Section -->
             <section class="task-drawer-checklist-section" aria-labelledby="drawerChecklistHeading">
                 <div class="checklist-section-header">
-                    <h3 class="task-drawer-section-title" id="drawerChecklistHeading">
-                        <span>المهام الفرعية</span>
-                        <span class="checklist-count-pill" id="drawerChecklistCount">0/0</span>
-                    </h3>
+                    <div class="checklist-header-top">
+                        <h3 class="task-drawer-section-title" id="drawerChecklistHeading">
+                            <span>المهام الفرعية</span>
+                        </h3>
+                        <div class="checklist-header-progress" id="drawerChecklistProgressWrap">
+                            <div class="checklist-progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                                <div class="checklist-progress-fill" id="drawerChecklistProgressFill" style="width: 0%;"></div>
+                            </div>
+                            <span class="checklist-count-pill" id="drawerChecklistCount">0/0</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Suggestion Banner: All items done but status != Completed -->
@@ -2067,7 +2232,25 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
         // Card Click Listener (delegated)
         document.addEventListener('click', function (e) {
             // Ignore if inside a modal
-            if (e.target.closest('#taskModal, #deleteTaskModal, #deleteCommentModal')) return;
+            if (e.target.closest('#taskModal, #deleteTaskModal, #deleteCommentModal, #phasesModal, #deletePhaseModal')) return;
+
+            // If clicked on card checklist checkbox, stopPropagation so drawer doesn't open
+            if (e.target.matches('.card-checklist-checkbox')) {
+                e.stopPropagation();
+                return;
+            }
+
+            // If clicked on '+N كمان' button, open drawer
+            if (e.target.closest('.card-checklist-more-btn')) {
+                e.stopPropagation();
+                const moreBtn = e.target.closest('.card-checklist-more-btn');
+                const taskId = moreBtn.dataset.taskId;
+                const card = moreBtn.closest('.kanban-card');
+                if (taskId) {
+                    openTaskDrawer(taskId, card);
+                }
+                return;
+            }
 
             const card = e.target.closest('.kanban-card');
             if (!card) return;
@@ -2080,6 +2263,13 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
             const taskId = card.dataset.taskId;
             if (taskId) {
                 openTaskDrawer(taskId, card);
+            }
+        });
+
+        // Card Checklist Checkbox Change Listener (delegated)
+        document.addEventListener('change', function (e) {
+            if (e.target.matches('.card-checklist-checkbox')) {
+                handleCardCheckboxToggle(e.target);
             }
         });
 
@@ -2135,11 +2325,14 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
         // ==========================================
         const drawerChecklistItems = document.getElementById('drawerChecklistItems');
         const drawerChecklistCount = document.getElementById('drawerChecklistCount');
+        const drawerChecklistProgressFill = document.getElementById('drawerChecklistProgressFill');
         const drawerAddChecklistForm = document.getElementById('drawerAddChecklistForm');
         const newChecklistTitle = document.getElementById('newChecklistTitle');
         const checklistErrorMsg = document.getElementById('checklistErrorMsg');
         const checklistDoneSuggestion = document.getElementById('checklistDoneSuggestion');
         const btnMarkTaskCompletedFromChecklist = document.getElementById('btnMarkTaskCompletedFromChecklist');
+
+        const inFlightChecklistToggles = window.inFlightChecklistToggles || (window.inFlightChecklistToggles = new Set());
 
         function updateCardChecklistBadge(taskId, total, done) {
             const card = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
@@ -2170,6 +2363,158 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
             }
         }
 
+        function updateCardChecklistUI(card, total, done, itemId, isDone) {
+            if (!card) return;
+            const taskId = card.dataset.taskId;
+            card.dataset.checklistTotal = total;
+            card.dataset.checklistDone = done;
+
+            updateCardChecklistBadge(taskId, total, done);
+
+            const preview = card.querySelector('.kanban-card-checklist');
+            if (!preview) return;
+
+            const countEl = preview.querySelector('.card-checklist-count bdi');
+            if (countEl) countEl.textContent = `${done}/${total}`;
+            const fillEl = preview.querySelector('.card-checklist-bar-fill');
+            const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+            if (fillEl) fillEl.style.width = `${pct}%`;
+            const barEl = preview.querySelector('.card-checklist-bar');
+            if (barEl) barEl.setAttribute('aria-valuenow', pct);
+
+            const allDone = (total > 0 && done === total);
+            let allDoneEl = preview.querySelector('.card-checklist-all-done');
+            let itemsUl = preview.querySelector('.card-checklist-items');
+            let moreBtn = preview.querySelector('.card-checklist-more-btn');
+
+            if (allDone) {
+                if (itemsUl) itemsUl.style.display = 'none';
+                if (moreBtn) moreBtn.style.display = 'none';
+                if (!allDoneEl) {
+                    const div = document.createElement('div');
+                    div.className = 'card-checklist-all-done';
+                    div.innerHTML = '<span class="all-done-icon">✓</span> <span>كل المهام الفرعية خلصت</span>';
+                    preview.appendChild(div);
+                } else {
+                    allDoneEl.style.display = '';
+                }
+            } else {
+                if (allDoneEl) allDoneEl.style.display = 'none';
+                if (itemsUl) itemsUl.style.display = '';
+                if (moreBtn) moreBtn.style.display = '';
+                if (itemId !== undefined && itemId !== null) {
+                    const itemLi = preview.querySelector(`.card-checklist-item[data-item-id="${itemId}"]`);
+                    if (itemLi) {
+                        itemLi.classList.toggle('is-done', !!isDone);
+                        const chk = itemLi.querySelector('.card-checklist-checkbox');
+                        if (chk) chk.checked = !!isDone;
+                    }
+                }
+            }
+        }
+
+        function handleCardCheckboxToggle(checkbox) {
+            const taskId = checkbox.dataset.taskId;
+            const itemId = parseInt(checkbox.dataset.itemId, 10);
+            if (!taskId || !itemId) return;
+
+            const card = checkbox.closest('.kanban-card');
+            if (!card) return;
+
+            const newDone = checkbox.checked ? 1 : 0;
+            const itemLi = checkbox.closest('.card-checklist-item');
+
+            const currentTotal = parseInt(card.dataset.checklistTotal || 0, 10);
+            const currentDone = parseInt(card.dataset.checklistDone || 0, 10);
+            const nextDone = newDone ? Math.min(currentTotal, currentDone + 1) : Math.max(0, currentDone - 1);
+
+            // Optimistic update on card
+            if (itemLi) {
+                itemLi.classList.toggle('is-done', !!newDone);
+            }
+            updateCardChecklistUI(card, currentTotal, nextDone, itemId, newDone);
+
+            // Optimistic sync to open drawer
+            if (currentDrawerTaskId == taskId) {
+                const drawerItem = drawerChecklistItems ? drawerChecklistItems.querySelector(`.checklist-item[data-item-id="${itemId}"]`) : null;
+                if (drawerItem) {
+                    const drawerCheck = drawerItem.querySelector('.checklist-checkbox');
+                    if (drawerCheck) drawerCheck.checked = !!newDone;
+                    drawerItem.classList.toggle('is-done', !!newDone);
+                }
+                if (drawerChecklistCount) drawerChecklistCount.textContent = `${nextDone}/${currentTotal}`;
+                if (drawerChecklistProgressFill) {
+                    const pct = currentTotal > 0 ? Math.round((nextDone / currentTotal) * 100) : 0;
+                    drawerChecklistProgressFill.style.width = `${pct}%`;
+                    if (drawerChecklistProgressFill.parentElement) {
+                        drawerChecklistProgressFill.parentElement.setAttribute('aria-valuenow', pct);
+                    }
+                }
+                if (checklistDoneSuggestion) {
+                    const currentStatus = card.dataset.status;
+                    if (currentTotal > 0 && nextDone === currentTotal && currentStatus !== 'Completed') {
+                        checklistDoneSuggestion.hidden = false;
+                    } else {
+                        checklistDoneSuggestion.hidden = true;
+                    }
+                }
+            }
+
+            inFlightChecklistToggles.add(itemId);
+
+            fetch('../task-checklist.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                body: JSON.stringify({ action: 'toggle', item_id: itemId, csrf_token: csrfToken })
+            })
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error('HTTP ' + res.status);
+                }
+                return res.json();
+            })
+            .then(data => {
+                inFlightChecklistToggles.delete(itemId);
+                if (data && data.success) {
+                    updateCardChecklistUI(card, data.total, data.done, itemId, data.is_done);
+                    if (currentDrawerTaskId == taskId) {
+                        fetchChecklist(taskId);
+                    }
+                } else {
+                    revertToggle();
+                    if (typeof showToast === 'function') {
+                        showToast(data && data.message ? data.message : 'فشل في تحديث المهمة الفرعية', 'error');
+                    }
+                }
+            })
+            .catch(() => {
+                inFlightChecklistToggles.delete(itemId);
+                revertToggle();
+                if (typeof showToast === 'function') {
+                    showToast('فشل في الاتصال بالخادم', 'error');
+                }
+            });
+
+            function revertToggle() {
+                checkbox.checked = !newDone;
+                if (itemLi) itemLi.classList.toggle('is-done', !newDone);
+                updateCardChecklistUI(card, currentTotal, currentDone, itemId, !newDone);
+                if (currentDrawerTaskId == taskId) {
+                    const drawerItem = drawerChecklistItems ? drawerChecklistItems.querySelector(`.checklist-item[data-item-id="${itemId}"]`) : null;
+                    if (drawerItem) {
+                        const drawerCheck = drawerItem.querySelector('.checklist-checkbox');
+                        if (drawerCheck) drawerCheck.checked = !newDone;
+                        drawerItem.classList.toggle('is-done', !newDone);
+                    }
+                    if (drawerChecklistCount) drawerChecklistCount.textContent = `${currentDone}/${currentTotal}`;
+                    if (drawerChecklistProgressFill) {
+                        const pct = currentTotal > 0 ? Math.round((currentDone / currentTotal) * 100) : 0;
+                        drawerChecklistProgressFill.style.width = `${pct}%`;
+                    }
+                }
+            }
+        }
+
         function fetchChecklist(taskId) {
             if (!taskId || !drawerChecklistItems) return;
             drawerChecklistItems.innerHTML = '<div style="padding:8px 0;color:var(--text-muted);font-size:var(--font-size-sm);">جارٍ التحميل...</div>';
@@ -2197,15 +2542,26 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                 drawerChecklistCount.textContent = `${done}/${total}`;
             }
 
+            if (drawerChecklistProgressFill) {
+                const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+                drawerChecklistProgressFill.style.width = `${pct}%`;
+                if (drawerChecklistProgressFill.parentElement) {
+                    drawerChecklistProgressFill.parentElement.setAttribute('aria-valuenow', pct);
+                }
+            }
+
             if (drawerAddChecklistForm) {
                 drawerAddChecklistForm.hidden = !canEdit;
             }
 
-            // Update card badge on the board
+            // Update card preview and badge on the board
             updateCardChecklistBadge(currentDrawerTaskId, total, done);
+            const card = document.querySelector(`.kanban-card[data-task-id="${currentDrawerTaskId}"]`);
+            if (card) {
+                updateCardChecklistUI(card, total, done);
+            }
 
             // Suggestion banner when all items done and task not completed
-            const card = document.querySelector(`.kanban-card[data-task-id="${currentDrawerTaskId}"]`);
             const currentStatus = card ? card.dataset.status : (document.getElementById('drawerTaskStatus') ? document.getElementById('drawerTaskStatus').textContent.trim() : '');
             if (checklistDoneSuggestion) {
                 if (total > 0 && done === total && currentStatus !== 'Completed' && currentStatus !== 'مكتملة') {
@@ -2216,7 +2572,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
             }
 
             if (items.length === 0) {
-                drawerChecklistItems.innerHTML = '<div class="comments-empty-placeholder">لا توجد مهام فرعية بعد.</div>';
+                drawerChecklistItems.innerHTML = '<div class="checklist-empty-placeholder">مفيش مهام فرعية لسه</div>';
                 return;
             }
 
@@ -2226,15 +2582,15 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                 itemEl.dataset.itemId = item.id;
                 itemEl.setAttribute('role', 'listitem');
 
-                // Checkbox
-                const checkBtn = document.createElement('button');
-                checkBtn.type = 'button';
-                checkBtn.className = 'checklist-checkbox' + (item.is_done ? ' is-checked' : '');
-                checkBtn.setAttribute('aria-label', item.is_done ? 'تحديد كغير مكتملة' : 'تحديد كمكتملة');
-                checkBtn.disabled = !canEdit;
-                checkBtn.innerHTML = item.is_done ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>' : '';
-                checkBtn.addEventListener('click', () => toggleChecklistItem(item.id));
-                itemEl.appendChild(checkBtn);
+                // Real input checkbox
+                const checkInput = document.createElement('input');
+                checkInput.type = 'checkbox';
+                checkInput.className = 'checklist-checkbox';
+                checkInput.checked = !!item.is_done;
+                checkInput.disabled = !canEdit;
+                checkInput.setAttribute('aria-label', item.is_done ? 'تحديد كغير مكتملة' : 'تحديد كمكتملة');
+                checkInput.addEventListener('change', () => toggleDrawerChecklistItem(item.id, checkInput));
+                itemEl.appendChild(checkInput);
 
                 // Title rendered with textContent only
                 const titleSpan = document.createElement('span');
@@ -2274,7 +2630,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                     editBtn.className = 'btn-icon btn-sm';
                     editBtn.title = 'تعديل';
                     editBtn.setAttribute('aria-label', 'تعديل المهمة الفرعية');
-                    editBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
+                    editBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
                     editBtn.addEventListener('click', () => startEditChecklistItem(itemEl, item));
                     actionsEl.appendChild(editBtn);
 
@@ -2283,7 +2639,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                     delBtn.className = 'btn-icon btn-icon-danger btn-sm';
                     delBtn.title = 'حذف';
                     delBtn.setAttribute('aria-label', 'حذف المهمة الفرعية');
-                    delBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+                    delBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
                     delBtn.addEventListener('click', () => deleteChecklistItem(item.id));
                     actionsEl.appendChild(delBtn);
 
@@ -2294,18 +2650,69 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
             });
         }
 
-        function toggleChecklistItem(itemId) {
+        function toggleDrawerChecklistItem(itemId, checkbox) {
+            const newDone = checkbox.checked ? 1 : 0;
+            const itemEl = checkbox.closest('.checklist-item');
+            if (itemEl) itemEl.classList.toggle('is-done', !!newDone);
+
+            const card = document.querySelector(`.kanban-card[data-task-id="${currentDrawerTaskId}"]`);
+            const currentTotal = card ? parseInt(card.dataset.checklistTotal || 0, 10) : 0;
+            const currentDone = card ? parseInt(card.dataset.checklistDone || 0, 10) : 0;
+            const nextDone = newDone ? Math.min(currentTotal, currentDone + 1) : Math.max(0, currentDone - 1);
+
+            // Optimistic update in drawer
+            if (drawerChecklistCount) drawerChecklistCount.textContent = `${nextDone}/${currentTotal}`;
+            if (drawerChecklistProgressFill) {
+                const pct = currentTotal > 0 ? Math.round((nextDone / currentTotal) * 100) : 0;
+                drawerChecklistProgressFill.style.width = `${pct}%`;
+            }
+
+            // Sync to card
+            if (card) {
+                updateCardChecklistUI(card, currentTotal, nextDone, itemId, newDone);
+            }
+
+            inFlightChecklistToggles.add(itemId);
+
             fetch('../task-checklist.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
                 body: JSON.stringify({ action: 'toggle', item_id: itemId, csrf_token: csrfToken })
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+            })
             .then(data => {
-                if (data.success) {
+                inFlightChecklistToggles.delete(itemId);
+                if (data && data.success) {
+                    if (card) updateCardChecklistUI(card, data.total, data.done, itemId, data.is_done);
                     fetchChecklist(currentDrawerTaskId);
+                } else {
+                    revertDrawerToggle();
+                    if (typeof showToast === 'function') {
+                        showToast(data && data.message ? data.message : 'فشل في تحديث المهمة الفرعية', 'error');
+                    }
+                }
+            })
+            .catch(() => {
+                inFlightChecklistToggles.delete(itemId);
+                revertDrawerToggle();
+                if (typeof showToast === 'function') {
+                    showToast('فشل في الاتصال بالخادم', 'error');
                 }
             });
+
+            function revertDrawerToggle() {
+                checkbox.checked = !newDone;
+                if (itemEl) itemEl.classList.toggle('is-done', !newDone);
+                if (card) updateCardChecklistUI(card, currentTotal, currentDone, itemId, !newDone);
+                if (drawerChecklistCount) drawerChecklistCount.textContent = `${currentDone}/${currentTotal}`;
+                if (drawerChecklistProgressFill) {
+                    const pct = currentTotal > 0 ? Math.round((currentDone / currentTotal) * 100) : 0;
+                    drawerChecklistProgressFill.style.width = `${pct}%`;
+                }
+            }
         }
 
         function startEditChecklistItem(itemEl, item) {
@@ -2316,40 +2723,30 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
             const originalTitle = item.title;
             const input = document.createElement('input');
             input.type = 'text';
-            input.className = 'form-control form-control-sm';
+            input.className = 'form-control checklist-inline-edit-input';
             input.maxLength = 200;
             input.value = originalTitle;
-            input.style.flex = '1';
 
-            const saveBtn = document.createElement('button');
-            saveBtn.type = 'button';
-            saveBtn.className = 'btn btn-primary btn-sm';
-            saveBtn.textContent = 'حفظ';
-
-            const cancelBtn = document.createElement('button');
-            cancelBtn.type = 'button';
-            cancelBtn.className = 'btn btn-secondary btn-sm';
-            cancelBtn.textContent = 'إلغاء';
-
-            const editWrap = document.createElement('div');
-            editWrap.style.display = 'flex';
-            editWrap.style.alignItems = 'center';
-            editWrap.style.gap = '4px';
-            editWrap.style.flex = '1';
-            editWrap.appendChild(input);
-            editWrap.appendChild(saveBtn);
-            editWrap.appendChild(cancelBtn);
-
-            titleSpan.replaceWith(editWrap);
+            titleSpan.replaceWith(input);
             if (actionsEl) actionsEl.style.display = 'none';
 
+            let isDone = false;
+
+            function cancel() {
+                if (isDone) return;
+                isDone = true;
+                input.replaceWith(titleSpan);
+                if (actionsEl) actionsEl.style.display = '';
+            }
+
             function doSave() {
+                if (isDone) return;
                 const val = input.value.trim();
                 if (!val || val === originalTitle) {
-                    editWrap.replaceWith(titleSpan);
-                    if (actionsEl) actionsEl.style.display = '';
+                    cancel();
                     return;
                 }
+                isDone = true;
                 fetch('../task-checklist.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
@@ -2357,26 +2754,40 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                 })
                 .then(res => res.json())
                 .then(data => {
-                    if (data.success) {
-                        fetchChecklist(currentDrawerTaskId);
-                    } else {
-                        alert(data.message || 'فشل في تعديل المهمة الفرعية');
-                        editWrap.replaceWith(titleSpan);
+                    if (data && data.success) {
+                        item.title = val;
+                        titleSpan.textContent = val;
+                        input.replaceWith(titleSpan);
                         if (actionsEl) actionsEl.style.display = '';
+                        const cardItemTitle = document.querySelector(`.card-checklist-item[data-item-id="${item.id}"] .card-checklist-item-title`);
+                        if (cardItemTitle) cardItemTitle.textContent = val;
+                    } else {
+                        if (typeof showToast === 'function') {
+                            showToast(data && data.message ? data.message : 'فشل في تعديل المهمة الفرعية', 'error');
+                        }
+                        cancel();
                     }
+                })
+                .catch(() => {
+                    if (typeof showToast === 'function') {
+                        showToast('فشل في الاتصال بالخادم', 'error');
+                    }
+                    cancel();
                 });
             }
 
-            saveBtn.addEventListener('click', doSave);
-            cancelBtn.addEventListener('click', () => {
-                editWrap.replaceWith(titleSpan);
-                if (actionsEl) actionsEl.style.display = '';
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    doSave();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancel();
+                }
             });
-            input.addEventListener('keydown', e => {
-                if (e.key === 'Enter') { e.preventDefault(); doSave(); }
-                if (e.key === 'Escape') { e.preventDefault(); editWrap.replaceWith(titleSpan); if (actionsEl) actionsEl.style.display = ''; }
-            });
+
             input.focus();
+            input.select();
         }
 
         function deleteChecklistItem(itemId) {
@@ -2389,6 +2800,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
             .then(data => {
                 if (data.success) {
                     fetchChecklist(currentDrawerTaskId);
+                    if (window.pollTasks) window.pollTasks();
                 }
             });
         }
@@ -2409,6 +2821,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
             .then(data => {
                 if (data.success) {
                     fetchChecklist(currentDrawerTaskId);
+                    if (window.pollTasks) window.pollTasks();
                 }
             });
         }
@@ -2430,6 +2843,7 @@ function render_kanban_card($task, $is_project_owner, $project_id, $pdo, $user_i
                         newChecklistTitle.value = '';
                         if (checklistErrorMsg) { checklistErrorMsg.textContent = ''; checklistErrorMsg.hidden = true; }
                         fetchChecklist(currentDrawerTaskId);
+                        if (window.pollTasks) window.pollTasks();
                     } else {
                         if (checklistErrorMsg) {
                             checklistErrorMsg.textContent = data.message || 'فشل في إضافة المهمة الفرعية';
